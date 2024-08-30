@@ -1,7 +1,9 @@
+import geopandas as gpd
 import geopy as gp
 import logging
 import matplotlib.pyplot as plt
 import pandas as pd
+from shapely.geometry import Point, LineString
 
 logging.basicConfig(level=logging.INFO)
 
@@ -45,8 +47,26 @@ def create_power_bi_row(row):
 
 
 power_bi_df = vcc_df.apply(create_power_bi_row, axis=1)
-power_bi_df.to_csv("C:/Users/austisnyder/programming/programming_i_o_files/vcc_lines_power_bi.csv")
+line_color = 'red'
 
+gdf = gpd.GeoDataFrame(power_bi_df, geometry=power_bi_df.apply(
+    lambda row: LineString([(row['longitude_from'], row['latitude_from']),
+                            (row['longitude_to'], row['latitude_to'])]), axis=1
+))
 
+# Define a color map
+norm = plt.Normalize(vmin=power_bi_df['Count'].min(), vmax=power_bi_df['Count'].max())
+cmap = plt.get_cmap('autumn')
+
+# Plot
+world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
+ax = world.plot(figsize=(10, 10), color='white', edgecolor='black')
+
+for idx, row in gdf.iterrows():
+    color = cmap(norm(row['Count']))
+    x, y = row['geometry'].xy
+    ax.plot(x, y, color=color, linewidth=1.5)
+
+plt.show()
 
 
