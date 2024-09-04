@@ -29,9 +29,11 @@ def group_by_origin(row, origins_data: dict):
         origins_data[origin].append(destination)
 
 
-def plot_line(origin: str, outpatient: str, city_coords: dict):
-    from_lat, from_lon = city_coords[origin]
-    to_lat, to_lon = city_coords[outpatient]
+def plot_line(ax, plt_map, origin: str, outpatient: str, city_coords: dict, color: str):
+    from_lat, from_lon = plt_map(city_coords[origin])
+    to_lat, to_lon = plt_map(city_coords[outpatient])
+
+    ax.plot([to_lon, from_lon], [to_lat, from_lat], color=color, linestyle='-')
 
 
 def create_map(vcc_file_path: str, sheet_name: str = None, specialties: list[str] = None):
@@ -65,23 +67,16 @@ def create_map(vcc_file_path: str, sheet_name: str = None, specialties: list[str
     iowa_map.drawstates()
     iowa_map.drawcounties(linewidth=0.04)
 
-    to_lons, to_lats = iowa_map(list(df['to_lon']), list(df['to_lat']))
-    from_lons, from_lats = iowa_map(list(df['origin_lon']), list(df['origin_lat']))
-
     colors = ['firebrick', 'green', 'teal', 'royalblue', 'purple', 'olive', 'sienna', 'slategrey', 'navy', 'orange',
               'limegreen', 'brown', 'crimson']
     for i, (origin, outpatients) in enumerate(origins.items()):
-        color = colors[i]
         for outpatient in outpatients:
-            plot_line(origin, outpatient, city_coords, )
-
-    for to_lon, to_lat, from_lon, from_lat in zip(to_lons, to_lats, from_lons, from_lats):
-        ax.plot([to_lon, from_lon], [to_lat, from_lat], color='blue', linestyle='-')
+            plot_line(ax, origin, outpatient, city_coords, colors[i])
 
     for city, coord in city_coords.items():
         lon, lat = iowa_map(coord['longitude'], coord['latitude'])
         city_name = city.replace(', IA', '')
-        plt.text(lon, lat, city_name, fontsize=7, ha='center', color='blue')
+        plt.text(lon, lat, city_name, fontsize=7, ha='right', va='top', color='blue')
 
     plt.show()
 
