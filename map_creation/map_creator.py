@@ -2,6 +2,7 @@ import itertools
 import logging
 import math
 import matplotlib
+import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from matplotlib import text
 from mpl_toolkits import basemap
@@ -14,7 +15,9 @@ from shapely.geometry import Polygon, box
 
 logging.basicConfig(level=logging.INFO)
 
-linewidth = 2
+global_linewidth = 2
+global_scatter_size = 50
+text_box_search_radius = 1000
 
 # Note that the 1 linewidth is how far the border of the line extends to ONE SIDE. So it increases by x units in both
 # directions per 1 linewidth
@@ -59,13 +62,16 @@ def plot_points(ax, origin: str, outpatient: str, city_coords: dict, origin_and_
 
     origin_marker = "D" if origin in origin_and_outpatient else "s"
     outpatient_marker = "D" if outpatient in origin_and_outpatient else "o"
-    scatter_origin = ax.scatter(from_lon, from_lat, marker=origin_marker, color='red', s=50, label='Origin')
-    scatter_outpatient = ax.scatter(to_lon, to_lat, marker=outpatient_marker, color='blue', s=50, label='Outpatient')
+    scatter_origin = ax.scatter(from_lon, from_lat, marker=origin_marker, color='red', s=global_scatter_size,
+                                label='Origin')
+    scatter_outpatient = ax.scatter(to_lon, to_lat, marker=outpatient_marker, color='blue', s=global_scatter_size,
+                                    label='Outpatient')
 
     return {
         'origin': scatter_origin,
         'outpatient': scatter_outpatient
     }
+
 
 def bboxes_overlap(bbox1, bbox2) -> bool:
     (xmin_1, ymin_1), (xmax_1, ymax_1) = bbox1
@@ -88,7 +94,7 @@ def plot_line(ax, origin: str, outpatient: str, city_coords: dict, color: str) -
     to_lat = city_coords[outpatient]['latitude']
     to_lon = city_coords[outpatient]['longitude']
 
-    lines = ax.plot([to_lon, from_lon], [to_lat, from_lat], color=color, linestyle='-', linewidth=linewidth)
+    lines = ax.plot([to_lon, from_lon], [to_lat, from_lat], color=color, linestyle='-', linewidth=global_linewidth)
     line = lines[0]
 
     return line
@@ -121,8 +127,8 @@ def create_line_polygon(line: plt.Line2D) -> Polygon:
 
     poly_coords = []
     for coord in [line_coord_0, line_coord_1]:
-        new_coord_0 = move_coordinate(coord[0], coord[1], slope=perpendicular_slope, distance=line_width/2)
-        new_coord_1 = move_coordinate(coord[0], coord[1], slope=-perpendicular_slope, distance=line_width/2)
+        new_coord_0 = move_coordinate(coord[0], coord[1], slope=perpendicular_slope, distance=line_width / 2)
+        new_coord_1 = move_coordinate(coord[0], coord[1], slope=-perpendicular_slope, distance=line_width / 2)
         poly_coords.append(new_coord_0)
         poly_coords.append(new_coord_1)
 
@@ -164,23 +170,24 @@ def create_polygon_from_points(points):
     raise ValueError("Could not form a valid polygon with the given points.")
 
 
-def find_available_polygon_around_point(search_polygon, search_radius, rtree_idx, polygons, search_steps=100) -> Polygon:
+def find_available_polygon_around_point(search_polygon, search_radius, rtree_idx, polygons,
+                                        search_steps=100) -> Polygon:
     search_poly_center = search_polygon.centroid
     search_poly_min_x, search_poly_min_y, search_poly_max_x, search_poly_max_y = search_polygon.bounds
     search_poly_x_len = search_poly_max_x - search_poly_min_x
     search_poly_y_len = search_poly_max_y - search_poly_min_y
 
     search_area = box(
-        search_poly_center[0] - search_radius,
-        search_poly_center[1] - search_radius,
-        search_poly_center[0] + search_radius,
-        search_poly_center[1] + search_radius
+        search_poly_center.x - search_radius,
+        search_poly_center.y - search_radius,
+        search_poly_center.x + search_radius,
+        search_poly_center.y + search_radius
     )
     search_area_min_x, search_area_min_y, search_area_max_x, search_area_max_y = search_area.bounds
-    
+
     search_area_left_x_coords = (search_area_min_x, search_area_min_x + search_poly_x_len)
     search_area_right_x_coords = (search_area_max_x - search_poly_x_len, search_area_max_x)
-    
+
     search_area_bottom_y_coords = (search_area_min_y, search_area_min_y + search_poly_y_len)
     search_area_top_y_coords = (search_area_max_y - search_poly_y_len, search_area_max_y)
 
@@ -207,6 +214,7 @@ def find_available_polygon_around_point(search_polygon, search_radius, rtree_idx
                                                   rtree_idx=rtree_idx,
                                                   polygons=polygons)
         if len(intersections) == 0:
+            logging.info(f"\t\tFound space for poly.")
             return poly
 
         if len(intersections) < best_poly_intersections:
@@ -232,12 +240,14 @@ def find_available_polygon_around_point(search_polygon, search_radius, rtree_idx
                                                       rtree_idx=rtree_idx,
                                                       polygons=polygons)
             if len(intersections) == 0:
+                logging.info(f"\t\tFound space for poly.")
                 return poly
 
             if len(intersections) < best_poly_intersections:
                 best_poly = poly
 
     # If we can't find any polygons with 0 intersections, then just return the one with the least number
+    logging.info(f"\t\tCould not find space for poly.")
     return best_poly
 
 
@@ -248,6 +258,33 @@ def is_dark_color(hex_color):
     brightness = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2])
     # A threshold to determine what counts as a "light" color
     return brightness < 0.7
+
+
+polygons = {}
+poly_idx = 0
+rtree_idx = index.Index()
+
+
+def add_polygon_to_rtree(poly: Polygon):
+    global poly_idx
+    global rtree_idx
+    rtree_idx.insert(poly_idx, poly.bounds, obj=poly)
+    polygons[poly_idx] = poly
+    poly_idx += 1
+
+
+def add_polygon_to_axis(ax_rtree, fig_rtree, fig_main, poly: Polygon):
+    polygon_coords = list(poly.exterior.coords)
+    # Create a Polygon patch
+    polygon_patch = patches.Polygon(polygon_coords, closed=True, fill=True, edgecolor='blue', facecolor='cyan')
+
+    # Add the polygon patch to the axis
+    ax_rtree.add_patch(polygon_patch)
+
+    # Show plot
+    plt.figure(fig_rtree.number)
+    plt.show()
+    plt.figure(fig_main.number)
 
 
 def create_map(vcc_file_name: str, sheet_name: str = None, specialties: list[str] = None):
@@ -263,15 +300,28 @@ def create_map(vcc_file_name: str, sheet_name: str = None, specialties: list[str
     if specialties:
         df = dataset[dataset['specialty'].isin(specialties)]
 
-    fig, ax = plt.subplots(figsize=(12, 8))
+    fig_main, ax_main = plt.subplots(figsize=(12, 8))
+    ax_main.set_title("Main")
     iowa_map = basemap.Basemap(projection='lcc', resolution='i',
                                lat_0=41.5, lon_0=-93.5,  # Central latitude and longitude
                                llcrnrlon=-97, llcrnrlat=40,  # Lower-left corner
                                urcrnrlon=-89, urcrnrlat=44,  # Upper-right corner
-                               ax=ax)
+                               ax=ax_main)
     iowa_map.drawstates()
     iowa_map.drawcounties(linewidth=0.04)
     logging.info("Created base Iowa map.")
+
+    fig_rtree, ax_rtree = plt.subplots(figsize=(12, 8))
+    ax_rtree.set_title("Rtree Polygons")
+    iowa_map = basemap.Basemap(projection='lcc', resolution='i',
+                               lat_0=41.5, lon_0=-93.5,  # Central latitude and longitude
+                               llcrnrlon=-97, llcrnrlat=40,  # Lower-left corner
+                               urcrnrlon=-89, urcrnrlat=44,  # Upper-right corner
+                               ax=ax_rtree)
+    iowa_map.drawstates()
+    iowa_map.drawcounties(linewidth=0.04)
+
+    plt.figure(fig_main)
 
     city_coords = {}
     df.apply(add_city_gpd_coord, city_coords=city_coords, plt_map=iowa_map, axis=1)
@@ -292,49 +342,70 @@ def create_map(vcc_file_name: str, sheet_name: str = None, specialties: list[str
     colors = [color for color, hex_value in all_colors.items() if is_dark_color(hex_value)]
 
     logging.info("Plotting lines.")
-    rtree_idx = index.Index()
+
     lines = []
     for i, (origin, outpatients) in enumerate(origins.items()):
         for outpatient in outpatients:
-            new_line = plot_line(ax, origin, outpatient, city_coords, colors[i])
+            new_line = plot_line(ax=ax_main, origin=origin, outpatient=outpatient, city_coords=city_coords, color=colors[i])
             lines.append(new_line)
     logging.info("\tPlotted lines.")
 
     logging.info("Creating line polygons.")
-    for i, line in enumerate(lines):
+    for line in lines:
         poly = create_line_polygon(line=line)
-        bbox = 
-        rtree_idx.insert(i, poly)
+        add_polygon_to_rtree(poly=poly)
+        add_polygon_to_axis(ax=ax_main, poly=poly)
     logging.info("\tCreated line polygons and inserted into rtree.")
 
     logging.info("Plotting points.")
     points = []
     for origin, outpatients in origins.items():
         for outpatient in outpatients:
-            new_points_dict = plot_points(ax, origin, outpatient, city_coords, origin_and_outpatient)
+            new_points_dict = plot_points(ax_main, origin, outpatient, city_coords, origin_and_outpatient)
             points.append(new_points_dict['origin'])
             points.append(new_points_dict['outpatient'])
     logging.info("\tPlotted points.")
 
-    logging.info("Creating points.")
+    logging.info("Creating points polys.")
     for i, point in enumerate(points):
-        point_size = point.s
-        units_radius = point_size * units_per_1_scatter_size
+        units_radius = global_scatter_size * units_per_1_scatter_size
         x = point.get_offsets()[:, 0]
         y = point.get_offsets()[:, 0]
         poly = create_circle_polygon(center=(x, y), radius=units_radius)
-        rtree_idx.insert(i, poly)
+        add_polygon_to_axis(ax=ax_main, poly=poly)
+        add_polygon_to_rtree(poly=poly)
     logging.info("\tCreated point polygons and inserted into rtree.")
 
+    num_cities = len(city_coords.values())
     logging.info("Creating city text.")
-    for city, coord in city_coords.items():
+    for i, (city, coord) in enumerate(city_coords.items()):
+        logging.info(f"\tCreating city text box for {city}.\n\t\t{i} of {num_cities}")
         lon, lat = coord['longitude'], coord['latitude']
         city_name = city.replace(', IA', '')
-        city_text = text.Text(lon, lat, city_name, fontsize=7, font='Tahoma', ha='right', va='top', color='black', fontweight='semibold')
-        bbox = city_text.get_bbox_patch()
-        plt.text(city_text)
+        city_text = plt.text(lon, lat, city_name, fontsize=7, font='Tahoma', ha='center', va='center', color='black',
+                             fontweight='semibold')
+        fig_main.canvas.draw()
+        bbox = city_text.get_window_extent(renderer=fig_main.canvas.get_renderer())
+        bbox_coords = bbox.bounds
+        inv = ax_main.transData.inverted()
+        text_coords = inv.transform(bbox_coords)
+        polygon_coords = [
+            (text_coords[0], text_coords[1]),  # Bottom-left
+            (text_coords[0] + text_coords[2], text_coords[1]),  # Bottom-right
+            (text_coords[0] + text_coords[2], text_coords[1] + text_coords[3]),  # Top-right
+            (text_coords[0], text_coords[1] + text_coords[3]),  # Top-left
+        ]
+        poly = Polygon(polygon_coords)
+        if not poly.is_valid:
+            raise ValueError("Invalid polygon created from text.")
+        available_poly = find_available_polygon_around_point(search_polygon=poly,
+                                                             search_radius=text_box_search_radius,
+                                                             rtree_idx=rtree_idx,
+                                                             polygons=polygons,
+                                                             search_steps=100)
+        city_text.set_x(available_poly.centroid.x)
+        city_text.set_y(available_poly.centroid.y )
+        add_polygon_to_rtree(poly=available_poly)
     logging.info("\tCreated city text.")
 
     plt.show()
-
-
