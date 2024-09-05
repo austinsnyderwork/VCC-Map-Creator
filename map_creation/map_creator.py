@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO)
 
 global_linewidth = 2
 global_scatter_size = 50
-text_box_search_radius = 1000
+text_box_search_radius = 250
 
 # Note that the 1 linewidth is how far the border of the line extends to ONE SIDE. So it increases by x units in both
 # directions per 1 linewidth
@@ -421,16 +421,17 @@ def create_map(vcc_file_name: str, sheet_name: str = None, specialties: list[str
         city_text = plt.text(lon, lat, city_name, fontsize=7, font='Tahoma', ha='center', va='center', color='black',
                              fontweight='semibold')
         fig_main.canvas.draw()
-        bbox = city_text.get_window_extent(renderer=fig_main.canvas.get_renderer())
-        min_x, min_y, width, height = bbox.bounds
-        inv = ax_main.transData.inverted()
-        text_coords = inv.transform(bbox_coords)
-        text_coords = resize_rectangle(min_x=text_coords[0], min_y=text_coords[1], max_x=text_coords[2], max_y=text_coords[3], factor=2)
+        text_bbox = city_text.get_window_extent(renderer=fig_main.canvas.get_renderer())
+        inv = ax_rtree.transData.inverted()
+        text_bbox_data = inv.transform_bbox(text_bbox)
+        min_x, min_y = text_bbox_data.xmin, text_bbox_data.ymin
+        max_x, max_y = text_bbox_data.xmax, text_bbox_data.ymax
+        # min_x, min_y, max_x, max_y = resize_rectangle(min_x=min_x, min_y=min_y, max_x=max_x, max_y=max_y, factor=2)
         polygon_coords = [
-            (text_coords[0], text_coords[1]),  # Bottom-left
-            (text_coords[0] + text_coords[2], text_coords[1]),  # Bottom-right
-            (text_coords[0] + text_coords[2], text_coords[1] + text_coords[3]),  # Top-right
-            (text_coords[0], text_coords[1] + text_coords[3]),  # Top-left
+            (min_x, min_y),  # Bottom-left
+            (max_x, min_y),  # Bottom-right
+            (max_x, max_y),  # Top-right
+            (min_x, max_y)   # Top-left
         ]
         poly = Polygon(polygon_coords)
         if not poly.is_valid:
