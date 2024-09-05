@@ -23,7 +23,7 @@ text_box_search_radius = 1000
 # directions per 1 linewidth
 units_per_1_linewidth = 675.0
 
-units_per_1_scatter_size = 7.75
+units_radius_per_1_scatter_size = 50
 
 
 def add_city_gpd_coord(row, plt_map, city_coords):
@@ -68,8 +68,8 @@ def plot_points(ax, origin: str, outpatient: str, city_coords: dict, origin_and_
                                     label='Outpatient')
 
     return {
-        'origin': scatter_origin,
-        'outpatient': scatter_outpatient
+        'origin': (from_lon, from_lat),
+        'outpatient': (to_lon, to_lat)
     }
 
 
@@ -273,18 +273,56 @@ def add_polygon_to_rtree(poly: Polygon):
     poly_idx += 1
 
 
-def add_polygon_to_axis(ax_rtree, fig_rtree, fig_main, poly: Polygon):
+def add_polygon_to_axis(ax_rtree, fig_rtree, fig_main, poly: Polygon, show=True):
+    # Get polygon coordinates
     polygon_coords = list(poly.exterior.coords)
+
     # Create a Polygon patch
     polygon_patch = patches.Polygon(polygon_coords, closed=True, fill=True, edgecolor='blue', facecolor='cyan')
 
     # Add the polygon patch to the axis
     ax_rtree.add_patch(polygon_patch)
 
-    # Show plot
+    # Ensure the correct figure is active
     plt.figure(fig_rtree.number)
-    plt.show()
+
+    # Set axis limits
+    x_coords, y_coords = zip(*polygon_coords)
+    ax_rtree.set_xlim(min(x_coords) - 200000, max(x_coords) + 200000)
+    ax_rtree.set_ylim(min(y_coords) - 200000, max(y_coords) + 200000)
+
+    # Redraw the figure to update the display
+    fig_rtree.canvas.draw()
+
+    if show:
+        # Show only the rtree figure
+        plt.show(block=False)
+
+        plt.pause(0.1)
+
     plt.figure(fig_main.number)
+
+
+def resize_rectangle(min_x, min_y, max_x, max_y, factor):
+    # Calculate the center of the original rectangle
+    center_x = (min_x + max_x) / 2
+    center_y = (min_y + max_y) / 2
+
+    # Calculate the original width and height
+    original_width = max_x - min_x
+    original_height = max_y - min_y
+
+    # Calculate new width and height based on the given factor
+    new_width = original_width / factor
+    new_height = original_height / factor
+
+    # Calculate new min and max coordinates
+    new_min_x = center_x - new_width / 2
+    new_max_x = center_x + new_width / 2
+    new_min_y = center_y - new_height / 2
+    new_max_y = center_y + new_height / 2
+
+    return new_min_x, new_min_y, new_max_x, new_max_y
 
 
 def create_map(vcc_file_name: str, sheet_name: str = None, specialties: list[str] = None):
@@ -354,25 +392,23 @@ def create_map(vcc_file_name: str, sheet_name: str = None, specialties: list[str
     for line in lines:
         poly = create_line_polygon(line=line)
         add_polygon_to_rtree(poly=poly)
-        add_polygon_to_axis(ax=ax_main, poly=poly)
+        add_polygon_to_axis(ax_rtree=ax_rtree, fig_rtree=fig_rtree, fig_main=fig_main, poly=poly, show=False)
     logging.info("\tCreated line polygons and inserted into rtree.")
 
     logging.info("Plotting points.")
-    points = []
+    point_coords = []
     for origin, outpatients in origins.items():
         for outpatient in outpatients:
             new_points_dict = plot_points(ax_main, origin, outpatient, city_coords, origin_and_outpatient)
-            points.append(new_points_dict['origin'])
-            points.append(new_points_dict['outpatient'])
+            point_coords.append(new_points_dict['origin'])
+            point_coords.append(new_points_dict['outpatient'])
     logging.info("\tPlotted points.")
 
     logging.info("Creating points polys.")
-    for i, point in enumerate(points):
-        units_radius = global_scatter_size * units_per_1_scatter_size
-        x = point.get_offsets()[:, 0]
-        y = point.get_offsets()[:, 0]
-        poly = create_circle_polygon(center=(x, y), radius=units_radius)
-        add_polygon_to_axis(ax=ax_main, poly=poly)
+    for i, point_coord in enumerate(point_coords):
+        units_radius = global_scatter_size * units_radius_per_1_scatter_size
+        poly = create_circle_polygon(center=point_coord, radius=units_radius)
+        add_polygon_to_axis(ax_rtree=ax_rtree, fig_rtree=fig_rtree, fig_main=fig_main, poly=poly, show=False)
         add_polygon_to_rtree(poly=poly)
     logging.info("\tCreated point polygons and inserted into rtree.")
 
@@ -386,9 +422,10 @@ def create_map(vcc_file_name: str, sheet_name: str = None, specialties: list[str
                              fontweight='semibold')
         fig_main.canvas.draw()
         bbox = city_text.get_window_extent(renderer=fig_main.canvas.get_renderer())
-        bbox_coords = bbox.bounds
+        min_x, min_y, width, height = bbox.bounds
         inv = ax_main.transData.inverted()
         text_coords = inv.transform(bbox_coords)
+        text_coords = resize_rectangle(min_x=text_coords[0], min_y=text_coords[1], max_x=text_coords[2], max_y=text_coords[3], factor=2)
         polygon_coords = [
             (text_coords[0], text_coords[1]),  # Bottom-left
             (text_coords[0] + text_coords[2], text_coords[1]),  # Bottom-right
@@ -405,6 +442,7 @@ def create_map(vcc_file_name: str, sheet_name: str = None, specialties: list[str
                                                              search_steps=100)
         city_text.set_x(available_poly.centroid.x)
         city_text.set_y(available_poly.centroid.y )
+        add_polygon_to_axis(ax_rtree=ax_rtree, fig_rtree=fig_rtree, fig_main=fig_main, poly=available_poly)
         add_polygon_to_rtree(poly=available_poly)
     logging.info("\tCreated city text.")
 

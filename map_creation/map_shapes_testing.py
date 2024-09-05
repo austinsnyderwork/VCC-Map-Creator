@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 
+delta = 4725
+scatter_size = 100
+
 # Central coordinate
 central_lat = 270000.0
 central_lon = 300000.0
@@ -9,9 +12,6 @@ central_lon = 300000.0
 line_length = 8000
 line_lon = [central_lon - (line_length / 2), central_lon + (line_length / 2)]
 line_lat = central_lat
-
-# Define points slightly above and below the line
-delta = 5500  # Adjust this value to set how far above/below the points are
 
 # Point above the line
 point_above_lat = central_lat + delta
@@ -28,10 +28,9 @@ iowa_map.drawstates()
 iowa_map.drawcounties(linewidth=0.04)
 
 # plt.plot(line_lon, line_lat, 'b-', linewidth=10, label='Horizontal Line')  # Horizontal line
-plt.scatter(central_lon, central_lat, color='red', marker='o', s=150)
+plt.scatter(central_lon, central_lat, color='red', marker='o', s=scatter_size)
 
 plt.scatter(central_lon, point_above_lat, color='black', s=10, marker='o', label='Point Above')       # Point above
-plt.scatter(central_lon, point_below_lat, color='blue', s=10, marker='o', label='Point Below')       # Point below
 
 # Plot details
 plt.xlabel('Longitude')
