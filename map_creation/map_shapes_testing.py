@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 
 delta = 4725
-scatter_size = 100
+scatter_size = 150
 
 # Central coordinate
 central_lat = 270000.0

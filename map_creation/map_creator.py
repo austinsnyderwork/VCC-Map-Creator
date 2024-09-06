@@ -16,7 +16,7 @@ from shapely.geometry import Polygon, box
 logging.basicConfig(level=logging.INFO)
 
 global_linewidth = 2
-global_scatter_size = 50
+global_scatter_size = 70
 text_box_search_radius = 250
 
 # Note that the 1 linewidth is how far the border of the line extends to ONE SIDE. So it increases by x units in both
@@ -24,6 +24,37 @@ text_box_search_radius = 250
 units_per_1_linewidth = 675.0
 
 units_radius_per_1_scatter_size = 50
+
+display_show_pause = 0.25
+should_show_algorithm_display = True
+should_show_algorithm_search_poly = True
+should_show_algorithm_search_display = True
+num_steps_to_show_algorithm_poly = 582
+
+# Create visual Iowa map
+fig_main, ax_main = plt.subplots(figsize=(12, 8))
+ax_main.set_title("Main")
+iowa_map = basemap.Basemap(projection='lcc', resolution='i',
+                           lat_0=41.5, lon_0=-93.5,  # Central latitude and longitude
+                           llcrnrlon=-97, llcrnrlat=40,  # Lower-left corner
+                           urcrnrlon=-89, urcrnrlat=44,  # Upper-right corner
+                           ax=ax_main)
+iowa_map.drawstates()
+iowa_map.drawcounties(linewidth=0.04)
+logging.info("Created base Iowa map.")
+
+# Create algorithm Iowa map
+fig_rtree, ax_rtree = plt.subplots(figsize=(12, 8))
+ax_rtree.set_title("Rtree Polygons")
+iowa_map = basemap.Basemap(projection='lcc', resolution='i',
+                           lat_0=41.5, lon_0=-93.5,  # Central latitude and longitude
+                           llcrnrlon=-97, llcrnrlat=40,  # Lower-left corner
+                           urcrnrlon=-89, urcrnrlat=44,  # Upper-right corner
+                           ax=ax_rtree)
+iowa_map.drawstates()
+iowa_map.drawcounties(linewidth=0.04)
+
+plt.figure(fig_main)
 
 
 def add_city_gpd_coord(row, plt_map, city_coords):
@@ -132,7 +163,7 @@ def create_line_polygon(line: plt.Line2D) -> Polygon:
         poly_coords.append(new_coord_0)
         poly_coords.append(new_coord_1)
 
-    poly = create_polygon_from_points(points=poly_coords)
+    poly = create_polygon_from_coords(coords=poly_coords)
     return poly
 
 
@@ -161,94 +192,96 @@ def create_rectangle_polygon(x_coords, y_coords) -> Polygon:
     return Polygon(coordinates)
 
 
-def create_polygon_from_points(points):
-    for permutation in itertools.permutations(points):
-        polygon = Polygon(permutation)
-        if polygon.is_valid:
-            return polygon
+def create_polygon_from_coords(**kwargs):
+    poly = None
+    # This indicates that we were given individual coordinates
+    if 'min_x' in kwargs:
+        min_x = kwargs['min_x']
+        max_x = kwargs['max_x']
+        min_y = kwargs['min_y']
+        max_y = kwargs['max_y']
+
+        polygon_coords = [
+            (min_x, min_y),  # Bottom-left
+            (max_x, min_y),  # Bottom-right
+            (max_x, max_y),  # Top-right
+            (min_x, max_y),  # Top-left
+            (min_x, min_y)  # Close the polygon
+        ]
+
+        poly = Polygon(polygon_coords)
+    else:
+        for permutation in itertools.permutations(kwargs['coords']):
+            polygon = Polygon(permutation)
+            if polygon.is_valid:
+                poly = polygon
+
+    if poly:
+        return poly
 
     raise ValueError("Could not form a valid polygon with the given points.")
 
 
-def find_available_polygon_around_point(search_polygon, search_radius, rtree_idx, polygons,
+def find_available_polygon_around_point(search_poly, search_area_poly, rtree_idx, polygons,
                                         search_steps=100) -> Polygon:
-    search_poly_center = search_polygon.centroid
-    search_poly_min_x, search_poly_min_y, search_poly_max_x, search_poly_max_y = search_polygon.bounds
+    search_area_min_x, search_area_min_y, search_area_max_x, search_area_max_y = search_area_poly.bounds
+
+    search_poly_min_x, search_poly_min_y, search_poly_max_x, search_poly_max_y = search_poly.bounds
     search_poly_x_len = search_poly_max_x - search_poly_min_x
     search_poly_y_len = search_poly_max_y - search_poly_min_y
 
-    search_area = box(
-        search_poly_center.x - search_radius,
-        search_poly_center.y - search_radius,
-        search_poly_center.x + search_radius,
-        search_poly_center.y + search_radius
-    )
-    search_area_min_x, search_area_min_y, search_area_max_x, search_area_max_y = search_area.bounds
-
-    search_area_left_x_coords = (search_area_min_x, search_area_min_x + search_poly_x_len)
-    search_area_right_x_coords = (search_area_max_x - search_poly_x_len, search_area_max_x)
-
-    search_area_bottom_y_coords = (search_area_min_y, search_area_min_y + search_poly_y_len)
-    search_area_top_y_coords = (search_area_max_y - search_poly_y_len, search_area_max_y)
-
-    polys = []
-
-    best_poly = None
     best_poly_intersections = 100
 
-    bottom_left_poly = create_rectangle_polygon(x_coords=search_area_left_x_coords,
-                                                y_coords=search_area_bottom_y_coords)
-    polys.append(bottom_left_poly)
-    top_left_poly = create_rectangle_polygon(x_coords=search_area_left_x_coords,
-                                             y_coords=search_area_top_y_coords)
-    polys.append(top_left_poly)
-    bottom_right_poly = create_rectangle_polygon(x_coords=search_area_right_x_coords,
-                                                 y_coords=search_area_bottom_y_coords)
-    polys.append(bottom_right_poly)
-    top_right_poly = create_rectangle_polygon(x_coords=search_area_right_x_coords,
-                                              y_coords=search_area_top_y_coords)
-    polys.append(top_right_poly)
-
-    for poly in polys:
-        intersections = get_intersecting_polygons(search_polygon=poly,
-                                                  rtree_idx=rtree_idx,
-                                                  polygons=polygons)
-        if len(intersections) == 0:
-            logging.info(f"\t\tFound space for poly.")
-            return poly
-
-        if len(intersections) < best_poly_intersections:
-            best_poly = poly
-
+    # Iterating steps through
     maximum_x_min = search_area_max_x - search_poly_x_len
     min_x_steps = np.linspace(search_area_min_x, maximum_x_min, search_steps)
-    # We already try the extreme corners of the search area, so skip those corners in these steps
-    min_x_steps = min_x_steps[1:-1]
 
     maximum_y_min = search_area_max_y - search_poly_y_len
     min_y_steps = np.linspace(search_area_min_y, maximum_y_min, search_steps)
-    # We already try the extreme corners of the search area, so skip those corners in these steps
-    min_y_steps = min_y_steps[1:-1]
 
+    best_polys = []
+    num_steps_total = 0
+    patch = None
     for min_x in min_x_steps:
         for min_y in min_y_steps:
             max_x = min_x + search_poly_x_len
             max_y = min_y + search_poly_y_len
             poly = create_rectangle_polygon(x_coords=(min_x, max_x),
                                             y_coords=(min_y, max_y))
+            if should_show_algorithm_search_display and num_steps_total % num_steps_to_show_algorithm_poly == 0:
+                patch = add_polygon_to_axis(ax_rtree=ax_rtree,
+                                            fig_rtree=fig_rtree,
+                                            fig_main=fig_main,
+                                            poly=poly,
+                                            color='green',
+                                            transparency=1.0)
             intersections = get_intersecting_polygons(search_polygon=poly,
                                                       rtree_idx=rtree_idx,
                                                       polygons=polygons)
             if len(intersections) == 0:
-                logging.info(f"\t\tFound space for poly.")
-                return poly
+                if best_poly_intersections > 0:
+                    best_polys = []
+                best_polys.append(poly)
+            elif len(intersections) < best_poly_intersections:
+                best_polys = [poly]
+                best_poly_intersections = len(intersections)
+            elif len(intersections) == best_poly_intersections:
+                best_polys.append(poly)
+            num_steps_total += 1
 
-            if len(intersections) < best_poly_intersections:
-                best_poly = poly
+            if patch:
+                patch.remove()
+                patch = None
 
-    # If we can't find any polygons with 0 intersections, then just return the one with the least number
-    logging.info(f"\t\tCould not find space for poly.")
-    return best_poly
+    logging.info(f"\t\tFound {best_poly_intersections} intersections for the best polygon.")
+
+    if len(best_polys) == 1:
+        return best_polys[0]
+
+    poly_distances = [search_area_poly.centroid.distance(poly) for poly in best_polys]
+    shortest_distance = min(poly_distances)
+    idx = poly_distances.index(shortest_distance)
+    return best_polys[idx]
 
 
 def is_dark_color(hex_color):
@@ -273,15 +306,20 @@ def add_polygon_to_rtree(poly: Polygon):
     poly_idx += 1
 
 
-def add_polygon_to_axis(ax_rtree, fig_rtree, fig_main, poly: Polygon, show=True):
+def add_polygon_to_axis(ax_rtree, fig_rtree, fig_main, poly: Polygon, show=True, color='cyan', transparency=1.0,
+                        immediate_remove=False):
+    if not should_show_algorithm_display:
+        return
+
     # Get polygon coordinates
     polygon_coords = list(poly.exterior.coords)
 
     # Create a Polygon patch
-    polygon_patch = patches.Polygon(polygon_coords, closed=True, fill=True, edgecolor='blue', facecolor='cyan')
+    polygon_patch = patches.Polygon(polygon_coords, closed=True, fill=True, edgecolor='blue', facecolor=color,
+                                    alpha=transparency)
 
     # Add the polygon patch to the axis
-    ax_rtree.add_patch(polygon_patch)
+    patch = ax_rtree.add_patch(polygon_patch)
 
     # Ensure the correct figure is active
     plt.figure(fig_rtree.number)
@@ -298,9 +336,14 @@ def add_polygon_to_axis(ax_rtree, fig_rtree, fig_main, poly: Polygon, show=True)
         # Show only the rtree figure
         plt.show(block=False)
 
-        plt.pause(0.1)
+        plt.pause(display_show_pause)
+
+    if immediate_remove:
+        patch.remove()
 
     plt.figure(fig_main.number)
+
+    return patch
 
 
 def resize_rectangle(min_x, min_y, max_x, max_y, factor):
@@ -325,7 +368,19 @@ def resize_rectangle(min_x, min_y, max_x, max_y, factor):
     return new_min_x, new_min_y, new_max_x, new_max_y
 
 
-def create_map(vcc_file_name: str, sheet_name: str = None, specialties: list[str] = None):
+def create_search_area_polygon(center_coord, search_distance_height: float, search_distance_width: float) -> Polygon:
+    min_x = center_coord[0] - search_distance_width
+    max_x = center_coord[0] + search_distance_width
+    min_y = center_coord[1] - search_distance_height
+    max_y = center_coord[1] + search_distance_height
+    search_area_poly = create_polygon_from_coords(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
+
+    return search_area_poly
+
+
+def create_map(vcc_file_name: str, search_distance_height: float, search_distance_width: float, sheet_name: str = None,
+               specialties: list[str] = None):
+    # Get DataFrame
     project_directory = os.getcwd()
     vcc_file_path = os.path.join(project_directory, f"vcc_maps/{vcc_file_name}")
     if 'csv' in vcc_file_path:
@@ -338,37 +393,17 @@ def create_map(vcc_file_name: str, sheet_name: str = None, specialties: list[str
     if specialties:
         df = dataset[dataset['specialty'].isin(specialties)]
 
-    fig_main, ax_main = plt.subplots(figsize=(12, 8))
-    ax_main.set_title("Main")
-    iowa_map = basemap.Basemap(projection='lcc', resolution='i',
-                               lat_0=41.5, lon_0=-93.5,  # Central latitude and longitude
-                               llcrnrlon=-97, llcrnrlat=40,  # Lower-left corner
-                               urcrnrlon=-89, urcrnrlat=44,  # Upper-right corner
-                               ax=ax_main)
-    iowa_map.drawstates()
-    iowa_map.drawcounties(linewidth=0.04)
-    logging.info("Created base Iowa map.")
-
-    fig_rtree, ax_rtree = plt.subplots(figsize=(12, 8))
-    ax_rtree.set_title("Rtree Polygons")
-    iowa_map = basemap.Basemap(projection='lcc', resolution='i',
-                               lat_0=41.5, lon_0=-93.5,  # Central latitude and longitude
-                               llcrnrlon=-97, llcrnrlat=40,  # Lower-left corner
-                               urcrnrlon=-89, urcrnrlat=44,  # Upper-right corner
-                               ax=ax_rtree)
-    iowa_map.drawstates()
-    iowa_map.drawcounties(linewidth=0.04)
-
-    plt.figure(fig_main)
-
+    # Gather necessary city coordinates
     city_coords = {}
     df.apply(add_city_gpd_coord, city_coords=city_coords, plt_map=iowa_map, axis=1)
     logging.info("Added city coords.")
 
+    # Group site origins and the respective outpatient clinics associated with them
     origins = {}
     df.apply(group_by_origin, origins_data=origins, axis=1)
     logging.info("Grouped by origin.")
 
+    # Find sites that are both an origin and outpatient
     origin_and_outpatient = set()
     for origin, outpatients in origins.items():
         for outpatient in outpatients:
@@ -380,15 +415,15 @@ def create_map(vcc_file_name: str, sheet_name: str = None, specialties: list[str
     colors = [color for color, hex_value in all_colors.items() if is_dark_color(hex_value)]
 
     logging.info("Plotting lines.")
-
     lines = []
     for i, (origin, outpatients) in enumerate(origins.items()):
         for outpatient in outpatients:
-            new_line = plot_line(ax=ax_main, origin=origin, outpatient=outpatient, city_coords=city_coords, color=colors[i])
+            new_line = plot_line(ax=ax_main, origin=origin, outpatient=outpatient, city_coords=city_coords,
+                                 color=colors[i])
             lines.append(new_line)
     logging.info("\tPlotted lines.")
 
-    logging.info("Creating line polygons.")
+    logging.info("Creating line polygons for algorithm.")
     for line in lines:
         poly = create_line_polygon(line=line)
         add_polygon_to_rtree(poly=poly)
@@ -404,7 +439,7 @@ def create_map(vcc_file_name: str, sheet_name: str = None, specialties: list[str
             point_coords.append(new_points_dict['outpatient'])
     logging.info("\tPlotted points.")
 
-    logging.info("Creating points polys.")
+    logging.info("Creating points polys for algorithm.")
     for i, point_coord in enumerate(point_coords):
         units_radius = global_scatter_size * units_radius_per_1_scatter_size
         poly = create_circle_polygon(center=point_coord, radius=units_radius)
@@ -417,13 +452,19 @@ def create_map(vcc_file_name: str, sheet_name: str = None, specialties: list[str
     for i, (city, coord) in enumerate(city_coords.items()):
         logging.info(f"\tCreating city text box for {city}.\n\t\t{i} of {num_cities}")
         lon, lat = coord['longitude'], coord['latitude']
+
+        # We don't want Iowa cities to have the state abbreviation
         city_name = city.replace(', IA', '')
         city_text = plt.text(lon, lat, city_name, fontsize=7, font='Tahoma', ha='center', va='center', color='black',
                              fontweight='semibold')
+
+        # In this portion of the code, we combine the visual and algorithm portion into one loop. This is because
+        # where the text is plotted is dependent on the output of the algorithm
         fig_main.canvas.draw()
         text_bbox = city_text.get_window_extent(renderer=fig_main.canvas.get_renderer())
-        inv = ax_rtree.transData.inverted()
-        text_bbox_data = inv.transform_bbox(text_bbox)
+        # Convert from display coordinates to data coordinates
+        inverse_coord_obj = ax_rtree.transData.inverted()
+        text_bbox_data = inverse_coord_obj.transform_bbox(text_bbox)
         min_x, min_y = text_bbox_data.xmin, text_bbox_data.ymin
         max_x, max_y = text_bbox_data.xmax, text_bbox_data.ymax
         # min_x, min_y, max_x, max_y = resize_rectangle(min_x=min_x, min_y=min_y, max_x=max_x, max_y=max_y, factor=2)
@@ -431,20 +472,34 @@ def create_map(vcc_file_name: str, sheet_name: str = None, specialties: list[str
             (min_x, min_y),  # Bottom-left
             (max_x, min_y),  # Bottom-right
             (max_x, max_y),  # Top-right
-            (min_x, max_y)   # Top-left
+            (min_x, max_y),  # Top-left
+            (min_x, min_y)  # Close the polygon
         ]
         poly = Polygon(polygon_coords)
         if not poly.is_valid:
             raise ValueError("Invalid polygon created from text.")
-        available_poly = find_available_polygon_around_point(search_polygon=poly,
-                                                             search_radius=text_box_search_radius,
+
+        search_area_poly = create_search_area_polygon(center_coord=(coord['longitude'], coord['latitude']),
+                                                      search_distance_height=search_distance_height,
+                                                      search_distance_width=search_distance_width)
+        if should_show_algorithm_search_poly:
+            patch = add_polygon_to_axis(ax_rtree=ax_rtree, fig_rtree=fig_rtree, fig_main=fig_main,
+                                        poly=search_area_poly,
+                                        color='red',
+                                        transparency=0.5)
+        available_poly = find_available_polygon_around_point(search_poly=poly,
+                                                             search_area_poly=search_area_poly,
                                                              rtree_idx=rtree_idx,
                                                              polygons=polygons,
                                                              search_steps=100)
         city_text.set_x(available_poly.centroid.x)
-        city_text.set_y(available_poly.centroid.y )
+        city_text.set_y(available_poly.centroid.y)
         add_polygon_to_axis(ax_rtree=ax_rtree, fig_rtree=fig_rtree, fig_main=fig_main, poly=available_poly)
         add_polygon_to_rtree(poly=available_poly)
+
+        # If setting to show polygon is off, then there is no patch to remove
+        if patch:
+            patch.remove()
     logging.info("\tCreated city text.")
 
     plt.show()
