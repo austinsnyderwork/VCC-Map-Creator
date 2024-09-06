@@ -106,20 +106,6 @@ def plot_points(ax, origin: str, outpatient: str, city_coords: dict, origin_and_
     }
 
 
-def bboxes_overlap(bbox1, bbox2) -> bool:
-    (xmin_1, ymin_1), (xmax_1, ymax_1) = bbox1
-    (xmin_2, ymin_2), (xmax_2, ymax_2) = bbox2
-
-    if xmin_1 >= xmax_2 or xmin_2 >= xmax_1:
-        return False
-
-    # Check if one rectangle is above the other
-    if ymin_1 >= ymax_2 or ymin_2 >= ymax_1:
-        return False
-
-    return True
-
-
 def plot_line(ax, origin: str, outpatient: str, city_coords: dict, color: str) -> plt.Line2D:
     from_lat = city_coords[origin]['latitude']
     from_lon = city_coords[origin]['longitude']
@@ -131,68 +117,6 @@ def plot_line(ax, origin: str, outpatient: str, city_coords: dict, color: str) -
     line = lines[0]
 
     return line
-
-
-def move_coordinate(x, y, slope, distance):
-    angle = math.atan(slope)  # arctan gives the angle from the slope
-
-    # Calculate the change in x and y using the angle and distance
-    delta_x = distance * math.cos(angle)  # Adjacent side of the right triangle
-    delta_y = distance * math.sin(angle)  # Opposite side of the right triangle
-
-    # Calculate new coordinates
-    new_x = x + delta_x
-    new_y = y + delta_y
-
-    return new_x, new_y
-
-
-def create_line_polygon(line: plt.Line2D) -> Polygon:
-    line_width = line.get_linewidth()
-    x_data = line.get_xdata()
-    y_data = line.get_ydata()
-
-    line_coord_0 = (x_data[0], y_data[0])
-    line_coord_1 = (x_data[1], y_data[1])
-
-    slope = (y_data[1] - y_data[0]) / (x_data[1] - x_data[0])
-    perpendicular_slope = -1 / slope
-
-    poly_coords = []
-    for coord in [line_coord_0, line_coord_1]:
-        new_coord_0 = move_coordinate(coord[0], coord[1], slope=perpendicular_slope, distance=line_width / 2)
-        new_coord_1 = move_coordinate(coord[0], coord[1], slope=-perpendicular_slope, distance=line_width / 2)
-        poly_coords.append(new_coord_0)
-        poly_coords.append(new_coord_1)
-
-    poly = create_polygon_from_coords(coords=poly_coords)
-    return poly
-
-
-def create_circle_polygon(center, radius, num_points=100) -> Polygon:
-    angles = np.linspace(0, 2 * np.pi, num_points)
-    points = [(center[0] + radius * np.cos(angle), center[1] + radius * np.sin(angle)) for angle in angles]
-    return Polygon(points)
-
-
-def get_intersecting_polygons(search_polygon, rtree_idx, polygons) -> list[Polygon]:
-    intersection_indices = list(rtree_idx.intersection(search_polygon.bounds))
-    intersecting_polygons = [polygons[idx] for idx in intersection_indices]
-    intersecting_polygons = [poly for poly in intersecting_polygons if search_polygon.intersects(poly)]
-    return intersecting_polygons
-
-
-def create_rectangle_polygon(x_coords, y_coords) -> Polygon:
-    coordinates = [
-        (x_coords[0], y_coords[0]),  # Bottom-left corner
-        (x_coords[1], y_coords[0]),  # Bottom-right corner
-        (x_coords[1], y_coords[1]),  # Top-right corner
-        (x_coords[0], y_coords[1]),  # Top-left corner
-        (x_coords[0], y_coords[0])  # Closing the polygon by returning to the start
-    ]
-
-    # Create and return the Polygon
-    return Polygon(coordinates)
 
 
 def create_polygon_from_coords(**kwargs):
