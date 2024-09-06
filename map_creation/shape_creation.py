@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from shapely.geometry import Polygon
 
 import helper_functions
+
 
 def create_line_polygon(line: plt.Line2D) -> Polygon:
     line_width = line.get_linewidth()
@@ -16,8 +18,8 @@ def create_line_polygon(line: plt.Line2D) -> Polygon:
 
     poly_coords = []
     for coord in [line_coord_0, line_coord_1]:
-        new_coord_0 = move_coordinate(coord[0], coord[1], slope=perpendicular_slope, distance=line_width / 2)
-        new_coord_1 = move_coordinate(coord[0], coord[1], slope=-perpendicular_slope, distance=line_width / 2)
+        new_coord_0 = helper_functions.move_coordinate(coord[0], coord[1], slope=perpendicular_slope, distance=line_width / 2)
+        new_coord_1 = helper_functions.move_coordinate(coord[0], coord[1], slope=-perpendicular_slope, distance=line_width / 2)
         poly_coords.append(new_coord_0)
         poly_coords.append(new_coord_1)
 
@@ -31,14 +33,62 @@ def create_circle_polygon(center, radius, num_points=100) -> Polygon:
     return Polygon(points)
 
 
-def create_rectangle_polygon(x_coords, y_coords) -> Polygon:
+def create_rectangle_polygon(x_min, y_min, x_max, y_max) -> Polygon:
     coordinates = [
-        (x_coords[0], y_coords[0]),  # Bottom-left corner
-        (x_coords[1], y_coords[0]),  # Bottom-right corner
-        (x_coords[1], y_coords[1]),  # Top-right corner
-        (x_coords[0], y_coords[1]),  # Top-left corner
-        (x_coords[0], y_coords[0])  # Closing the polygon by returning to the start
+        (x_min, y_min),  # Bottom-left corner
+        (x_max, y_min),  # Bottom-right corner
+        (x_max, y_max),  # Top-right corner
+        (x_min, y_max),  # Top-left corner
+        (x_min, y_min)  # Closing the polygon by returning to the start
     ]
 
     # Create and return the Polygon
     return Polygon(coordinates)
+
+def create_polygon_from_coords(**kwargs):
+    poly = None
+    # This indicates that we were given individual coordinates
+    if 'min_x' in kwargs:
+        min_x = kwargs['min_x']
+        max_x = kwargs['max_x']
+        min_y = kwargs['min_y']
+        max_y = kwargs['max_y']
+
+        polygon_coords = [
+            (min_x, min_y),  # Bottom-left
+            (max_x, min_y),  # Bottom-right
+            (max_x, max_y),  # Top-right
+            (min_x, max_y),  # Top-left
+            (min_x, min_y)  # Close the polygon
+        ]
+
+        poly = Polygon(polygon_coords)
+    else:
+        for permutation in itertools.permutations(kwargs['coords']):
+            polygon = Polygon(permutation)
+            if polygon.is_valid:
+                poly = polygon
+
+    if poly:
+        return poly
+
+def resize_rectangle(min_x, min_y, max_x, max_y, factor):
+    # Calculate the center of the original rectangle
+    center_x = (min_x + max_x) / 2
+    center_y = (min_y + max_y) / 2
+
+    # Calculate the original width and height
+    original_width = max_x - min_x
+    original_height = max_y - min_y
+
+    # Calculate new width and height based on the given factor
+    new_width = original_width / factor
+    new_height = original_height / factor
+
+    # Calculate new min and max coordinates
+    new_min_x = center_x - new_width / 2
+    new_max_x = center_x + new_width / 2
+    new_min_y = center_y - new_height / 2
+    new_max_y = center_y + new_height / 2
+
+    return new_min_x, new_min_y, new_max_x, new_max_y
