@@ -25,11 +25,13 @@ units_per_1_linewidth = 675.0
 
 units_radius_per_1_scatter_size = 50
 
-display_show_pause = 0.25
+polygon_types = {}
+
+display_show_pause = 0.1
 should_show_algorithm_display = True
 should_show_algorithm_search_poly = True
 should_show_algorithm_search_display = True
-num_steps_to_show_algorithm_poly = 582
+num_steps_to_show_algorithm_poly = 1093
 
 # Create visual Iowa map
 fig_main, ax_main = plt.subplots(figsize=(12, 8))
@@ -175,8 +177,9 @@ def create_circle_polygon(center, radius, num_points=100) -> Polygon:
 
 def get_intersecting_polygons(search_polygon, rtree_idx, polygons) -> list[Polygon]:
     intersection_indices = list(rtree_idx.intersection(search_polygon.bounds))
-    interecting_polygons = [polygons[idx] for idx in intersection_indices]
-    return interecting_polygons
+    intersecting_polygons = [polygons[idx] for idx in intersection_indices]
+    intersecting_polygons = [poly for poly in intersecting_polygons if search_polygon.intersects(poly)]
+    return intersecting_polygons
 
 
 def create_rectangle_polygon(x_coords, y_coords) -> Polygon:
@@ -222,6 +225,47 @@ def create_polygon_from_coords(**kwargs):
     raise ValueError("Could not form a valid polygon with the given points.")
 
 
+def determine_best_poly_group(search_polys: dict, intersecting_poly_groups: dict, city_point):
+    num_intersections = [len(intersecting_polys) for intersecting_polys in intersecting_poly_groups.values()]
+    fewest_intersections = min(num_intersections)
+    best_intersections = {intersection_polys: search_poly for intersection_polys, search_poly in
+                          intersections_data.items()
+                          if len(intersection_polys) == fewest_intersections}
+
+    poly_group_data = {}
+    non_text_box_intersections = {}
+    for intersecting_polys, search_poly in best_intersections.items():
+        data = {}
+        poly_group_data[intersecting_polys] = data
+        text_box_polys = [poly for poly in intersecting_polys if polygon_types[poly] == 'text_box']
+        text_box = True if len(text_box_polys) > 0 else False
+
+        if not text_box:
+            non_text_box_intersections[intersecting_polys] = search_poly
+
+    best_distance = 999999999
+    best_poly = []
+    if len(non_text_box_intersections) > 0:
+        for intersecting_polys, search_poly in non_text_box_intersections.items():
+            distance = city_point.distance(search_poly)
+            if distance < best_distance:
+                best_distance = distance
+                best_poly = search_poly
+
+    return best_poly
+
+
+def find_closest_poly(search_polys, center_point):
+    shortest_distance = 999999999
+    best_poly = None
+    for search_poly in search_polys:
+        distance = center_point.centroid.distance(search_poly)
+        if distance < shortest_distance:
+            shortest_distance = distance
+            best_poly = search_poly
+    return best_poly
+
+
 def find_available_polygon_around_point(search_poly, search_area_poly, search_steps=100) -> Polygon:
     search_area_min_x, search_area_min_y, search_area_max_x, search_area_max_y = search_area_poly.bounds
 
@@ -229,7 +273,7 @@ def find_available_polygon_around_point(search_poly, search_area_poly, search_st
     search_poly_x_len = search_poly_max_x - search_poly_min_x
     search_poly_y_len = search_poly_max_y - search_poly_min_y
 
-    best_poly_intersections = 100
+    least_poly_intersections = 100
 
     # Iterating steps through
     maximum_x_min = search_area_max_x - search_poly_x_len
@@ -238,9 +282,12 @@ def find_available_polygon_around_point(search_poly, search_area_poly, search_st
     maximum_y_min = search_area_max_y - search_poly_y_len
     min_y_steps = np.linspace(search_area_min_y, maximum_y_min, search_steps)
 
-    best_polys = []
-    num_steps_total = 0
+    idx = 0
+    poly_groups_dict = {}
+    search_polys = {}
+
     search_patch = None
+    num_steps_total = 0
     for min_x in min_x_steps:
         for min_y in min_y_steps:
             max_x = min_x + search_poly_x_len
@@ -248,9 +295,12 @@ def find_available_polygon_around_point(search_poly, search_area_poly, search_st
             search_poly = create_rectangle_polygon(x_coords=(min_x, max_x),
                                                    y_coords=(min_y, max_y))
 
-            intersections = get_intersecting_polygons(search_polygon=search_poly,
-                                                      rtree_idx=rtree_idx,
-                                                      polygons=polygons)
+            intersecting_polys = get_intersecting_polygons(search_polygon=search_poly,
+                                                           rtree_idx=rtree_idx,
+                                                           polygons=polygons)
+            poly_groups_dict[idx] = intersecting_polys
+            search_polys[idx] = search_poly
+            idx += 1
 
             if should_show_algorithm_search_display and num_steps_total % num_steps_to_show_algorithm_poly == 0:
                 search_patch = add_polygon_to_axis(poly=search_poly,
@@ -258,7 +308,7 @@ def find_available_polygon_around_point(search_poly, search_area_poly, search_st
                                                    color='green',
                                                    transparency=1.0)
                 intersect_patches = []
-                for poly in intersections:
+                for poly in intersecting_polys:
                     intersect_patch = add_polygon_to_axis(poly=poly,
                                                           set_axis=False,
                                                           color='red',
@@ -267,30 +317,17 @@ def find_available_polygon_around_point(search_poly, search_area_poly, search_st
                 for intersect_patch in intersect_patches:
                     intersect_patch.remove()
 
-            if len(intersections) == 0:
-                if best_poly_intersections > 0:
-                    best_polys = []
-                best_polys.append(search_poly)
-            elif len(intersections) < best_poly_intersections:
-                best_polys = [search_poly]
-                best_poly_intersections = len(intersections)
-            elif len(intersections) == best_poly_intersections:
-                best_polys.append(search_poly)
-            num_steps_total += 1
-
             if search_patch:
                 search_patch.remove()
                 search_patch = None
 
-    logging.info(f"\t\tFound {best_poly_intersections} intersections for the best polygon.")
+    if least_poly_intersections == 0:
+        closest_poly = find_closest_poly(list(search_polys.values()), search_area_poly.centroid)
+        return closest_poly
 
-    if len(best_polys) == 1:
-        return best_polys[0]
-
-    poly_distances = [search_area_poly.centroid.distance(poly) for poly in best_polys]
-    shortest_distance = min(poly_distances)
-    idx = poly_distances.index(shortest_distance)
-    return best_polys[idx]
+    best_poly = determine_best_poly_group(intersecting_poly_groups=intersecting_poly_groups, search_polys=search_polys,
+                                          city_point=search_area_poly.centroid)
+    return best_poly
 
 
 def is_dark_color(hex_color):
@@ -435,6 +472,7 @@ def create_map(vcc_file_name: str, search_distance_height: float, search_distanc
     logging.info("Creating line polygons for algorithm.")
     for line in lines:
         poly = create_line_polygon(line=line)
+        polygon_types[poly] = 'line'
         add_polygon_to_rtree(poly=poly)
         add_polygon_to_axis(poly=poly, show=False)
     logging.info("\tCreated line polygons and inserted into rtree.")
@@ -452,6 +490,7 @@ def create_map(vcc_file_name: str, search_distance_height: float, search_distanc
     for i, point_coord in enumerate(point_coords):
         units_radius = global_scatter_size * units_radius_per_1_scatter_size
         poly = create_circle_polygon(center=point_coord, radius=units_radius)
+        polygon_types[poly] = 'point'
         add_polygon_to_axis(poly=poly, show=False)
         add_polygon_to_rtree(poly=poly)
     logging.info("\tCreated point polygons and inserted into rtree.")
@@ -499,6 +538,7 @@ def create_map(vcc_file_name: str, search_distance_height: float, search_distanc
         available_poly = find_available_polygon_around_point(search_poly=poly,
                                                              search_area_poly=search_area_poly,
                                                              search_steps=100)
+        polygon_types[available_poly] = 'text_box'
         city_text.set_x(available_poly.centroid.x)
         city_text.set_y(available_poly.centroid.y)
         add_polygon_to_axis(poly=available_poly)
