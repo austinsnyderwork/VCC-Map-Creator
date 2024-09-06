@@ -222,8 +222,7 @@ def create_polygon_from_coords(**kwargs):
     raise ValueError("Could not form a valid polygon with the given points.")
 
 
-def find_available_polygon_around_point(search_poly, search_area_poly, rtree_idx, polygons,
-                                        search_steps=100) -> Polygon:
+def find_available_polygon_around_point(search_poly, search_area_poly, search_steps=100) -> Polygon:
     search_area_min_x, search_area_min_y, search_area_max_x, search_area_max_y = search_area_poly.bounds
 
     search_poly_min_x, search_poly_min_y, search_poly_max_x, search_poly_max_y = search_poly.bounds
@@ -241,37 +240,47 @@ def find_available_polygon_around_point(search_poly, search_area_poly, rtree_idx
 
     best_polys = []
     num_steps_total = 0
-    patch = None
+    search_patch = None
     for min_x in min_x_steps:
         for min_y in min_y_steps:
             max_x = min_x + search_poly_x_len
             max_y = min_y + search_poly_y_len
-            poly = create_rectangle_polygon(x_coords=(min_x, max_x),
-                                            y_coords=(min_y, max_y))
-            if should_show_algorithm_search_display and num_steps_total % num_steps_to_show_algorithm_poly == 0:
-                patch = add_polygon_to_axis(ax_rtree=ax_rtree,
-                                            fig_rtree=fig_rtree,
-                                            fig_main=fig_main,
-                                            poly=poly,
-                                            color='green',
-                                            transparency=1.0)
-            intersections = get_intersecting_polygons(search_polygon=poly,
+            search_poly = create_rectangle_polygon(x_coords=(min_x, max_x),
+                                                   y_coords=(min_y, max_y))
+
+            intersections = get_intersecting_polygons(search_polygon=search_poly,
                                                       rtree_idx=rtree_idx,
                                                       polygons=polygons)
+
+            if should_show_algorithm_search_display and num_steps_total % num_steps_to_show_algorithm_poly == 0:
+                search_patch = add_polygon_to_axis(poly=search_poly,
+                                                   set_axis=False,
+                                                   color='green',
+                                                   transparency=1.0)
+                intersect_patches = []
+                for poly in intersections:
+                    intersect_patch = add_polygon_to_axis(poly=poly,
+                                                          set_axis=False,
+                                                          color='red',
+                                                          transparency=1.0)
+                    intersect_patches.append(intersect_patch)
+                for intersect_patch in intersect_patches:
+                    intersect_patch.remove()
+
             if len(intersections) == 0:
                 if best_poly_intersections > 0:
                     best_polys = []
-                best_polys.append(poly)
+                best_polys.append(search_poly)
             elif len(intersections) < best_poly_intersections:
-                best_polys = [poly]
+                best_polys = [search_poly]
                 best_poly_intersections = len(intersections)
             elif len(intersections) == best_poly_intersections:
-                best_polys.append(poly)
+                best_polys.append(search_poly)
             num_steps_total += 1
 
-            if patch:
-                patch.remove()
-                patch = None
+            if search_patch:
+                search_patch.remove()
+                search_patch = None
 
     logging.info(f"\t\tFound {best_poly_intersections} intersections for the best polygon.")
 
@@ -306,8 +315,7 @@ def add_polygon_to_rtree(poly: Polygon):
     poly_idx += 1
 
 
-def add_polygon_to_axis(ax_rtree, fig_rtree, fig_main, poly: Polygon, show=True, color='cyan', transparency=1.0,
-                        immediate_remove=False):
+def add_polygon_to_axis(poly, set_axis=True, show=True, color='blue', transparency=1.0, immediate_remove=False):
     if not should_show_algorithm_display:
         return
 
@@ -315,7 +323,7 @@ def add_polygon_to_axis(ax_rtree, fig_rtree, fig_main, poly: Polygon, show=True,
     polygon_coords = list(poly.exterior.coords)
 
     # Create a Polygon patch
-    polygon_patch = patches.Polygon(polygon_coords, closed=True, fill=True, edgecolor='blue', facecolor=color,
+    polygon_patch = patches.Polygon(polygon_coords, closed=True, fill=True, edgecolor=color, facecolor=color,
                                     alpha=transparency)
 
     # Add the polygon patch to the axis
@@ -325,9 +333,10 @@ def add_polygon_to_axis(ax_rtree, fig_rtree, fig_main, poly: Polygon, show=True,
     plt.figure(fig_rtree.number)
 
     # Set axis limits
-    x_coords, y_coords = zip(*polygon_coords)
-    ax_rtree.set_xlim(min(x_coords) - 200000, max(x_coords) + 200000)
-    ax_rtree.set_ylim(min(y_coords) - 200000, max(y_coords) + 200000)
+    if set_axis:
+        x_coords, y_coords = zip(*polygon_coords)
+        ax_rtree.set_xlim(min(x_coords) - 200000, max(x_coords) + 200000)
+        ax_rtree.set_ylim(min(y_coords) - 200000, max(y_coords) + 200000)
 
     # Redraw the figure to update the display
     fig_rtree.canvas.draw()
@@ -427,7 +436,7 @@ def create_map(vcc_file_name: str, search_distance_height: float, search_distanc
     for line in lines:
         poly = create_line_polygon(line=line)
         add_polygon_to_rtree(poly=poly)
-        add_polygon_to_axis(ax_rtree=ax_rtree, fig_rtree=fig_rtree, fig_main=fig_main, poly=poly, show=False)
+        add_polygon_to_axis(poly=poly, show=False)
     logging.info("\tCreated line polygons and inserted into rtree.")
 
     logging.info("Plotting points.")
@@ -443,11 +452,12 @@ def create_map(vcc_file_name: str, search_distance_height: float, search_distanc
     for i, point_coord in enumerate(point_coords):
         units_radius = global_scatter_size * units_radius_per_1_scatter_size
         poly = create_circle_polygon(center=point_coord, radius=units_radius)
-        add_polygon_to_axis(ax_rtree=ax_rtree, fig_rtree=fig_rtree, fig_main=fig_main, poly=poly, show=False)
+        add_polygon_to_axis(poly=poly, show=False)
         add_polygon_to_rtree(poly=poly)
     logging.info("\tCreated point polygons and inserted into rtree.")
 
     num_cities = len(city_coords.values())
+    search_area_patch = None
     logging.info("Creating city text.")
     for i, (city, coord) in enumerate(city_coords.items()):
         logging.info(f"\tCreating city text box for {city}.\n\t\t{i} of {num_cities}")
@@ -483,23 +493,20 @@ def create_map(vcc_file_name: str, search_distance_height: float, search_distanc
                                                       search_distance_height=search_distance_height,
                                                       search_distance_width=search_distance_width)
         if should_show_algorithm_search_poly:
-            patch = add_polygon_to_axis(ax_rtree=ax_rtree, fig_rtree=fig_rtree, fig_main=fig_main,
-                                        poly=search_area_poly,
-                                        color='red',
-                                        transparency=0.5)
+            search_area_patch = add_polygon_to_axis(poly=search_area_poly,
+                                                    color='brown',
+                                                    transparency=0.5)
         available_poly = find_available_polygon_around_point(search_poly=poly,
                                                              search_area_poly=search_area_poly,
-                                                             rtree_idx=rtree_idx,
-                                                             polygons=polygons,
                                                              search_steps=100)
         city_text.set_x(available_poly.centroid.x)
         city_text.set_y(available_poly.centroid.y)
-        add_polygon_to_axis(ax_rtree=ax_rtree, fig_rtree=fig_rtree, fig_main=fig_main, poly=available_poly)
+        add_polygon_to_axis(poly=available_poly)
         add_polygon_to_rtree(poly=available_poly)
 
         # If setting to show polygon is off, then there is no patch to remove
-        if patch:
-            patch.remove()
+        if search_area_patch:
+            search_area_patch.remove()
     logging.info("\tCreated city text.")
 
     plt.show()
