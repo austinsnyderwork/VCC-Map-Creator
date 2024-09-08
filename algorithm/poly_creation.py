@@ -1,8 +1,18 @@
+import itertools
 import matplotlib.pyplot as plt
 import numpy as np
 from shapely.geometry import Polygon
 
-import helper_functions
+
+
+def create_poly(poly_type: str, **kwargs):
+    poly_create_functions = {
+        'line': create_line_polygon,
+        'scatter': create_circle_polygon,
+        'rectangle': create_rectangle_polygon
+    }
+    func = poly_create_functions[poly_type]
+    func(kwargs)
 
 
 def create_line_polygon(line: plt.Line2D) -> Polygon:
@@ -33,7 +43,18 @@ def create_circle_polygon(center, radius, num_points=100) -> Polygon:
     return Polygon(points)
 
 
-def create_rectangle_polygon(x_min, y_min, x_max, y_max) -> Polygon:
+def create_rectangle_polygon(**kwargs) -> Polygon:
+    if 'lon' in kwargs and 'lat' in kwargs and 'width' in kwargs and 'height' in kwargs:
+        lon = kwargs['lon']
+        lat = kwargs['lat']
+        width = kwargs['width']
+        height = kwargs['height']
+        return _create_rectangle_polygon_from_coord(lon, lat, width, height)
+
+    x_min = kwargs['x_min']
+    y_min = kwargs['y_min']
+    x_max = kwargs['x_max']
+    y_max = kwargs['y_max']
     coordinates = [
         (x_min, y_min),  # Bottom-left corner
         (x_max, y_min),  # Bottom-right corner
@@ -46,7 +67,7 @@ def create_rectangle_polygon(x_min, y_min, x_max, y_max) -> Polygon:
     return Polygon(coordinates)
 
 
-def create_rectangle_polygon_from_coord(lon, lat, width, height):
+def _create_rectangle_polygon_from_coord(lon, lat, width, height):
     x_min = lon - width
     x_max = lon + width
     y_min = lat - height

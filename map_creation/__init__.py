@@ -1,2 +1,2 @@
-from .map_creator import MapCreator
+from .visualization_map_creator import VisualizationMapCreator
 

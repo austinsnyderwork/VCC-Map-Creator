@@ -2,7 +2,7 @@ import numpy as np
 from rtree import index
 from shapely.geometry import Polygon
 
-from map_creation import poly_creation
+from algorithm import poly_creation
 
 
 class RtreeAnalyzer:
