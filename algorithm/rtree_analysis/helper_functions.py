@@ -1,6 +1,6 @@
 
 
-def find_closest_poly(search_polys, center_point):
+def find_closest_poly(search_polys: list, center_point):
     shortest_distance = 999999999
     best_poly = None
     for search_poly in search_polys:

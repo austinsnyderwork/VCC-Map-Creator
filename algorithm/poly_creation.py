@@ -3,19 +3,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 from shapely.geometry import Polygon
 
+from . import helper_functions
+
 
 
 def create_poly(poly_type: str, **kwargs):
     poly_create_functions = {
-        'line': create_line_polygon,
-        'scatter': create_circle_polygon,
-        'rectangle': create_rectangle_polygon
+        'line': _create_line_polygon,
+        'scatter': _create_circle_polygon,
+        'rectangle': _create_rectangle_polygon
     }
     func = poly_create_functions[poly_type]
     func(kwargs)
 
 
-def create_line_polygon(line: plt.Line2D) -> Polygon:
+def _create_line_polygon(line: plt.Line2D) -> Polygon:
     line_width = line.get_linewidth()
     x_data = line.get_xdata()
     y_data = line.get_ydata()
@@ -37,13 +39,13 @@ def create_line_polygon(line: plt.Line2D) -> Polygon:
     return poly
 
 
-def create_circle_polygon(center, radius, num_points=100) -> Polygon:
+def _create_circle_polygon(center, radius, num_points=100) -> Polygon:
     angles = np.linspace(0, 2 * np.pi, num_points)
     points = [(center[0] + radius * np.cos(angle), center[1] + radius * np.sin(angle)) for angle in angles]
     return Polygon(points)
 
 
-def create_rectangle_polygon(**kwargs) -> Polygon:
+def _create_rectangle_polygon(**kwargs) -> Polygon:
     if 'lon' in kwargs and 'lat' in kwargs and 'width' in kwargs and 'height' in kwargs:
         lon = kwargs['lon']
         lat = kwargs['lat']
@@ -72,14 +74,14 @@ def _create_rectangle_polygon_from_coord(lon, lat, width, height):
     x_max = lon + width
     y_min = lat - height
     y_max = lat + height
-    poly = create_rectangle_polygon(x_min=x_min,
+    poly = _create_rectangle_polygon(x_min=x_min,
                                     y_min=y_min,
                                     x_max=x_max,
                                     y_max=y_max)
     return poly
 
 
-def create_polygon_from_coords(**kwargs):
+def _create_polygon_from_coords(**kwargs):
     poly = None
     # This indicates that we were given individual coordinates
     if 'min_x' in kwargs:

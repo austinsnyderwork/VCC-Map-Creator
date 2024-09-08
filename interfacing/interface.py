@@ -1,9 +1,15 @@
+import configparser
 import logging
 import map_creation
 from algorithm import rtree_analysis
 
 import algorithm
 import input_output
+
+
+config = configparser.ConfigParser()
+config.read('config.ini')
+
 
 class Interface:
 
@@ -25,7 +31,7 @@ class Interface:
 
         if origin not in self.city_coords:
             self.city_coords[origin] = {
-                'latitude': row['origin_lat']
+                'latitude': row['origin_lat'],
                 'longitude': row['origin_lon']
             }
 
@@ -37,3 +43,5 @@ class Interface:
         # Gather necessary city coordinates
         df.apply(self._add_city_gpd_coord, axis=1)
         logging.info("Added city coords.")
+
+        self.vis_map_creator.create_map(df=df)

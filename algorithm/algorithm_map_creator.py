@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 from rtree import index
 
-
 from map_creation import helper_functions
 from . import poly_creation
 
@@ -37,18 +36,25 @@ class AlgorithmMapCreator:
 
     def plot_lines(self, lines: list):
         for line in lines:
-            poly = poly_creation.create_line_polygon(line=line)
+            poly = poly_creation.create_poly(poly_type='line', line=line)
             helper_functions.verify_poly_validity(poly=poly,
                                                   name='line poly')
             self.poly_types[poly] = 'line'
-            self._add_poly_to_map(poly=poly, show=False)
+            self.add_poly_to_map(poly=poly, show_display=False)
 
-    def _add_poly_to_map(self, poly, center_view=True, show=True, color='blue', transparency=1.0,
-                         immediately_remove=False):
-        alg_display = config['matplotlib_display']['should_show_algorithm_display']
-        if not alg_display:
-            return
+    def plot_scatters(self, point_coords, show_display: bool =False):
+        scatter_size = float(config['dimensions']['scatter_size'])
+        units_radius_per_1_scatter_size = float(config['dimensions']['units_radius_per_1_scatter_size'])
+        for i, point_coord in enumerate(point_coords):
+            units_radius = scatter_size * units_radius_per_1_scatter_size
+            poly = poly_creation.create_poly(poly_type='scatter', center=point_coord, radius=units_radius)
+            helper_functions.verify_poly_validity(poly=poly,
+                                                  name='scatter poly')
+            self.poly_types[poly] = 'point'
+            self.add_poly_to_map(poly=poly, show_display=show_display)
 
+    def add_poly_to_map(self, poly, center_view=True, show_display=True, color='blue', transparency=1.0,
+                        immediately_remove=False):
         # Get polygon coordinates
         polygon_coords = list(poly.exterior.coords)
 
@@ -71,7 +77,7 @@ class AlgorithmMapCreator:
         # Redraw the figure to update the display
         self.fig.canvas.draw()
 
-        if show:
+        if show_display:
             # Show only the rtree figure
             plt.show(block=False)
 
@@ -80,7 +86,5 @@ class AlgorithmMapCreator:
 
         if immediately_remove:
             patch.remove()
-
-        plt.figure(self.fig.number)
 
         return patch

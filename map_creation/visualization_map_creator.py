@@ -3,9 +3,9 @@ import logging
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
+import pandas as pd
 
 from . import helper_functions, origin_group
-from algorithm import poly_creation
 
 logging.basicConfig(level=logging.INFO)
 config = configparser.ConfigParser()
@@ -47,22 +47,13 @@ class VisualizationMapCreator:
 
         self.origin_groups[origin].add_destination(destination)
 
-    def _plot_points(self, origin: str, outpatient: str, origin_coord: tuple, outpatient_coord: tuple,
-                     origin_and_outpatient, size) -> dict:
-        from_lon, from_lat = origin_coord[0], origin_coord[1]
-        to_lon, to_lat = outpatient_coord[0], outpatient_coord[1]
+    def _plot_point(self, origin_name: str, coord: tuple, origin_and_outpatient_cities, scatter_size, scatter_label) -> dict:
+        lon, lat = coord[0], coord[1]
 
-        origin_marker = "D" if origin in origin_and_outpatient else "s"
-        outpatient_marker = "D" if outpatient in origin_and_outpatient else "o"
-        scatter_origin = self.ax.scatter(from_lon, from_lat, marker=origin_marker, color='red', s=size,
-                                         label='Origin')
-        scatter_outpatient = self.ax.scatter(to_lon, to_lat, marker=outpatient_marker, color='blue', s=size,
-                                             label='Outpatient')
+        marker = "D" if origin_name in origin_and_outpatient_cities else "s"
+        scatter_obj = self.ax.scatter(lon, lat, marker=marker, color='red', s=scatter_size, label=scatter_label)
 
-        return {
-            'origin': scatter_origin,
-            'outpatient': scatter_outpatient
-        }
+        return scatter_obj
 
     def _plot_line(self, origin_coord: tuple, outpatient_coord: tuple, color: str, width) -> plt.Line2D:
         from_lon, from_lat = origin_coord[0], origin_coord[1]
@@ -73,50 +64,7 @@ class VisualizationMapCreator:
 
         return line
 
-    def _add_poly_to_algo_axis(self, poly, center_view=True, show=True, color='blue', transparency=1.0,
-                               immediate_remove=False):
-        alg_display = config['matplotlib_display']['should_show_algorithm_display']
-        if not alg_display:
-            return
-
-        # Get polygon coordinates
-        polygon_coords = list(poly.exterior.coords)
-
-        # Create a Polygon patch
-        polygon_patch = patches.Polygon(polygon_coords, closed=True, fill=True, edgecolor=color, facecolor=color,
-                                        alpha=transparency)
-
-        # Add the polygon patch to the axis
-        patch = self.ax_rtree.add_patch(polygon_patch)
-
-        # Ensure the correct figure is active
-        plt.figure(self.fig_rtree.number)
-
-        # Set axis limits
-        if center_view:
-            x_coords, y_coords = zip(*polygon_coords)
-            self.ax_rtree.set_xlim(min(x_coords) - 200000, max(x_coords) + 200000)
-            self.ax_rtree.set_ylim(min(y_coords) - 200000, max(y_coords) + 200000)
-
-        # Redraw the figure to update the display
-        self.fig_rtree.canvas.draw()
-
-        if show:
-            # Show only the rtree figure
-            plt.show(block=False)
-
-            display_pause = float(config['matplotlib_display']['display_show_pause'])
-            plt.pause(display_pause)
-
-        if immediate_remove:
-            patch.remove()
-
-        plt.figure(self.fig.number)
-
-        return patch
-
-    def create_map(self, df: pd.DataFrame, search_distance_height: float, search_distance_width: float,
-                   sheet_name: str = None, specialties: list[str] = None):
+    def create_map(self, df: pd.DataFrame):
 
         # Group site origins and the respective outpatient clinics associated with them
         df.apply(self._group_by_origin, axis=1)
@@ -141,16 +89,6 @@ class VisualizationMapCreator:
                 lines.append(new_line)
         logging.info("\tPlotted lines.")
 
-        logging.info("Creating line polygons for algorithm.")
-        for line in lines:
-            poly = poly_creation.create_line_polygon(line=line)
-            helper_functions.verify_poly_validity(poly=poly,
-                                                  name='line poly')
-            self.poly_types[poly] = 'line'
-            self.rtree_analyzer_.add_poly(poly=poly)
-            self._add_poly_to_algo_axis(poly=poly, show=False)
-        logging.info("\tCreated line polygons and inserted into rtree.")
-
         logging.info("Plotting points.")
         point_coords = []
         for origin, origin_group_ in self.origin_groups.items():
@@ -166,7 +104,7 @@ class VisualizationMapCreator:
         logging.info("\tPlotted points.")
 
         logging.info("Creating points polys for algorithm.")
-        scatter_size = configparser['matplotlib_display']['scatter_size']
+        scatter_size = config['dimensions']['scatter_size']
         units_radius_per_1_scatter_size = configparser['matplotlibdisplay']['units_radius_per_1_scatter_size']
         for i, point_coord in enumerate(point_coords):
             units_radius = scatter_size * units_radius_per_1_scatter_size
@@ -225,9 +163,9 @@ class VisualizationMapCreator:
                 search_area_patch = self._add_poly_to_algo_axis(poly=search_area_poly,
                                                                 color=algorithm_search_poly_color,
                                                                 transparency=algorithm_search_poly_transparency)
-            available_poly = self.rtree_analyzer_.find_available_polygon_around_point(search_poly=poly,
-                                                                                      search_area_poly=search_area_poly,
-                                                                                      search_steps=100)
+            available_poly = self.rtree_analyzer_.find_available_poly_around_point(search_poly=poly,
+                                                                                   search_area_poly=search_area_poly,
+                                                                                   search_steps=100)
             self.poly_types[available_poly] = 'text_box'
             city_text.set_x(available_poly.centroid.x)
             city_text.set_y(available_poly.centroid.y)
