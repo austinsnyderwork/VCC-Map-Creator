@@ -9,6 +9,8 @@ from shapely.geometry import Polygon
 
 from . import helper_functions, origin_group
 import input_output
+import poly_creation
+import spatial_analysis
 
 logging.basicConfig(level=logging.INFO)
 config = configparser.ConfigParser()
@@ -18,10 +20,9 @@ config.read('config.ini')
 class MapCreator:
 
     def __init__(self):
-        self._create_figures()
-
         self.origin_groups = {}
         self.city_coords = {}
+        self.poly_types = {}
 
         self.origin_and_outpatient = []
 
@@ -76,7 +77,7 @@ class MapCreator:
         origin = row['point_of_origin']
         destination = row['community']
         if origin not in self.origin_groups:
-            self.origin_groups[origin] = origin_group.OriginGroup(origin=origin)
+            self.origin_groups[origin] = origin_group.OriginGroup(origin=origin, origin_coord=self.city_coords[origin])
 
         self.origin_groups[origin].add_destination(destination)
 
@@ -135,8 +136,8 @@ class MapCreator:
 
         return best_poly
 
-    def add_polygon_to_axis(self, poly, set_axis=True, show=True, color='blue', transparency=1.0,
-                            immediate_remove=False):
+    def _add_poly_to_axis(self, poly, set_axis=True, show=True, color='blue', transparency=1.0,
+                          immediate_remove=False):
         alg_display = config['matplotlib_display']['should_show_algorithm_display']
         if not alg_display:
             return
@@ -179,6 +180,7 @@ class MapCreator:
 
     def create_map(self, vcc_file_name: str, search_distance_height: float, search_distance_width: float,
                    sheet_name: str = None, specialties: list[str] = None):
+        self._create_figures()
         df = input_output.get_dataframe(file_name=vcc_file_name,
                                         sheet_name=sheet_name,
                                         specialties=specialties)
@@ -192,9 +194,9 @@ class MapCreator:
         logging.info("Grouped by origin.")
 
         # Find sites that are both an origin and outpatient
-        for origin_group in self.origin_groups.values():
-            for outpatient in origin_group.outpatients:
-                if outpatient in origin_group.keys():
+        for origin_group_ in self.origin_groups.values():
+            for outpatient in origin_group_.outpatients:
+                if outpatient in origin_group_.keys():
                     self.origin_and_outpatient.append(outpatient)
         logging.info("Found dual origin/outpatient points")
 
@@ -202,88 +204,105 @@ class MapCreator:
 
         logging.info("Plotting lines.")
         lines = []
-        for i, (origin, outpatients) in enumerate(origins.items()):
-            for outpatient in outpatients:
-                new_line = plot_line(ax=ax_main, origin=origin, outpatient=outpatient, city_coords=city_coords,
-                                     color=colors[i])
+        for i, (origin, origin_group) in enumerate(self.origin_groups.items()):
+            for outpatient in origin_group.outpatients:
+                new_line = self._plot_line(ax=self.ax_main, color=colors[i], origin_coord=self.city_coords[origin],
+                                           outpatient_coord=self.city_coords[outpatient])
                 lines.append(new_line)
         logging.info("\tPlotted lines.")
 
         logging.info("Creating line polygons for algorithm.")
         for line in lines:
-            poly = create_line_polygon(line=line)
-            polygon_types[poly] = 'line'
-            add_polygon_to_rtree(poly=poly)
-            add_polygon_to_axis(poly=poly, show=False)
+            poly = poly_creation.create_line_polygon(line=line)
+            helper_functions.verify_poly_validity(poly=poly,
+                                                  name='line poly')
+            self.poly_types[poly] = 'line'
+            self.rtree_analyzer_.add_poly(poly=poly)
+            self._add_poly_to_axis(poly=poly, show=False)
         logging.info("\tCreated line polygons and inserted into rtree.")
 
         logging.info("Plotting points.")
         point_coords = []
-        for origin, outpatients in origins.items():
-            for outpatient in outpatients:
-                new_points_dict = plot_points(ax_main, origin, outpatient, city_coords, origin_and_outpatient)
+        for origin, origin_group_ in self.origin_groups.items():
+            for outpatient in origin_group_.outpatients:
+                new_points_dict = self._plot_points(ax=self.ax_main,
+                                                    origin=origin,
+                                                    origin_coord=self.city_coords[origin],
+                                                    outpatient=outpatient,
+                                                    outpatient_coord=self.city_coords[outpatient],
+                                                    origin_and_outpatient=self.origin_and_outpatient)
                 point_coords.append(new_points_dict['origin'])
                 point_coords.append(new_points_dict['outpatient'])
         logging.info("\tPlotted points.")
 
         logging.info("Creating points polys for algorithm.")
+        scatter_size = configparser['matplotlib_display']['scatter_size']
+        units_radius_per_1_scatter_size = configparser['matplotlibdisplay']['units_radius_per_1_scatter_size']
         for i, point_coord in enumerate(point_coords):
-            units_radius = global_scatter_size * units_radius_per_1_scatter_size
-            poly = create_circle_polygon(center=point_coord, radius=units_radius)
-            polygon_types[poly] = 'point'
-            add_polygon_to_axis(poly=poly, show=False)
-            add_polygon_to_rtree(poly=poly)
+            units_radius = scatter_size * units_radius_per_1_scatter_size
+            poly = poly_creation.create_circle_polygon(center=point_coord, radius=units_radius)
+            helper_functions.verify_poly_validity(poly=poly,
+                                                  name='scatter poly')
+            self.poly_types[poly] = 'point'
+            self._add_poly_to_axis(poly=poly, show=False)
+            self.rtree_analyzer_.add_poly(poly=poly)
         logging.info("\tCreated point polygons and inserted into rtree.")
 
-        num_cities = len(city_coords.values())
+        text_box_search_width = configparser['mapping']['text_box_search_width']
+        text_box_search_height = configparser['mapping']['text_box_search_height']
+        show_algorithm_search_poly = configparser['matplotlib_display']['show_algorithm_search_poly']
+        algorithm_search_poly_color = configparser['matplotlib_display']['search_poly_color']
+        algorithm_search_poly_transparency = configparser['matplotlib_display']['search_poly_transparency']
+
+        num_cities = len(self.city_coords.values())
         search_area_patch = None
         logging.info("Creating city text.")
-        for i, (city, coord) in enumerate(city_coords.items()):
+        for i, (city, coord) in enumerate(self.city_coords.items()):
             logging.info(f"\tCreating city text box for {city}.\n\t\t{i} of {num_cities}")
-            lon, lat = coord['longitude'], coord['latitude']
+            city_lon, city_lat = coord['longitude'], coord['latitude']
 
             # We don't want Iowa cities to have the state abbreviation
             city_name = city.replace(', IA', '')
-            city_text = plt.text(lon, lat, city_name, fontsize=7, font='Tahoma', ha='center', va='center',
+            city_text = plt.text(city_lon, city_lat, city_name, fontsize=7, font='Tahoma', ha='center', va='center',
                                  color='black',
                                  fontweight='semibold')
 
             # In this portion of the code, we combine the visual and algorithm portion into one loop. This is because
             # where the text is plotted is dependent on the output of the algorithm
-            fig_main.canvas.draw()
-            text_bbox = city_text.get_window_extent(renderer=fig_main.canvas.get_renderer())
+            self.fig_main.canvas.draw()
+            text_bbox = city_text.get_window_extent(renderer=self.fig_main.canvas.get_renderer())
             # Convert from display coordinates to data coordinates
-            inverse_coord_obj = ax_rtree.transData.inverted()
+            inverse_coord_obj = self.ax_rtree.transData.inverted()
             text_bbox_data = inverse_coord_obj.transform_bbox(text_bbox)
-            min_x, min_y = text_bbox_data.xmin, text_bbox_data.ymin
-            max_x, max_y = text_bbox_data.xmax, text_bbox_data.ymax
-            # min_x, min_y, max_x, max_y = resize_rectangle(min_x=min_x, min_y=min_y, max_x=max_x, max_y=max_y, factor=2)
-            polygon_coords = [
-                (min_x, min_y),  # Bottom-left
-                (max_x, min_y),  # Bottom-right
-                (max_x, max_y),  # Top-right
-                (min_x, max_y),  # Top-left
-                (min_x, min_y)  # Close the polygon
-            ]
-            poly = Polygon(polygon_coords)
-            if not poly.is_valid:
-                raise ValueError("Invalid polygon created from text.")
+            x_min, y_min = text_bbox_data.xmin, text_bbox_data.ymin
+            x_max, y_max = text_bbox_data.xmax, text_bbox_data.ymax
 
-            search_area_poly = create_search_area_polygon(center_coord=(coord['longitude'], coord['latitude']),
-                                                          search_distance_height=search_distance_height,
-                                                          search_distance_width=search_distance_width)
-            if should_show_algorithm_search_poly:
-                search_area_patch = add_polygon_to_axis(poly=search_area_poly,
-                                                        color='brown',
-                                                        transparency=0.5)
-            available_poly = find_available_polygon_around_point(search_poly=poly,
-                                                                 search_area_poly=search_area_poly,
-                                                                 search_steps=100)
-            polygon_types[available_poly] = 'text_box'
+            text_poly = poly_creation.create_rectangle_polygon(x_min=x_min,
+                                                               y_min=y_min,
+                                                               x_max=x_max,
+                                                               y_max=y_max)
+            helper_functions.verify_poly_validity(poly=text_poly,
+                                                  name='text box poly')
+
+            search_area_poly = poly_creation.create_rectangle_polygon_from_coord(lon=city_lon,
+                                                                                 lat=city_lat,
+                                                                                 width=text_box_search_width,
+                                                                                 height=text_box_search_height)
+            helper_functions.verify_poly_validity(poly=search_area_poly,
+                                                  name='search area poly')
+
+            if show_algorithm_search_poly:
+                search_area_patch = self._add_poly_to_axis(poly=search_area_poly,
+                                                           color=algorithm_search_poly_color,
+                                                           transparency=algorithm_search_poly_transparency)
+            available_poly = self.rtree_analyzer_.find_available_polygon_around_point(search_poly=poly,
+                                                                                      search_area_poly=search_area_poly,
+                                                                                      search_steps=100)
+            self.poly_types[available_poly] = 'text_box'
             city_text.set_x(available_poly.centroid.x)
             city_text.set_y(available_poly.centroid.y)
-            add_polygon_to_axis(poly=available_poly)
-            add_polygon_to_rtree(poly=available_poly)
+            self._add_poly_to_axis(poly=available_poly)
+            self.rtree_analyzer_.add_poly(poly=available_poly)
 
             # If setting to show polygon is off, then there is no patch to remove
             if search_area_patch:

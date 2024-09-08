@@ -1,30 +1,38 @@
 import numpy as np
+from rtree import index
 from shapely.geometry import Polygon
+
+from map_creation import poly_creation
 
 
 class RtreeAnalyzer:
 
-    def __init__(self, rtree_idx):
-        self.rtree_idx = rtree_idx
+    def __init__(self):
+        self.rtree_idx = index.Index()
 
         self.polygons = {}
         self.poly_idx = 0
 
-    def get_intersecting_polygons(self, search_polygon, rtree_idx) -> list[Polygon]:
-        intersection_indices = list(rtree_idx.intersection(search_polygon.bounds))
+    def get_intersecting_polygons(self, search_polygon) -> list[Polygon]:
+        intersection_indices = list(self.rtree_idx.intersection(search_polygon.bounds))
         intersecting_polygons = [self.polygons[idx] for idx in intersection_indices]
         intersecting_polygons = [poly for poly in intersecting_polygons if search_polygon.intersects(poly)]
         return intersecting_polygons
 
-    def add_polygon(self, poly: Polygon):
+    def add_poly(self, poly: Polygon):
         self.rtree_idx.insert(self.poly_idx, poly.bounds, obj=poly)
         self.polygons[self.poly_idx] = poly
         self.poly_idx += 1
 
-    def find_available_polygon_around_point(self, search_poly: Polygon, point, search_steps=100):
-        search_area_min_x, search_area_min_y, search_area_max_x, search_area_max_y = search_poly.bounds
+    def find_available_polygon_around_point(self, search_poly_bounds_: dict, search_area_poly: Polygon,
+                                            search_steps=100):
+        search_area_min_x, search_area_min_y, search_area_max_x, search_area_max_y = search_area_poly.bounds
 
-        search_poly_min_x, search_poly_min_y, search_poly_max_x, search_poly_max_y = search_poly.bounds
+        search_poly_min_x = search_poly_bounds_['min_x']
+        search_poly_min_y = search_poly_bounds_['min_y']
+        search_poly_max_x = search_poly_bounds_['max_x']
+        search_poly_max_y = search_poly_bounds_['max_y']
+
         search_poly_x_len = search_poly_max_x - search_poly_min_x
         search_poly_y_len = search_poly_max_y - search_poly_min_y
 
@@ -43,21 +51,21 @@ class RtreeAnalyzer:
 
         search_patch = None
         num_steps_total = 0
-        for min_x in min_x_steps:
-            for min_y in min_y_steps:
-                max_x = min_x + search_poly_x_len
-                max_y = min_y + search_poly_y_len
-                search_poly = create_rectangle_polygon(x_coords=(min_x, max_x),
-                                                       y_coords=(min_y, max_y))
+        for x_min in min_x_steps:
+            for y_min in min_y_steps:
+                x_max = x_min + search_poly_x_len
+                y_max = y_min + search_poly_y_len
+                search_poly = poly_creation.create_rectangle_polygon(x_min=x_min,
+                                                                     y_min=y_min,
+                                                                     x_max=x_max,
+                                                                     y_max=y_max)
 
-                intersecting_polys = get_intersecting_polygons(search_polygon=search_poly,
-                                                               rtree_idx=rtree_idx,
-                                                               polygons=polygons)
+                intersecting_polys = self.get_intersecting_polygons(search_polygon=search_poly)
                 poly_groups_dict[idx] = intersecting_polys
                 search_polys[idx] = search_poly
                 idx += 1
 
-                if should_show_algorithm_search_display and num_steps_total % num_steps_to_show_algorithm_poly == 0:
+                if show_algo_search_display and num_steps_total % num_steps_to_show_algo_poly == 0:
                     search_patch = add_polygon_to_axis(poly=search_poly,
                                                        set_axis=False,
                                                        color='green',
@@ -84,5 +92,3 @@ class RtreeAnalyzer:
                                               search_polys=search_polys,
                                               city_point=search_area_poly.centroid)
         return best_poly
-
-

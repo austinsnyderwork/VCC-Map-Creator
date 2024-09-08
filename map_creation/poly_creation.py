@@ -45,6 +45,19 @@ def create_rectangle_polygon(x_min, y_min, x_max, y_max) -> Polygon:
     # Create and return the Polygon
     return Polygon(coordinates)
 
+
+def create_rectangle_polygon_from_coord(lon, lat, width, height):
+    x_min = lon - width
+    x_max = lon + width
+    y_min = lat - height
+    y_max = lat + height
+    poly = create_rectangle_polygon(x_min=x_min,
+                                    y_min=y_min,
+                                    x_max=x_max,
+                                    y_max=y_max)
+    return poly
+
+
 def create_polygon_from_coords(**kwargs):
     poly = None
     # This indicates that we were given individual coordinates
@@ -71,6 +84,7 @@ def create_polygon_from_coords(**kwargs):
 
     if poly:
         return poly
+
 
 def resize_rectangle(min_x, min_y, max_x, max_y, factor):
     # Calculate the center of the original rectangle

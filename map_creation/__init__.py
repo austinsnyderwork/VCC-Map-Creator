@@ -1,2 +1,2 @@
-from .map_creator import create_map
+from .map_creator import MapCreator
 
