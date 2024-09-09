@@ -1,5 +1,6 @@
 import itertools
 import logging
+import matplotlib.patches as patches
 import numpy as np
 from shapely.geometry import Polygon
 
@@ -49,12 +50,16 @@ def _create_rectangle_polygon(**kwargs) -> Polygon:
         lat = kwargs['lat']
         width = kwargs['width']
         height = kwargs['height']
-        return _create_rectangle_polygon_from_coord(lon, lat, width, height)
+        x_min = lon - width
+        x_max = lon + width
+        y_min = lat - height
+        y_max = lat + height
+    else:
+        x_min = kwargs['x_min']
+        y_min = kwargs['y_min']
+        x_max = kwargs['x_max']
+        y_max = kwargs['y_max']
 
-    x_min = kwargs['x_min']
-    y_min = kwargs['y_min']
-    x_max = kwargs['x_max']
-    y_max = kwargs['y_max']
     coordinates = [
         (x_min, y_min),  # Bottom-left corner
         (x_max, y_min),  # Bottom-right corner
@@ -65,18 +70,6 @@ def _create_rectangle_polygon(**kwargs) -> Polygon:
 
     # Create and return the Polygon
     return Polygon(coordinates)
-
-
-def _create_rectangle_polygon_from_coord(lon, lat, width, height):
-    x_min = lon - width
-    x_max = lon + width
-    y_min = lat - height
-    y_max = lat + height
-    poly = _create_rectangle_polygon(x_min=x_min,
-                                     y_min=y_min,
-                                     x_max=x_max,
-                                     y_max=y_max)
-    return poly
 
 
 def _create_polygon_from_coords(**kwargs):
