@@ -1,8 +1,9 @@
-import visualization
+from interfacing import interface
 
 vcc_file_name = "/vcc_joined_data.csv"
 
-visualization.create_map(vcc_file_name=vcc_file_name, specialties=['Ophthalmology'], search_distance_width=25000,
-                         search_distance_height=15000)
+interface_ = interface.Interface()
+interface_.import_data(vcc_file_name=vcc_file_name)
+interface_.create_maps()
 
 

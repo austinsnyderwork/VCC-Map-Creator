@@ -15,7 +15,3 @@ def is_dark_color(hex_color):
     # A threshold to determine what counts as a "light" color
     return brightness < 0.7
 
-
-def move_text_box(text_box, lon, lat):
-    text_box.set_x(lon)
-    text_box.set_y(lat)

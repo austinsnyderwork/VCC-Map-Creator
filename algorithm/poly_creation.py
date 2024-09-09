@@ -1,5 +1,5 @@
 import itertools
-import matplotlib.pyplot as plt
+import logging
 import numpy as np
 from shapely.geometry import Polygon
 
@@ -13,7 +13,7 @@ def create_poly(poly_type: str, **kwargs):
         'rectangle': _create_rectangle_polygon
     }
     func = poly_create_functions[poly_type]
-    poly = func(kwargs)
+    poly = func(**kwargs)
     return poly
 
 
@@ -83,6 +83,7 @@ def _create_polygon_from_coords(**kwargs):
     poly = None
     # This indicates that we were given individual coordinates
     if 'min_x' in kwargs:
+        logging.info("Creating polygon from coords.")
         min_x = kwargs['min_x']
         max_x = kwargs['max_x']
         min_y = kwargs['min_y']
@@ -98,12 +99,16 @@ def _create_polygon_from_coords(**kwargs):
 
         poly = Polygon(polygon_coords)
     else:
+        logging.info("Creating polygon from coord permutations.")
         for permutation in itertools.permutations(kwargs['coords']):
             polygon = Polygon(permutation)
             if polygon.is_valid:
                 poly = polygon
+                break
 
-    if poly:
+    if not poly.is_valid:
+        raise ValueError("Could not form a valid polygon.")
+    else:
         return poly
 
 

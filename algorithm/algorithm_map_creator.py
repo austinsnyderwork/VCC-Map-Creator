@@ -2,10 +2,6 @@ import configparser
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
-from rtree import index
-
-from visualization import helper_functions
-from . import poly_creation
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -32,7 +28,7 @@ class AlgorithmMapCreator:
 
         plt.figure(self.fig)
 
-    def add_poly_to_map(self, poly, center_view=True, show_display=True, color='blue', transparency=1.0,
+    def add_poly_to_map(self, poly, center_view=False, show_display=True, color='blue', transparency=1.0,
                         immediately_remove=False):
         # Get polygon coordinates
         polygon_coords = list(poly.exterior.coords)
@@ -60,7 +56,7 @@ class AlgorithmMapCreator:
             # Show only the rtree figure
             plt.show(block=False)
 
-            display_pause = float(config['matplotlib_display']['display_show_pause'])
+            display_pause = float(config['algo_display']['show_pause'])
             plt.pause(display_pause)
 
         if immediately_remove:

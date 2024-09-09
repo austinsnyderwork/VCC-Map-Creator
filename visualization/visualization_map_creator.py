@@ -2,10 +2,9 @@ import configparser
 import logging
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
-import pandas as pd
 
 from . import helper_functions
-from .origin_grouping import origin_groups_handler
+import origin_grouping
 
 logging.basicConfig(level=logging.INFO)
 config = configparser.ConfigParser()
@@ -15,7 +14,6 @@ config.read('config.ini')
 class VisualizationMapCreator:
 
     def __init__(self):
-        self.origin_groups_handler_ = origin_groups_handler.OriginGroupsHandler()
         self.poly_types = {}
 
         self.iowa_map = None
@@ -46,7 +44,7 @@ class VisualizationMapCreator:
         return scatter_obj
 
     def plot_points(self, scatter_size: float, city_coords: dict, dual_origin_outpatient: list,
-                    origin_groups: dict) -> dict:
+                    origin_groups: dict[str, origin_grouping.OriginGroup]) -> dict:
         points = {}
         for origin, origin_group_ in origin_groups.items():
             origin_in_oo = True if origin in dual_origin_outpatient else False
@@ -78,8 +76,10 @@ class VisualizationMapCreator:
         colors = helper_functions.get_valid_colors()
         for i, (origin, origin_group_) in enumerate(origin_groups.items()):
             for outpatient in origin_group_.outpatients:
-                new_line = self._plot_line(color=colors[i], origin_coord=city_coords[origin],
-                                           outpatient_coord=city_coords[outpatient], width=line_width)
+                origin_coord = city_coords[origin]['longitude'], city_coords[origin]['latitude']
+                outpatient_coord = city_coords[outpatient]['longitude'], city_coords[outpatient]['latitude']
+                new_line = self._plot_line(color=colors[i], origin_coord=origin_coord,
+                                           outpatient_coord=outpatient_coord, width=line_width)
                 lines[(origin, outpatient)] = new_line
         return lines
 
@@ -112,13 +112,19 @@ class VisualizationMapCreator:
                               }
         return text_box, text_box_dimensions
 
-    def plot_text_boxes(self, city_display_coords: dict) -> dict:
-        num_cities = len(city_display_coords)
-        city_text = {}
-        for i, (city_name, coord) in enumerate(city_display_coords.items()):
-            logging.info(f"\tCreating city text box for {city_name}.\n\t\t{i} of {num_cities}")
-            city_lon, city_lat = coord['longitude'], coord['latitude']
+    def plot_text_boxes(self, origin_groups: dict, city_display_coords: dict) -> dict:
+        city_text_boxes = {}
+        for origin_name, origin_group_ in origin_groups:
+            if origin_name not in city_text_boxes:
+                city_text_box = self._plot_text(city_name=origin_name,
+                                                city_lon=city_display_coords[origin_name]['longitude'],
+                                                city_lat=city_display_coords[origin_name]['latitude'])
+                city_text_boxes[origin_name] = city_text_box
+            for outpatient_name in origin_group_.outpatients:
+                if outpatient_name not in city_text_boxes:
+                    city_text_box = self._plot_text(city_name=outpatient_name,
+                                                    city_lon=city_display_coords[outpatient_name]['longitude'],
+                                                    city_lat=city_display_coords[outpatient_name]['latitude'])
+                    city_text_boxes[outpatient_name] = city_text_box
 
-            city_text_box = self._plot_text(city_name=city_name, city_lon=city_lon, city_lat=city_lat)
-            city_text[city_name] = city_text_box
-        return city_text
+        return city_text_boxes

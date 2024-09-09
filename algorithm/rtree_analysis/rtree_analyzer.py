@@ -12,7 +12,7 @@ class RtreeAnalyzer:
         self.rtree_idx = index.Index()
 
         self.polygons = {}
-        self.poly_types = {}
+        self.poly_classes = {}
         self.poly_idx = 0
 
     def _get_intersecting_polys(self, scan_poly) -> list[Polygon]:
@@ -25,11 +25,11 @@ class RtreeAnalyzer:
     def _generate_poly_key(poly: Polygon):
         return (poly,)
 
-    def add_poly(self, poly: Polygon, poly_type: str):
+    def add_poly(self, poly: Polygon, poly_class: str):
         self.rtree_idx.insert(self.poly_idx, poly.bounds, obj=poly)
         poly_key = self._generate_poly_key(poly=poly)
         self.polygons[self.poly_idx] = poly
-        self.poly_types[poly_key] = poly_type
+        self.poly_classes[poly_key] = poly_class
         self.poly_idx += 1
 
     def _determine_best_poly(self, scan_poly_intersections: dict, city_coord: tuple) -> Polygon:
@@ -39,7 +39,7 @@ class RtreeAnalyzer:
             found_non_text_group = False
             for scan_poly, intersecting_polys in poly_groups:
                 non_text_polys = [poly for poly in intersecting_polys if
-                                  self.poly_types[self._generate_poly_key(poly)] == 'text']
+                                  self.poly_classes[self._generate_poly_key(poly)] == 'text']
                 if len(non_text_polys) > 0:
                     found_non_text_group = True
                     non_text_intersecting_groups.append((scan_poly, intersecting_polys))
@@ -60,33 +60,32 @@ class RtreeAnalyzer:
                                                                center_point=city_coord)
         return closest_scan_poly
 
-    def find_available_poly_around_point(self, search_area_bounds: dict, city_coord, text_width: float,
-                                         text_height: float, search_steps=100):
+    def find_available_poly_around_point(self, search_poly_bounds: dict, search_area_bounds: dict, city_coord,
+                                         search_steps=100):
         """
         Create the equally-spaced steps between the start and end of both the width and height of the search area. We
         obviously can't allow the right border of the scan poly to go past the right border of the search area, so
         we limit how far the x_min can go by the x_max of the search area minus the width of the scan poly. Same is true
         for the y-axis with the height.
         """
-        search_area_min_x = search_area_bounds['min_x']
-        search_area_min_y = search_area_bounds['min_y']
-        search_area_max_x = search_area_bounds['max_x']
-        search_area_max_y = search_area_bounds['max_y']
 
-        search_area_poly = poly_creation.create_poly(poly_type='rectangle', min_x=search_area_min_x,
-                                                     min_y=search_area_min_y, max_x=search_area_max_x,
-                                                     max_y=search_area_max_y)
+        search_area_poly = poly_creation.create_poly(poly_type='rectangle', min_x=search_area_bounds['min_x'],
+                                                     min_y=search_area_bounds['min_y'], max_x=search_area_bounds['max_x'],
+                                                     max_y=search_area_bounds['max_y'])
         yield search_area_poly, 'search_area'
 
-        search_poly_x_len = search_area_max_x - search_area_min_x
-        search_poly_y_len = search_area_max_y - search_area_min_y
+        search_poly_x_len = search_area_bounds['max_x'] - search_area_bounds['min_x']
+        search_poly_y_len = search_area_bounds['max_y'] - search_area_bounds['min_y']
+
+        scan_poly_width = search_poly_bounds['max_x'] - search_poly_bounds['min_x']
+        scan_poly_height = search_poly_bounds['max_y'] - search_poly_bounds['min_y']
 
         # Iterating steps through
-        maximum_x_min = search_area_max_x - text_width
-        min_x_steps = np.linspace(search_area_min_x, maximum_x_min, search_steps)
+        maximum_x_min = search_area_bounds['max_x'] - scan_poly_width
+        min_x_steps = np.linspace(search_area_bounds['min_x'], maximum_x_min, search_steps)
 
-        maximum_y_min = search_area_max_y - text_height
-        min_y_steps = np.linspace(search_area_min_y, maximum_y_min, search_steps)
+        maximum_y_min = search_area_bounds['max_y'] - scan_poly_height
+        min_y_steps = np.linspace(search_area_bounds['min_y'], maximum_y_min, search_steps)
 
         scan_poly_intersections = {}
 
