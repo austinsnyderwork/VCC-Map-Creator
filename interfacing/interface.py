@@ -1,10 +1,13 @@
 import configparser
 import logging
-from algorithm import rtree_analysis
+import matplotlib
+from mpl_toolkits.basemap import Basemap
 
+from algorithm import rtree_analysis
 import algorithm
 import input_output
 import origin_grouping
+import poly_creation
 import visualization
 
 config = configparser.ConfigParser()
@@ -19,23 +22,30 @@ class Interface:
 
         self.algo_handler = algorithm.AlgorithmHandler()
 
-        self.city_coords = {}
+        self.colors = []
 
         self.data_imported = False
 
-    def _add_city_gpd_coord(self, row):
+    def _add_city_gpd_coord(self, row, base_map: Basemap):
+        coord_dict = self.vis_map_creator.city_coords
         community = row['community']
         origin = row['point_of_origin']
-        if community not in self.city_coords:
-            self.city_coords[community] = {
-                'latitude': row['to_lat'],
-                'longitude': row['to_lon']
+        if community not in coord_dict:
+            lon = row['to_lon']
+            lat = row['to_lat']
+            lon, lat = base_map(lon, lat)
+            coord_dict[community] = {
+                'latitude': lat,
+                'longitude': lon
             }
 
-        if origin not in self.city_coords:
-            self.city_coords[origin] = {
-                'latitude': row['origin_lat'],
-                'longitude': row['origin_lon']
+        if origin not in coord_dict:
+            lon = row['origin_lon']
+            lat = row['origin_lat']
+            lon, lat = base_map(lon, lat)
+            coord_dict[origin] = {
+                'latitude': lat,
+                'longitude': lon
             }
 
     def import_data(self, vcc_file_name: str, sheet_name: str = None, variables: dict = None):
@@ -47,8 +57,12 @@ class Interface:
         df.apply(self._add_city_gpd_coord, axis=1)
         logging.info("Added city coords.")
 
-        df.apply(self.origin_groups_handler_.group_origins, city_coords=self.city_coords, axis=1)
+        df.apply(self.origin_groups_handler_.group_origins, axis=1)
         logging.info(f"Grouped origins.")
+
+        all_colors = matplotlib.colors.CSS4_COLORS
+        self.colors = [color for color, hex_value in all_colors.items() if visualization.is_dark_color(hex_value)]
+
         self.data_imported = True
 
     def _lookup_poly_characteristics(self, poly_type: str):
@@ -102,7 +116,6 @@ class Interface:
     def _handle_text_boxes(self, points_by_city: dict):
         text_box_display_coords = {}
         for city_name, point in points_by_city.items():
-            city_coord = self.city_coords[city_name]
             # Have to input the text into the map to see its dimensions on our view
             text_box, text_box_dimensions = self.vis_map_creator.get_text_box_dimensions(city_name=city_name,
                                                                                          font=config['viz_display'][
@@ -113,7 +126,11 @@ class Interface:
                                                                                          font_weight=
                                                                                          config['viz_display'][
                                                                                              'font_weight'])
-            search_area_bounds = self._determine_search_area_bounds(city_lon=city_coord[0], city_lat=city_coord[1])
+            search_distance_height = text_box_dimensions['y_max'] - text_box_dimensions['y_min']
+            search_distance_width = text_box_dimensions['x_max'] - text_box_dimensions['x_min']
+            search_area_poly = poly_creation.create_search_area_polygon(center_coord=point,
+                                                                        search_distance_height=search_distance_height,
+                                                                        search_distance_width=search_distance_width)
             for poly, poly_type in self.algo_handler.rtree_analyzer.find_available_poly_around_point(
                     search_poly_bounds=text_box_dimensions,
                     search_area_bounds=search_area_bounds,
@@ -133,8 +150,7 @@ class Interface:
         line_width = float(config['dimensions']['line_width'])
         lines_by_origin_outpatient = self.vis_map_creator.plot_lines(
             origin_groups=self.origin_groups_handler_.origin_groups,
-            line_width=line_width,
-            city_coords=self.city_coords)
+            line_width=line_width)
         lines_data_dict = {}
         for (origin_name, outpatient_name), line in lines_by_origin_outpatient.items():
             lines_data_dict[(origin_name, outpatient_name)] = {
@@ -145,7 +161,6 @@ class Interface:
         self.algo_handler.plot_lines(lines_data_dict)
         points_by_city = self.vis_map_creator.plot_points(origin_groups=self.origin_groups_handler_.origin_groups,
                                                           scatter_size=float(config['dimensions']['scatter_size']),
-                                                          city_coords=self.city_coords,
                                                           dual_origin_outpatient=self.origin_groups_handler_.dual_origin_outpatient)
         self.algo_handler.plot_points(points_by_city)
         city_display_coords = self._handle_text_boxes(points_by_city)

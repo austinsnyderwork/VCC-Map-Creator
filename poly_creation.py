@@ -4,7 +4,7 @@ import matplotlib.patches as patches
 import numpy as np
 from shapely.geometry import Polygon
 
-from . import helper_functions
+from algorithm import helper_functions
 
 
 def create_poly(poly_type: str, **kwargs):
@@ -42,6 +42,16 @@ def _create_circle_polygon(center, radius, num_points=100) -> Polygon:
     angles = np.linspace(0, 2 * np.pi, num_points)
     points = [(center[0] + radius * np.cos(angle), center[1] + radius * np.sin(angle)) for angle in angles]
     return Polygon(points)
+
+
+def create_search_area_polygon(center_coord, search_distance_height: float, search_distance_width: float) -> Polygon:
+    min_x = center_coord[0] - search_distance_width
+    max_x = center_coord[0] + search_distance_width
+    min_y = center_coord[1] - search_distance_height
+    max_y = center_coord[1] + search_distance_height
+    search_area_poly = _create_polygon_from_coords(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
+
+    return search_area_poly
 
 
 def _create_rectangle_polygon(**kwargs) -> Polygon:

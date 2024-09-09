@@ -1,8 +1,8 @@
 import configparser
 from shapely.geometry import Polygon
 
-from . import algorithm_map_creator, helper_functions, poly_creation, rtree_analysis
-
+from . import algorithm_map_creator, helper_functions, rtree_analysis
+import poly_creation
 
 config = configparser.ConfigParser()
 config.read('config.ini')

@@ -1,13 +1,7 @@
 import configparser
-from matplotlib import patches
+import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
-from shapely.geometry import Polygon
-
-import poly_creation
-
-config = configparser.ConfigParser()
-config.read('config.ini')
 
 
 class AlgorithmMapCreator:
@@ -32,27 +26,25 @@ class AlgorithmMapCreator:
 
         plt.figure(self.fig)
 
-    def _convert_poly_to_display_coordinates(self, poly: Polygon):
-        x_min, y_min, x_max, y_max = poly.bounds
-        x_min, y_min = self.iowa_map(x_min, y_min)
-        x_max, y_max = self.iowa_map(x_max, y_max)
-        poly = poly_creation.create_poly(poly_type='rectangle', x_min=x_min, y_min=y_min, x_max=x_max, y_max=y_max)
-        return poly
-
     def add_poly_to_map(self, poly, center_view=False, show_display=True, color='blue', transparency=1.0,
-                        immediately_remove=False):
+                        immediately_remove=False, display_show_pause: float = 1.0):
 
-        poly = self._convert_poly_to_display_coordinates(poly=poly)
+        # Get polygon coordinates
+        polygon_coords = list(poly.exterior.coords)
 
         # Create a Polygon patch
-        self.ax.fill(poly)
+        polygon_patch = patches.Polygon(polygon_coords, closed=True, fill=True, edgecolor=color, facecolor=color,
+                                        alpha=transparency)
+
+        # Add the polygon patch to the axis
+        patch = self.ax.add_patch(polygon_patch)
 
         # Ensure the correct figure is active
         plt.figure(self.fig.number)
 
         # Set axis limits
         if center_view:
-            x_coords, y_coords = zip(poly.centroid.x, poly.centroid.y)
+            x_coords, y_coords = zip(*polygon_coords)
             self.ax.set_xlim(min(x_coords) - 200000, max(x_coords) + 200000)
             self.ax.set_ylim(min(y_coords) - 200000, max(y_coords) + 200000)
 
@@ -63,10 +55,11 @@ class AlgorithmMapCreator:
             # Show only the rtree figure
             plt.show(block=False)
 
-            display_pause = float(config['algo_display']['show_pause'])
-            plt.pause(display_pause)
+            plt.pause(display_show_pause)
 
         if immediately_remove:
             patch.remove()
+
+        plt.figure(self.fig.number)
 
         return patch
