@@ -1,7 +1,6 @@
 import configparser
-from shapely import Polygon
 
-from . import algorithm_map_creator, poly_creation, rtree_analysis
+from . import algorithm_map_creator, helper_functions, poly_creation, rtree_analysis
 
 
 config = configparser.ConfigParser()
@@ -14,19 +13,28 @@ class AlgorithmHandler:
         self.algo_map_creator = algorithm_map_creator.AlgorithmMapCreator()
         self.rtree_analyzer = rtree_analysis.RtreeAnalyzer()
 
-    def add_polys(self, polys_data: dict):
-        acceptable_poly_types = ['line', 'rectangle', 'scatter']
+        self.poly_types = {}
 
-        new_polys = []
-        for poly_type, poly_data in polys_data:
-            if poly_type not in acceptable_poly_types:
-                raise ValueError(f"Poly types passed into add_polys are not one of acceptable poly "
-                                 f"types:\n\tAcceptable: {acceptable_poly_types}\n\tPassed in: {poly_type}")
-            poly = poly_creation.create_poly(poly_type=poly_type,
-                                             kwargs=poly_data)
-            new_polys.append(poly)
-        for poly in new_polys:
-            self.rtree_analyzer.add_poly(poly=poly)
-            if config['algorithm']['show_map']:
-                self.algo_map_creator.add_poly_to_map(poly=poly)
+    def plot_lines(self, line_dicts: list[dict]):
+        for line_data in line_dicts:
+            poly = poly_creation.create_poly(poly_type='line', x_data=line_data['x_data'], y_data=line_data['y_data'],
+                                             line_width=line_data['line_width'])
+            helper_functions.verify_poly_validity(poly=poly,
+                                                  name='line poly')
+            self.poly_types[poly] = 'line'
+            self.algo_map_creator.add_poly_to_map(poly=poly)
+
+    def plot_scatters(self, point_coords):
+        scatter_size = float(config['dimensions']['scatter_size'])
+        units_radius_per_1_scatter_size = float(config['dimensions']['units_radius_per_1_scatter_size'])
+        for i, point_coord in enumerate(point_coords):
+            units_radius = scatter_size * units_radius_per_1_scatter_size
+            poly = poly_creation.create_poly(poly_type='scatter', center=point_coord, radius=units_radius)
+            helper_functions.verify_poly_validity(poly=poly,
+                                                  name='scatter poly')
+            self.poly_types[poly] = 'point'
+            self.algo_map_creator.add_poly_to_map(poly=poly)
+
+    def plot_rectangle(self, lon, lat, color, ):
+
 

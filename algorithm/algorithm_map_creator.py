@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 from rtree import index
 
-from map_creation import helper_functions
+from visualization import helper_functions
 from . import poly_creation
 
 config = configparser.ConfigParser()
@@ -14,8 +14,6 @@ config.read('config.ini')
 class AlgorithmMapCreator:
 
     def __init__(self):
-        self.rtree_idx = index.Index()
-
         self.poly_types = {}
         self.fig, self.main = None, None
 
@@ -33,25 +31,6 @@ class AlgorithmMapCreator:
         iowa_map.drawcounties(linewidth=0.04)
 
         plt.figure(self.fig)
-
-    def plot_lines(self, lines: list):
-        for line in lines:
-            poly = poly_creation.create_poly(poly_type='line', line=line)
-            helper_functions.verify_poly_validity(poly=poly,
-                                                  name='line poly')
-            self.poly_types[poly] = 'line'
-            self.add_poly_to_map(poly=poly, show_display=False)
-
-    def plot_scatters(self, point_coords, show_display: bool =False):
-        scatter_size = float(config['dimensions']['scatter_size'])
-        units_radius_per_1_scatter_size = float(config['dimensions']['units_radius_per_1_scatter_size'])
-        for i, point_coord in enumerate(point_coords):
-            units_radius = scatter_size * units_radius_per_1_scatter_size
-            poly = poly_creation.create_poly(poly_type='scatter', center=point_coord, radius=units_radius)
-            helper_functions.verify_poly_validity(poly=poly,
-                                                  name='scatter poly')
-            self.poly_types[poly] = 'point'
-            self.add_poly_to_map(poly=poly, show_display=show_display)
 
     def add_poly_to_map(self, poly, center_view=True, show_display=True, color='blue', transparency=1.0,
                         immediately_remove=False):

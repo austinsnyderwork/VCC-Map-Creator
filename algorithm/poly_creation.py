@@ -6,7 +6,6 @@ from shapely.geometry import Polygon
 from . import helper_functions
 
 
-
 def create_poly(poly_type: str, **kwargs):
     poly_create_functions = {
         'line': _create_line_polygon,
@@ -14,14 +13,11 @@ def create_poly(poly_type: str, **kwargs):
         'rectangle': _create_rectangle_polygon
     }
     func = poly_create_functions[poly_type]
-    func(kwargs)
+    poly = func(kwargs)
+    return poly
 
 
-def _create_line_polygon(line: plt.Line2D) -> Polygon:
-    line_width = line.get_linewidth()
-    x_data = line.get_xdata()
-    y_data = line.get_ydata()
-
+def _create_line_polygon(line_width: float, x_data, y_data) -> Polygon:
     line_coord_0 = (x_data[0], y_data[0])
     line_coord_1 = (x_data[1], y_data[1])
 
@@ -30,12 +26,14 @@ def _create_line_polygon(line: plt.Line2D) -> Polygon:
 
     poly_coords = []
     for coord in [line_coord_0, line_coord_1]:
-        new_coord_0 = helper_functions.move_coordinate(coord[0], coord[1], slope=perpendicular_slope, distance=line_width / 2)
-        new_coord_1 = helper_functions.move_coordinate(coord[0], coord[1], slope=-perpendicular_slope, distance=line_width / 2)
+        new_coord_0 = helper_functions.move_coordinate(coord[0], coord[1], slope=perpendicular_slope,
+                                                       distance=line_width / 2)
+        new_coord_1 = helper_functions.move_coordinate(coord[0], coord[1], slope=-perpendicular_slope,
+                                                       distance=line_width / 2)
         poly_coords.append(new_coord_0)
         poly_coords.append(new_coord_1)
 
-    poly = create_polygon_from_coords(coords=poly_coords)
+    poly = _create_polygon_from_coords(coords=poly_coords)
     return poly
 
 
@@ -75,9 +73,9 @@ def _create_rectangle_polygon_from_coord(lon, lat, width, height):
     y_min = lat - height
     y_max = lat + height
     poly = _create_rectangle_polygon(x_min=x_min,
-                                    y_min=y_min,
-                                    x_max=x_max,
-                                    y_max=y_max)
+                                     y_min=y_min,
+                                     x_max=x_max,
+                                     y_max=y_max)
     return poly
 
 

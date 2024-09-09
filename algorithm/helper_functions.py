@@ -1,6 +1,11 @@
 import math
 
 
+def verify_poly_validity(poly, name):
+    if not poly.is_valid():
+        raise ValueError(f"{name} poly was invalid on creation.")
+
+
 def move_coordinate(x, y, slope, distance):
     angle = math.atan(slope)  # arctan gives the angle from the slope
 

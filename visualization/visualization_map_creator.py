@@ -1,0 +1,124 @@
+import configparser
+import logging
+import matplotlib.pyplot as plt
+from mpl_toolkits import basemap
+import pandas as pd
+
+from . import helper_functions
+from .origin_grouping import origin_groups_handler
+
+logging.basicConfig(level=logging.INFO)
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+
+class VisualizationMapCreator:
+
+    def __init__(self):
+        self.origin_groups_handler_ = origin_groups_handler.OriginGroupsHandler()
+        self.poly_types = {}
+
+        self.iowa_map = None
+        self.fig, self.ax = None, None
+
+        self._create_figure()
+
+    def _create_figure(self):
+        # Create visual Iowa map
+        self.fig, self.ax = plt.subplots(figsize=(12, 8))
+        self.ax.set_title("Main")
+        self.iowa_map = basemap.Basemap(projection='lcc', resolution='i',
+                                        lat_0=41.5, lon_0=-93.5,  # Central latitude and longitude
+                                        llcrnrlon=-97, llcrnrlat=40,  # Lower-left corner
+                                        urcrnrlon=-89, urcrnrlat=44,  # Upper-right corner
+                                        ax=self.ax)
+        self.iowa_map.drawstates()
+        self.iowa_map.drawcounties(linewidth=0.04)
+        logging.info("Created base Iowa map.")
+
+    def _plot_point(self, coord: tuple, origin_and_outpatient: bool, scatter_size,
+                    scatter_label, color: str) -> dict:
+        lon, lat = coord[0], coord[1]
+
+        marker = "D" if origin_and_outpatient else "s"
+        scatter_obj = self.ax.scatter(lon, lat, marker=marker, color=color, s=scatter_size, label=scatter_label)
+
+        return scatter_obj
+
+    def plot_points(self, scatter_size: float, city_coords: dict, dual_origin_outpatient: list,
+                    origin_groups: dict) -> dict:
+        points = {}
+        for origin, origin_group_ in origin_groups.items():
+            origin_in_oo = True if origin in dual_origin_outpatient else False
+            for outpatient in origin_group_.outpatients:
+                outpatient_in_oo = True if outpatient in dual_origin_outpatient else False
+                origin_point = self._plot_point(coord=city_coords[origin],
+                                                origin_and_outpatient=origin_in_oo,
+                                                scatter_size=scatter_size,
+                                                scatter_label='Origin')
+                outpatient_point = self._plot_point(coord=city_coords[outpatient],
+                                                    origin_and_outpatient=outpatient_in_oo,
+                                                    scatter_size=scatter_size,
+                                                    scatter_label='Outpatient')
+                points[origin] = origin_point
+                points[outpatient] = outpatient_point
+        return points
+
+    def _plot_line(self, origin_coord: tuple, outpatient_coord: tuple, color: str, width) -> plt.Line2D:
+        from_lon, from_lat = origin_coord[0], origin_coord[1]
+        to_lon, to_lat = outpatient_coord[0], outpatient_coord[1]
+
+        lines = self.ax.plot([to_lon, from_lon], [to_lat, from_lat], color=color, linestyle='-', linewidth=width)
+        line = lines[0]
+
+        return line
+
+    def plot_lines(self, origin_groups: dict, line_width: float, city_coords: dict) -> dict:
+        lines = {}
+        colors = helper_functions.get_valid_colors()
+        for i, (origin, origin_group_) in enumerate(origin_groups.items()):
+            for outpatient in origin_group_.outpatients:
+                new_line = self._plot_line(color=colors[i], origin_coord=city_coords[origin],
+                                           outpatient_coord=city_coords[outpatient], width=line_width)
+                lines[(origin, outpatient)] = new_line
+        return lines
+
+    def _plot_text(self, city_name, city_lon, city_lat):
+        # We don't want Iowa cities to have the state abbreviation
+        city_name = city_name.replace(', IA', '')
+        city_text = self.ax.text(city_lon, city_lat, city_name, fontsize=7, font='Tahoma', ha='center', va='center',
+                                 color='black',
+                                 fontweight='semibold')
+        return city_text
+
+    def get_text_box_dimensions(self, city_name: str, font: str, font_size: int, font_weight: str) -> tuple:
+        # We don't want Iowa cities to have the state abbreviation
+        city_name = city_name.replace(', IA', '')
+        city_text = plt.text(0, 0, city_name, fontsize=font_size, font=font, ha='center', va='center',
+                             color='black', fontweight=font_weight)
+        self.fig.canvas.draw()
+        text_box = city_text.get_window_extent(renderer=self.fig.canvas.get_renderer())
+
+        # Convert from display coordinates to data coordinates
+        inverse_coord_obj = self.ax.transData.inverted()
+        text_bbox_data = inverse_coord_obj.transform_bbox(text_box)
+        x_min, y_min = text_bbox_data.xmin, text_bbox_data.ymin
+        x_max, y_max = text_bbox_data.xmax, text_bbox_data.ymax
+        text_box_dimensions = {
+                                'x_min': x_min,
+                                'y_min': y_min,
+                                'x_max': x_max,
+                                'y_max': y_max
+                              }
+        return text_box, text_box_dimensions
+
+    def plot_text_boxes(self, city_display_coords: dict) -> dict:
+        num_cities = len(city_display_coords)
+        city_text = {}
+        for i, (city_name, coord) in enumerate(city_display_coords.items()):
+            logging.info(f"\tCreating city text box for {city_name}.\n\t\t{i} of {num_cities}")
+            city_lon, city_lat = coord['longitude'], coord['latitude']
+
+            city_text_box = self._plot_text(city_name=city_name, city_lon=city_lon, city_lat=city_lat)
+            city_text[city_name] = city_text_box
+        return city_text
