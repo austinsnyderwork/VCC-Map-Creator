@@ -116,38 +116,49 @@ class AlgorithmHandler:
                                                   transparency=float(poly_characteristics['transparency']),
                                                   immediately_remove=poly_characteristics['immediately_remove'])
 
+    def _scan_poly_outside_of_search_area(self, scan_poly, search_area_poly):
+        extruding_scan_poly = scan_poly.difference(search_area_poly)
+
+        return not extruding_scan_poly.is_empty
+
     def find_available_poly_around_point(self, scan_poly_dimensions: dict, center_coord):
         search_height = float(config['algorithm']['search_height'])
         search_width = float(config['algorithm']['search_width'])
         search_steps = int(config['algorithm']['search_steps'])
         show_pause = float(config['algo_display']['show_pause'])
+        steps_to_show_scan_poly = int(config['algo_display']['steps_to_show_scan_poly'])
 
         scan_poly = poly_creation.create_poly(poly_type='rectangle',
                                               **scan_poly_dimensions)
         search_area_poly = poly_creation.create_search_area_polygon(center_coord=center_coord,
                                                                     search_distance_height=search_height,
                                                                     search_distance_width=search_width)
+        search_area_patch = self.algo_map_creator.add_poly_to_map(poly=search_area_poly,
+                                                                  show_pause=show_pause,
+                                                                  **self._lookup_poly_characteristics(
+                                                                      poly_type='search_area'))
         best_poly = None
         most_recent_scan_patch = None
-        most_recent_search_area_patch = None
         intersecting_patches = []
         for poly, poly_type in self.rtree_analyzer.find_available_poly_around_point(scan_poly=scan_poly,
                                                                                     search_area_poly=search_area_poly,
-                                                                                    search_steps=search_steps):
+                                                                                    search_steps=search_steps,
+                                                                                    steps_to_show_scan_poly=steps_to_show_scan_poly):
             poly_data = self._lookup_poly_characteristics(poly_type=poly_type)
             patch = self.algo_map_creator.add_poly_to_map(poly=poly,
                                                           show_pause=show_pause,
                                                           **poly_data)
 
             if poly_type == 'best_poly':
+                if most_recent_scan_patch:
+                    self.algo_map_creator.remove_patch_from_map(patch=most_recent_scan_patch)
                 best_poly = poly
                 logging.info("Found best polygon.")
                 break
-            elif poly_type == 'search_area':
-                if most_recent_search_area_patch:
-                    self.algo_map_creator.remove_patch_from_map(patch=most_recent_search_area_patch)
-                most_recent_search_area_patch = patch
             elif poly_type == 'scan_poly':
+                if self._scan_poly_outside_of_search_area(scan_poly=poly,
+                                                          search_area_poly=search_area_poly):
+                    raise ValueError("Scan poly is outside of the search area. Increase the search dimensions.")
                 if most_recent_scan_patch:
                     self.algo_map_creator.remove_patch_from_map(patch=most_recent_scan_patch)
                 most_recent_scan_patch = patch
@@ -165,5 +176,6 @@ class AlgorithmHandler:
         poly_data = self._lookup_poly_characteristics(poly_type='best_poly')
         self.algo_map_creator.add_poly_to_map(poly=best_poly,
                                               **poly_data)
+        self.algo_map_creator.remove_patch_from_map(patch=search_area_patch)
         display_coord = best_poly.centroid.x, best_poly.centroid.y
         return display_coord

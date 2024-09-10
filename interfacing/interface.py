@@ -128,3 +128,5 @@ class Interface:
         city_display_coords = self._handle_text_boxes(points_by_city)
         self.vis_map_creator.plot_text_boxes(origin_groups=self.origin_groups_handler_.origin_groups,
                                              city_display_coords=city_display_coords)
+        show_pause = 360
+        self.vis_map_creator.show_map(show_pause=show_pause)

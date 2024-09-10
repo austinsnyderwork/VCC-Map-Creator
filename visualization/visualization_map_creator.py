@@ -120,17 +120,22 @@ class VisualizationMapCreator:
 
     def plot_text_boxes(self, origin_groups: dict, city_display_coords: dict) -> dict:
         city_text_boxes = {}
-        for origin_name, origin_group_ in origin_groups:
+        for origin_name, origin_group_ in origin_groups.items():
             if origin_name not in city_text_boxes:
                 city_text_box = self._plot_text(city_name=origin_name,
-                                                city_lon=city_display_coords[origin_name]['longitude'],
-                                                city_lat=city_display_coords[origin_name]['latitude'])
+                                                city_lon=city_display_coords[origin_name][0],
+                                                city_lat=city_display_coords[origin_name][1])
                 city_text_boxes[origin_name] = city_text_box
             for outpatient_name in origin_group_.outpatients:
                 if outpatient_name not in city_text_boxes:
                     city_text_box = self._plot_text(city_name=outpatient_name,
-                                                    city_lon=city_display_coords[outpatient_name]['longitude'],
-                                                    city_lat=city_display_coords[outpatient_name]['latitude'])
+                                                    city_lon=city_display_coords[outpatient_name][0],
+                                                    city_lat=city_display_coords[outpatient_name][1])
                     city_text_boxes[outpatient_name] = city_text_box
 
         return city_text_boxes
+
+    def show_map(self, show_pause):
+        plt.show(block=False)
+
+        plt.pause(show_pause)

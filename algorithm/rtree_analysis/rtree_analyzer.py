@@ -26,32 +26,37 @@ class RtreeAnalyzer:
         self.poly_classes[poly_key] = poly_class
         self.poly_idx += 1
 
+    def _is_non_text_scatter_intersecting(self, intersecting_polys):
+        non_text_polys = [poly for poly in intersecting_polys
+                          if self.poly_classes[self._generate_poly_key(poly)] == 'text']
+        non_scatter_polys = [poly for poly in intersecting_polys
+                             if self.poly_classes[self._generate_poly_key(poly)] == 'scatter']
+        return True if len(non_text_polys) == 0 and len(non_scatter_polys) == 0 else False
+
     def _determine_best_poly(self, scan_poly_intersections: dict, city_coord: tuple) -> Polygon:
         scan_poly_intersections = dict(sorted(scan_poly_intersections.items()))
-        non_text_intersecting_groups = []
+        non_text_scatter_intersecting_groups = []
         for num_intersections, poly_groups in scan_poly_intersections.items():
-            found_non_text_group = False
+            found_non_text_scatter_group = False
             for scan_poly, intersecting_polys in poly_groups:
-                non_text_polys = [poly for poly in intersecting_polys if
-                                  self.poly_classes[self._generate_poly_key(poly)] == 'text']
-                if len(non_text_polys) > 0:
-                    found_non_text_group = True
-                    non_text_intersecting_groups.append((scan_poly, intersecting_polys))
-            if found_non_text_group:
+                if self._is_non_text_scatter_intersecting(intersecting_polys=intersecting_polys):
+                    found_non_text_scatter_group = True
+                    non_text_scatter_intersecting_groups.append((scan_poly, intersecting_polys))
+            if found_non_text_scatter_group:
                 break
 
-        # If there are no groups without a text box intersection, then proceed as normal with the groups with the lowest
-        # number of intersections
-        if len(non_text_intersecting_groups) == 0:
+        # If there are no groups without a text box and scatter intersection, then proceed as normal with the groups
+        # with the lowest number of intersections
+        if len(non_text_scatter_intersecting_groups) == 0:
             poly_groups = next(iter(scan_poly_intersections.values()))
         else:
-            poly_groups = non_text_intersecting_groups
+            poly_groups = non_text_scatter_intersecting_groups
 
         # At some point we may want to consider the proximity to other polygons, but for now we just pick the polygon
         # closest to the city
-        search_polys = list(poly_groups.keys())
+        search_polys = [poly_group[0] for poly_group in poly_groups]
         closest_scan_poly = helper_functions.find_closest_poly(search_polys=search_polys,
-                                                               center_point=city_coord)
+                                                               center_coord=city_coord)
         return closest_scan_poly
 
     def _get_intersecting_polys(self, scan_poly) -> list[Polygon]:
@@ -60,7 +65,8 @@ class RtreeAnalyzer:
         intersecting_polygons = [poly for poly in intersecting_polygons if scan_poly.intersects(poly)]
         return intersecting_polygons
 
-    def find_available_poly_around_point(self, scan_poly, search_area_poly, search_steps=100):
+    def find_available_poly_around_point(self, scan_poly, search_area_poly, steps_to_show_scan_poly: int,
+                                         search_steps=100):
         """
         Create the equally-spaced steps between the start and end of both the width and height of the search area. We
         obviously can't allow the right border of the scan poly to go past the right border of the search area, so
@@ -81,6 +87,7 @@ class RtreeAnalyzer:
         maximum_y_min = search_area_y_max - search_poly_y_len
         y_min_steps = np.linspace(search_area_y_min, maximum_y_min, search_steps)
 
+        num_iterations = 0
         poly_groups_dict = {}
         for x_min in x_min_steps:
             for y_min in y_min_steps:
@@ -91,13 +98,20 @@ class RtreeAnalyzer:
                                                       y_min=y_min,
                                                       x_max=x_max,
                                                       y_max=y_max)
-                yield scan_poly, 'scan_poly'
+                if num_iterations % steps_to_show_scan_poly == 0:
+                    yield scan_poly, 'scan_poly'
 
                 intersecting_polys = self._get_intersecting_polys(scan_poly=scan_poly)
 
-                poly_groups_dict[self._generate_poly_key(poly=scan_poly)] = intersecting_polys
+                num_intersections = len(intersecting_polys)
+                if num_intersections not in poly_groups_dict:
+                    poly_groups_dict[num_intersections] = []
+                poly_groups_dict[num_intersections].append((scan_poly, intersecting_polys))
                 for poly in intersecting_polys:
-                    yield poly, 'intersecting'
+                    if num_iterations % steps_to_show_scan_poly == 0:
+                        yield poly, 'intersecting'
+
+                num_iterations += 1
 
         best_poly = self._determine_best_poly(scan_poly_intersections=poly_groups_dict,
                                               city_coord=(search_area_poly.centroid.x, search_area_poly.centroid.y))
