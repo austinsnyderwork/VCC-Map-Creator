@@ -34,7 +34,7 @@ class AlgorithmHandler:
                                          poly=poly)
             
             self.algo_map_creator.add_poly_to_map(poly=poly,
-                                                  show=show_line,
+                                                  show_algo=show_line,
                                                   color=line_color,
                                                   transparency=line_transparency,
                                                   immediately_remove=immediately_remove_line)
@@ -55,7 +55,7 @@ class AlgorithmHandler:
             self.rtree_analyzer.add_poly(poly_class='scatter',
                                          poly=poly)
             self.algo_map_creator.add_poly_to_map(poly=poly,
-                                                  show=show_scatter,
+                                                  show_algo=show_scatter,
                                                   color=scatter_color,
                                                   transparency=scatter_transparency,
                                                   immediately_remove=immediately_remove_scatter)
@@ -64,35 +64,35 @@ class AlgorithmHandler:
         poly_type_data = {
             'search_area': {
                 'color': config['algo_display']['search_area_poly_color'],
-                'transparency': config['algo_display']['search_area_poly_transparency'],
-                'show_algo': config['algo_display']['show_search_area_poly'],
-                'immediately_remove': config['algo_display']['immediately_remove_search_area_poly'],
-                'should_plot': 'False',
-                'center_view': config['algo_display']['center_view_on_search_area_poly']
+                'transparency': float(config['algo_display']['search_area_poly_transparency']),
+                'show_algo': False if config['algo_display']['show_search_area_poly'] == 'False' else True,
+                'immediately_remove': False if config['algo_display']['immediately_remove_search_area_poly'] == 'False' else True,
+                'should_plot': False,
+                'center_view': False if config['algo_display']['center_view_on_search_area_poly'] == 'False' else True
             },
-            'scan': {
+            'scan_poly': {
                 'color': config['algo_display']['scan_poly_color'],
-                'transparency': config['algo_display']['scan_poly_transparency'],
-                'show_algo': config['algo_display']['show_can_poly'],
-                'immediately_remove': config['algo_display']['immediately_remove_scan_poly'],
-                'should_plot': 'False',
-                'center_view': config['algo_display']['center_view_on_scan_poly']
+                'transparency': float(config['algo_display']['scan_poly_transparency']),
+                'show_algo': False if config['algo_display']['show_scan_poly'] == 'False' else True,
+                'immediately_remove': False if config['algo_display']['immediately_remove_scan_poly'] == 'False' else True,
+                'should_plot': False,
+                'center_view': False if config['algo_display']['center_view_on_scan_poly'] == 'False' else True
             },
             'intersecting': {
                 'color': config['algo_display']['intersecting_poly_color'],
-                'transparency': config['algo_display']['intersecting_poly_transparency'],
-                'show_algo': config['algo_display']['show_intersecting_poly'],
-                'immediately_remove': config['algo_display']['immediately_remove_intersecting_poly'],
-                'should_plot': 'False',
-                'center_view': config['algo_display']['center_view_on_intersecting_poly']
+                'transparency': float(config['algo_display']['intersecting_poly_transparency']),
+                'show_algo': False if config['algo_display']['show_intersecting_poly'] == 'False' else True,
+                'immediately_remove': False if config['algo_display']['immediately_remove_intersecting_poly'] == 'False' else True,
+                'should_plot': False,
+                'center_view': False if config['algo_display']['center_view_on_intersecting_poly'] == 'False' else True
             },
             'best_poly': {
                 'color': config['algo_display']['best_poly_color'],
-                'transparency': config['algo_display']['best_poly_transparency'],
-                'show_algo': config['algo_display']['show_best_poly'],
-                'immediately_remove': config['algo_display']['immediately_remove_best_poly'],
-                'should_plot': 'True',
-                'center_view': config['algo_display']['center_view_on_best_poly']
+                'transparency': float(config['algo_display']['best_poly_transparency']),
+                'show_algo': False if config['algo_display']['show_best_poly'] == 'False' else True,
+                'immediately_remove': False if config['algo_display']['immediately_remove_best_poly'] == 'False' else True,
+                'should_plot': False,
+                'center_view': False if config['algo_display']['center_view_on_best_poly'] == 'False' else True
             }
         }
 
@@ -100,21 +100,17 @@ class AlgorithmHandler:
 
     def plot_rectangle(self, poly: Polygon, poly_type: str, poly_class: str):
         poly_characteristics = self._lookup_poly_characteristics(poly_type=poly_type)
-        should_plot = False if poly_characteristics['should_plot'] == 'False' else True
-        show_algo = False if poly_characteristics['show_algo'] == 'False' else True
-        if should_plot:
+        if poly_characteristics['should_plot']:
             self.rtree_analyzer.add_poly(poly=poly,
                                          poly_class=poly_class)
 
-        if show_algo:
-            center_view = False if poly_characteristics['center_view'] == 'False' else True
-            immediately_remove = False if poly_characteristics['immediately_remove'] == 'False' else True
+        if poly_characteristics['show_algo']:
             self.algo_map_creator.add_poly_to_map(poly=poly,
-                                                  show=poly_characteristics['show_algo'],
-                                                  center_view=center_view,
+                                                  show_algo=poly_characteristics['show_algo'],
+                                                  center_view=poly_characteristics['center_view'],
                                                   color=poly_characteristics['center_view'],
                                                   transparency=float(poly_characteristics['transparency']),
-                                                  immediately_remove=immediately_remove)
+                                                  immediately_remove=poly_characteristics['immediately_remove'])
             
     def find_available_poly_around_point(self, scan_poly_dimensions: dict, center_coord):
         search_height = float(config['algorithm']['search_height'])

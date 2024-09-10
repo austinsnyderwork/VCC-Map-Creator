@@ -29,8 +29,8 @@ class AlgorithmMapCreator:
 
         plt.figure(self.fig)
 
-    def add_poly_to_map(self, poly, show, center_view=False, color='blue', transparency=1.0,
-                        immediately_remove=False, show_pause: float = 1.0):
+    def add_poly_to_map(self, poly, show_algo, center_view=False, color='blue', transparency: float = 1.0,
+                        immediately_remove=False, show_pause: float = 1.0, **kwargs):
         if not self.show_display:
             return
 
@@ -56,7 +56,7 @@ class AlgorithmMapCreator:
         # Redraw the figure to update the display
         self.fig.canvas.draw()
 
-        if show:
+        if show_algo:
             # Show only the rtree figure
             plt.show(block=False)
 
