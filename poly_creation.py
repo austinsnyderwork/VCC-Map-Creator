@@ -1,6 +1,5 @@
 import itertools
 import logging
-import matplotlib.patches as patches
 import numpy as np
 from shapely.geometry import Polygon
 
@@ -45,11 +44,11 @@ def _create_circle_polygon(center, radius, num_points=100) -> Polygon:
 
 
 def create_search_area_polygon(center_coord, search_distance_height: float, search_distance_width: float) -> Polygon:
-    min_x = center_coord[0] - search_distance_width
-    max_x = center_coord[0] + search_distance_width
-    min_y = center_coord[1] - search_distance_height
-    max_y = center_coord[1] + search_distance_height
-    search_area_poly = _create_polygon_from_coords(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
+    x_min = center_coord[0] - search_distance_width
+    x_max = center_coord[0] + search_distance_width
+    y_min = center_coord[1] - search_distance_height
+    y_max = center_coord[1] + search_distance_height
+    search_area_poly = _create_rectangle_polygon(x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
 
     return search_area_poly
 
@@ -84,30 +83,12 @@ def _create_rectangle_polygon(**kwargs) -> Polygon:
 
 def _create_polygon_from_coords(**kwargs):
     poly = None
-    # This indicates that we were given individual coordinates
-    if 'min_x' in kwargs:
-        logging.info("Creating polygon from coords.")
-        min_x = kwargs['min_x']
-        max_x = kwargs['max_x']
-        min_y = kwargs['min_y']
-        max_y = kwargs['max_y']
-
-        polygon_coords = [
-            (min_x, min_y),  # Bottom-left
-            (max_x, min_y),  # Bottom-right
-            (max_x, max_y),  # Top-right
-            (min_x, max_y),  # Top-left
-            (min_x, min_y)  # Close the polygon
-        ]
-
-        poly = Polygon(polygon_coords)
-    else:
-        logging.info("Creating polygon from coord permutations.")
-        for permutation in itertools.permutations(kwargs['coords']):
-            polygon = Polygon(permutation)
-            if polygon.is_valid:
-                poly = polygon
-                break
+    logging.info("Creating polygon from coord permutations.")
+    for permutation in itertools.permutations(kwargs['coords']):
+        polygon = Polygon(permutation)
+        if polygon.is_valid:
+            poly = polygon
+            break
 
     if not poly.is_valid:
         raise ValueError("Could not form a valid polygon.")

@@ -55,12 +55,12 @@ class RtreeAnalyzer:
         return closest_scan_poly
 
     def _get_intersecting_polys(self, scan_poly) -> list[Polygon]:
-        intersection_indices = list(self.rtree_idx.intersection(scan_polygon.bounds))
+        intersection_indices = list(self.rtree_idx.intersection(scan_poly.bounds))
         intersecting_polygons = [self.polygons[idx] for idx in intersection_indices]
-        intersecting_polygons = [poly for poly in intersecting_polygons if scan_polygon.intersects(poly)]
+        intersecting_polygons = [poly for poly in intersecting_polygons if scan_poly.intersects(poly)]
         return intersecting_polygons
 
-    def find_available_poly_around_point(self, scan_poly, search_area_poly, show_algo_display: bool, search_steps=100):
+    def find_available_poly_around_point(self, scan_poly, search_area_poly, search_steps=100):
         """
         Create the equally-spaced steps between the start and end of both the width and height of the search area. We
         obviously can't allow the right border of the scan poly to go past the right border of the search area, so
@@ -74,8 +74,6 @@ class RtreeAnalyzer:
         search_poly_x_len = search_poly_max_x - search_poly_min_x
         search_poly_y_len = search_poly_max_y - search_poly_min_y
 
-        least_poly_intersections = 100
-
         # Iterating steps through
         maximum_x_min = search_area_max_x - search_poly_x_len
         min_x_steps = np.linspace(search_area_min_x, maximum_x_min, search_steps)
@@ -83,85 +81,25 @@ class RtreeAnalyzer:
         maximum_y_min = search_area_max_y - search_poly_y_len
         min_y_steps = np.linspace(search_area_min_y, maximum_y_min, search_steps)
 
-        idx = 0
         poly_groups_dict = {}
-        search_polys = {}
-
-        search_patch = None
-        num_steps_total = 0
         for min_x in min_x_steps:
             for min_y in min_y_steps:
                 max_x = min_x + search_poly_x_len
                 max_y = min_y + search_poly_y_len
-                search_poly = poly_creation.create_poly(poly_type='rectangle',
-                                                        x_coords=(min_x, max_x),
-                                                        y_coords=(min_y, max_y))
-
-                intersecting_polys = self._get_intersecting_polys(scan_poly=scan_poly)
-                poly_groups_dict[idx] = intersecting_polys
-                search_polys[idx] = search_poly
-                idx += 1
-
-                search_patch = self.add_poly(poly=search_poly)
-                intersecting_patches = []
-                for poly in intersecting_polys:
-                    intersect_patch = add_polygon_to_axis(poly=poly,
-                                                          set_axis=False,
-                                                          color='red',
-                                                          transparency=1.0)
-                    intersect_patches.append(intersect_patch)
-                for intersect_patch in intersect_patches:
-                    intersect_patch.remove()
-
-                if search_patch:
-                    search_patch.remove()
-                    search_patch = None
-
-        ##############################################################################
-
-        search_area_poly = poly_creation.create_poly(poly_type='rectangle', min_x=search_area_bounds['min_x'],
-                                                     min_y=search_area_bounds['min_y'], max_x=search_area_bounds['max_x'],
-                                                     max_y=search_area_bounds['max_y'])
-        yield search_area_poly, 'search_area'
-
-        search_poly_x_len = search_area_bounds['max_x'] - search_area_bounds['min_x']
-        search_poly_y_len = search_area_bounds['max_y'] - search_area_bounds['min_y']
-
-        scan_poly_width = search_poly_bounds['max_x'] - search_poly_bounds['min_x']
-        scan_poly_height = search_poly_bounds['max_y'] - search_poly_bounds['min_y']
-
-        # Iterating steps through
-        maximum_x_min = search_area_bounds['max_x'] - scan_poly_width
-        min_x_steps = np.linspace(search_area_bounds['min_x'], maximum_x_min, search_steps)
-
-        maximum_y_min = search_area_bounds['max_y'] - scan_poly_height
-        min_y_steps = np.linspace(search_area_bounds['min_y'], maximum_y_min, search_steps)
-
-        scan_poly_intersections = {}
-
-        iteration = 0
-        for x_min in min_x_steps:
-            for y_min in min_y_steps:
-                x_max = x_min + search_poly_x_len
-                y_max = y_min + search_poly_y_len
                 scan_poly = poly_creation.create_poly(poly_type='rectangle',
-                                                      x_min=x_min,
-                                                      y_min=y_min,
-                                                      x_max=x_max,
-                                                      y_max=y_max)
-                yield scan_poly, 'scan_poly', iteration
+                                                      min_x=min_x,
+                                                      min_y=min_y,
+                                                      max_x=max_x,
+                                                      max_y=max_y)
+                yield scan_poly, 'scan_poly'
 
                 intersecting_polys = self._get_intersecting_polys(scan_poly=scan_poly)
+
+                poly_groups_dict[self._generate_poly_key(poly=scan_poly)] = intersecting_polys
+                intersecting_patches = []
                 for poly in intersecting_polys:
                     yield poly, 'intersecting'
 
-                num_intersections = len(intersecting_polys)
-                if num_intersections not in scan_poly_intersections:
-                    scan_poly_intersections[num_intersections] = []
-                scan_poly_intersections[num_intersections].append((scan_poly, intersecting_polys))
-
-                iteration += 1
-
-        best_poly = self._determine_best_poly(scan_poly_intersections=scan_poly_intersections,
-                                              city_coord=city_coord)
-        return best_poly
+        best_poly = self._determine_best_poly(scan_poly_intersections=poly_groups_dict,
+                                              city_coord=(search_area_poly.centroid.x, search_area_poly.centroid.y))
+        yield best_poly, 'best_poly'

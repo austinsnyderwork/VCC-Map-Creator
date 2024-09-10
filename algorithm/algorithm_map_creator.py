@@ -1,4 +1,3 @@
-import configparser
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
@@ -6,7 +5,8 @@ from mpl_toolkits import basemap
 
 class AlgorithmMapCreator:
 
-    def __init__(self):
+    def __init__(self, show_display: bool):
+        self.show_display = show_display
         self.poly_types = {}
         self.fig, self.ax = None, None
         self.iowa_map = None
@@ -14,6 +14,9 @@ class AlgorithmMapCreator:
         self._create_figure()
 
     def _create_figure(self):
+        if not self.show_display:
+            return
+
         self.fig, self.ax = plt.subplots(figsize=(12, 8))
         self.ax.set_title("Rtree Polygons")
         self.iowa_map = basemap.Basemap(projection='lcc', resolution='i',
@@ -26,8 +29,10 @@ class AlgorithmMapCreator:
 
         plt.figure(self.fig)
 
-    def add_poly_to_map(self, poly, center_view=False, show_display=True, color='blue', transparency=1.0,
-                        immediately_remove=False, display_show_pause: float = 1.0):
+    def add_poly_to_map(self, poly, center_view=False, color='blue', transparency=1.0,
+                        immediately_remove=False, show_pause: float = 1.0):
+        if not self.show_display:
+            return
 
         # Get polygon coordinates
         polygon_coords = list(poly.exterior.coords)
@@ -51,11 +56,10 @@ class AlgorithmMapCreator:
         # Redraw the figure to update the display
         self.fig.canvas.draw()
 
-        if show_display:
-            # Show only the rtree figure
-            plt.show(block=False)
+        # Show only the rtree figure
+        plt.show(block=False)
 
-            plt.pause(display_show_pause)
+        plt.pause(show_pause)
 
         if immediately_remove:
             patch.remove()

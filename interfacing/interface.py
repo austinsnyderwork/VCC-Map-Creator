@@ -65,44 +65,6 @@ class Interface:
 
         self.data_imported = True
 
-    def _lookup_poly_characteristics(self, poly_type: str):
-        poly_type_data = {
-            'search_area': {
-                'color': config['algo_display']['search_area_poly_color'],
-                'transparency': config['algo_display']['search_area_poly_transparency'],
-                'show_algo': config['algo_display']['show_search_area'],
-                'immediately_delete': config['algo_display']['immediately_delete_search_area'],
-                'should_plot': False,
-                'center_view': config['algo_display']['center_view_on_search_area']
-            },
-            'scan': {
-                'color': config['algo_display']['scan_poly_color'],
-                'transparency': config['algo_display']['scan_poly_transparency'],
-                'show_algo': config['algo_display']['show_can_poly'],
-                'immediately_delete': config['algo_display']['immediately_delete_scan_poly'],
-                'should_plot': False,
-                'center_view': config['algo_display']['center_view_on_scan_poly']
-            },
-            'intersecting': {
-                'color': config['algo_display']['intersecting_poly_color'],
-                'transparency': config['algo_display']['intersecting_poly_transparency'],
-                'show_algo': config['algo_display']['show_intersecting_poly'],
-                'immediately_delete': config['algo_display']['immediately_delete_intersecting_poly'],
-                'should_plot': False,
-                'center_view': config['algo_display']['center_view_on_intersecting_poly']
-            },
-            'best_poly': {
-                'color': config['algo_display']['best_poly_color'],
-                'transparency': config['algo_display']['best_poly_transparency'],
-                'show_algo': config['algo_display']['show_best_poly'],
-                'immediately_delete': config['algo_display']['immediately_delete_best_poly'],
-                'should_plot': True,
-                'center_view': config['algo_display']['center_view_on_best_poly']
-            }
-        }
-
-        return poly_type_data[poly_type]
-
     @staticmethod
     def _determine_search_area_bounds(city_lon, city_lat):
         search_area_bounds = {
@@ -126,23 +88,8 @@ class Interface:
                                                                                          font_weight=
                                                                                          config['viz_display'][
                                                                                              'font_weight'])
-            search_distance_height = text_box_dimensions['y_max'] - text_box_dimensions['y_min']
-            search_distance_width = text_box_dimensions['x_max'] - text_box_dimensions['x_min']
-            search_area_poly = poly_creation.create_search_area_polygon(center_coord=point,
-                                                                        search_distance_height=search_distance_height,
-                                                                        search_distance_width=search_distance_width)
-            for poly, poly_type in self.algo_handler.rtree_analyzer.find_available_poly_around_point(
-                    search_poly_bounds=text_box_dimensions,
-                    search_area_bounds=search_area_bounds,
-                    city_coord=city_coord):
-                if poly_type == 'best_poly':
-                    text_box_display_coords[city_name] = (poly.centroid.x, poly.centroid.y)
-                    self.algo_handler.plot_rectangle(poly=poly,
-                                                     poly_type='best_poly',
-                                                     poly_class='text')
-                    break
-
-            return text_box_display_coords
+            self.algo_handler.find_available_poly_around_point(scan_poly_dimensions=text_box_dimensions,
+                                                               center_coord=point)
 
     def create_maps(self):
         if not self.data_imported:
