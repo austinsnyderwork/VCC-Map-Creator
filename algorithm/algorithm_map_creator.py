@@ -68,3 +68,7 @@ class AlgorithmMapCreator:
         plt.figure(self.fig.number)
 
         return patch
+
+    @staticmethod
+    def remove_patch_from_map(patch):
+        patch.remove()

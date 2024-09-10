@@ -21,7 +21,7 @@ class AlgorithmHandler:
         show_line = False if config['algo_display']['show_line'] == 'False' else True
         line_transparency = float(config['algo_display']['line_transparency'])
         immediately_remove_line = False if config['algo_display']['immediately_remove_line'] == 'False' else True
-        
+
         for (origin_name, outpatient_name), line_data in lines_by_origin_outpatient.items():
             if origin_name == outpatient_name:
                 logging.error(f"Origin and outpatient both found to be the same: {origin_name} = {outpatient_name}")
@@ -32,7 +32,7 @@ class AlgorithmHandler:
                                                   name='line poly')
             self.rtree_analyzer.add_poly(poly_class='line',
                                          poly=poly)
-            
+
             self.algo_map_creator.add_poly_to_map(poly=poly,
                                                   show_algo=show_line,
                                                   color=line_color,
@@ -42,7 +42,7 @@ class AlgorithmHandler:
     def plot_points(self, city_coords):
         scatter_size = float(config['dimensions']['scatter_size'])
         units_radius_per_1_scatter_size = float(config['dimensions']['units_radius_per_1_scatter_size'])
-        
+
         scatter_color = config['algo_display']['scatter_color']
         show_scatter = False if config['algo_display']['show_scatter'] == 'False' else True
         scatter_transparency = float(config['algo_display']['scatter_transparency'])
@@ -66,7 +66,8 @@ class AlgorithmHandler:
                 'color': config['algo_display']['search_area_poly_color'],
                 'transparency': float(config['algo_display']['search_area_poly_transparency']),
                 'show_algo': False if config['algo_display']['show_search_area_poly'] == 'False' else True,
-                'immediately_remove': False if config['algo_display']['immediately_remove_search_area_poly'] == 'False' else True,
+                'immediately_remove': False if config['algo_display'][
+                                                   'immediately_remove_search_area_poly'] == 'False' else True,
                 'should_plot': False,
                 'center_view': False if config['algo_display']['center_view_on_search_area_poly'] == 'False' else True
             },
@@ -74,7 +75,8 @@ class AlgorithmHandler:
                 'color': config['algo_display']['scan_poly_color'],
                 'transparency': float(config['algo_display']['scan_poly_transparency']),
                 'show_algo': False if config['algo_display']['show_scan_poly'] == 'False' else True,
-                'immediately_remove': False if config['algo_display']['immediately_remove_scan_poly'] == 'False' else True,
+                'immediately_remove': False if config['algo_display'][
+                                                   'immediately_remove_scan_poly'] == 'False' else True,
                 'should_plot': False,
                 'center_view': False if config['algo_display']['center_view_on_scan_poly'] == 'False' else True
             },
@@ -82,7 +84,8 @@ class AlgorithmHandler:
                 'color': config['algo_display']['intersecting_poly_color'],
                 'transparency': float(config['algo_display']['intersecting_poly_transparency']),
                 'show_algo': False if config['algo_display']['show_intersecting_poly'] == 'False' else True,
-                'immediately_remove': False if config['algo_display']['immediately_remove_intersecting_poly'] == 'False' else True,
+                'immediately_remove': False if config['algo_display'][
+                                                   'immediately_remove_intersecting_poly'] == 'False' else True,
                 'should_plot': False,
                 'center_view': False if config['algo_display']['center_view_on_intersecting_poly'] == 'False' else True
             },
@@ -90,7 +93,8 @@ class AlgorithmHandler:
                 'color': config['algo_display']['best_poly_color'],
                 'transparency': float(config['algo_display']['best_poly_transparency']),
                 'show_algo': False if config['algo_display']['show_best_poly'] == 'False' else True,
-                'immediately_remove': False if config['algo_display']['immediately_remove_best_poly'] == 'False' else True,
+                'immediately_remove': False if config['algo_display'][
+                                                   'immediately_remove_best_poly'] == 'False' else True,
                 'should_plot': False,
                 'center_view': False if config['algo_display']['center_view_on_best_poly'] == 'False' else True
             }
@@ -111,7 +115,7 @@ class AlgorithmHandler:
                                                   color=poly_characteristics['center_view'],
                                                   transparency=float(poly_characteristics['transparency']),
                                                   immediately_remove=poly_characteristics['immediately_remove'])
-            
+
     def find_available_poly_around_point(self, scan_poly_dimensions: dict, center_coord):
         search_height = float(config['algorithm']['search_height'])
         search_width = float(config['algorithm']['search_width'])
@@ -124,21 +128,37 @@ class AlgorithmHandler:
                                                                     search_distance_height=search_height,
                                                                     search_distance_width=search_width)
         best_poly = None
+        most_recent_scan_patch = None
+        most_recent_search_area_patch = None
+        intersecting_patches = []
         for poly, poly_type in self.rtree_analyzer.find_available_poly_around_point(scan_poly=scan_poly,
                                                                                     search_area_poly=search_area_poly,
                                                                                     search_steps=search_steps):
             poly_data = self._lookup_poly_characteristics(poly_type=poly_type)
+            patch = self.algo_map_creator.add_poly_to_map(poly=poly,
+                                                          show_pause=show_pause,
+                                                          **poly_data)
+
             if poly_type == 'best_poly':
                 best_poly = poly
                 logging.info("Found best polygon.")
                 break
+            elif poly_type == 'search_area':
+                if most_recent_search_area_patch:
+                    self.algo_map_creator.remove_patch_from_map(patch=most_recent_search_area_patch)
+                most_recent_search_area_patch = patch
+            elif poly_type == 'scan_poly':
+                if most_recent_scan_patch:
+                    self.algo_map_creator.remove_patch_from_map(patch=most_recent_scan_patch)
+                most_recent_scan_patch = patch
+
+                for patch in intersecting_patches:
+                    self.algo_map_creator.remove_patch_from_map(patch=patch)
+            elif poly_type == 'intersecting':
+                intersecting_patches.append(patch)
 
             if not poly_data['show_algo']:
                 continue
-
-            self.algo_map_creator.add_poly_to_map(poly=poly,
-                                                  show_pause=show_pause,
-                                                  **poly_data)
 
         self.rtree_analyzer.add_poly(poly=best_poly,
                                      poly_class='text')
@@ -147,7 +167,3 @@ class AlgorithmHandler:
                                               **poly_data)
         display_coord = best_poly.centroid.x, best_poly.centroid.y
         return display_coord
-            
-        
-
-
