@@ -36,9 +36,9 @@ class VisualizationMapCreator:
         self.iowa_map.drawcounties(linewidth=0.04)
         logging.info("Created base Iowa map.")
 
-    def _plot_point(self, coord: tuple, origin_and_outpatient: bool, scatter_size,
+    def _plot_point(self, coord: dict, origin_and_outpatient: bool, scatter_size,
                     scatter_label, color: str) -> dict:
-        lon, lat = coord[0], coord[1]
+        lon, lat = coord['longitude'], coord['latitude']
 
         marker = "D" if origin_and_outpatient else "s"
         scatter_obj = self.ax.scatter(lon, lat, marker=marker, color=color, s=scatter_size, label=scatter_label)
@@ -53,10 +53,12 @@ class VisualizationMapCreator:
             for outpatient in origin_group_.outpatients:
                 outpatient_in_oo = True if outpatient in dual_origin_outpatient else False
                 origin_point = self._plot_point(coord=self.city_coords[origin],
+                                                color=origin_group_.color,
                                                 origin_and_outpatient=origin_in_oo,
                                                 scatter_size=scatter_size,
                                                 scatter_label='Origin')
                 outpatient_point = self._plot_point(coord=self.city_coords[outpatient],
+                                                    color=origin_group_.color,
                                                     origin_and_outpatient=outpatient_in_oo,
                                                     scatter_size=scatter_size,
                                                     scatter_label='Outpatient')
@@ -64,25 +66,26 @@ class VisualizationMapCreator:
                 points[outpatient] = outpatient_point
         return points
 
-    def _plot_line(self, origin: str, outpatient: str, color: str, width) -> plt.Line2D:
+    def _plot_line(self, origin: str, outpatient: str, color: str, line_width: int) -> plt.Line2D:
         from_lat = self.city_coords[origin]['latitude']
         from_lon = self.city_coords[origin]['longitude']
 
         to_lat = self.city_coords[outpatient]['latitude']
         to_lon = self.city_coords[outpatient]['longitude']
 
-        lines = self.ax.plot([to_lon, from_lon], [to_lat, from_lat], color=color, linestyle='-', linewidth=global_linewidth)
+        lines = self.ax.plot([to_lon, from_lon], [to_lat, from_lat], color=color, linestyle='-', linewidth=line_width)
         line = lines[0]
 
         return line
 
-    def plot_lines(self, origin_groups: dict, line_width: float) -> dict:
+    def plot_lines(self, origin_groups: dict, line_width: int) -> dict:
         lines = {}
-        colors = helper_functions.get_valid_colors()
         for i, (origin, origin_group_) in enumerate(origin_groups.items()):
             for outpatient in origin_group_.outpatients:
-                new_line = self._plot_line(color=colors[i], origin=origin,
-                                           outpatient=outpatient, width=line_width)
+                new_line = self._plot_line(color=origin_group_.color,
+                                           origin=origin,
+                                           outpatient=outpatient,
+                                           line_width=line_width)
                 lines[(origin, outpatient)] = new_line
         return lines
 

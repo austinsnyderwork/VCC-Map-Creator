@@ -13,7 +13,11 @@ def create_poly(poly_type: str, **kwargs):
         'rectangle': _create_rectangle_polygon
     }
     func = poly_create_functions[poly_type]
-    poly = func(**kwargs)
+    try:
+        poly = func(**kwargs)
+    except TypeError:
+        logging.error(f"Error when attempting to create polygon from arguments:\n{kwargs}")
+        raise TypeError
     return poly
 
 

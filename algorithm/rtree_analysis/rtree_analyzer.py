@@ -68,35 +68,34 @@ class RtreeAnalyzer:
         for the y-axis with the height.
         """
 
-        search_area_min_x, search_area_min_y, search_area_max_x, search_area_max_y = search_area_poly.bounds
+        search_area_x_min, search_area_y_min, search_area_x_max, search_area_y_max = search_area_poly.bounds
 
-        search_poly_min_x, search_poly_min_y, search_poly_max_x, search_poly_max_y = scan_poly.bounds
-        search_poly_x_len = search_poly_max_x - search_poly_min_x
-        search_poly_y_len = search_poly_max_y - search_poly_min_y
+        search_poly_x_min, search_poly_y_min, search_poly_x_max, search_poly_y_max = scan_poly.bounds
+        search_poly_x_len = search_poly_x_max - search_poly_x_min
+        search_poly_y_len = search_poly_y_max - search_poly_y_min
 
         # Iterating steps through
-        maximum_x_min = search_area_max_x - search_poly_x_len
-        min_x_steps = np.linspace(search_area_min_x, maximum_x_min, search_steps)
+        maximum_x_min = search_area_x_max - search_poly_x_len
+        x_min_steps = np.linspace(search_area_x_min, maximum_x_min, search_steps)
 
-        maximum_y_min = search_area_max_y - search_poly_y_len
-        min_y_steps = np.linspace(search_area_min_y, maximum_y_min, search_steps)
+        maximum_y_min = search_area_y_max - search_poly_y_len
+        y_min_steps = np.linspace(search_area_y_min, maximum_y_min, search_steps)
 
         poly_groups_dict = {}
-        for min_x in min_x_steps:
-            for min_y in min_y_steps:
-                max_x = min_x + search_poly_x_len
-                max_y = min_y + search_poly_y_len
+        for x_min in x_min_steps:
+            for y_min in y_min_steps:
+                x_max = x_min + search_poly_x_len
+                y_max = y_min + search_poly_y_len
                 scan_poly = poly_creation.create_poly(poly_type='rectangle',
-                                                      min_x=min_x,
-                                                      min_y=min_y,
-                                                      max_x=max_x,
-                                                      max_y=max_y)
+                                                      x_min=x_min,
+                                                      y_min=y_min,
+                                                      x_max=x_max,
+                                                      y_max=y_max)
                 yield scan_poly, 'scan_poly'
 
                 intersecting_polys = self._get_intersecting_polys(scan_poly=scan_poly)
 
                 poly_groups_dict[self._generate_poly_key(poly=scan_poly)] = intersecting_polys
-                intersecting_patches = []
                 for poly in intersecting_polys:
                     yield poly, 'intersecting'
 

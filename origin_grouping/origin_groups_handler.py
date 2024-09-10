@@ -5,15 +5,21 @@ from . import origin_group
 
 class OriginGroupsHandler:
 
-    def __init__(self):
+    def __init__(self, colors: list[str]):
+        self.colors = colors
         self.origin_groups = {}
         self.dual_origin_outpatient = []
+
+        self.colors_idx = 0
 
     def group_origins(self, row, city_coords: dict):
         origin = row['point_of_origin']
         destination = row['community']
         if origin not in self.origin_groups:
-            self.origin_groups[origin] = origin_group.OriginGroup(origin=origin, origin_coord=city_coords[origin])
+            self.origin_groups[origin] = origin_group.OriginGroup(origin=origin,
+                                                                  color=self.colors[self.colors_idx],
+                                                                  origin_coord=city_coords[origin])
+            self.colors_idx += 1
 
         self.origin_groups[origin].add_outpatient(destination)
 
