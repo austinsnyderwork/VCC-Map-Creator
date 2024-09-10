@@ -1,9 +1,8 @@
 import numpy as np
 from rtree import index
-from shapely.geometry import Polygon
+from shapely.geometry import Point, Polygon
 
 import poly_creation
-from . import helper_functions
 
 
 class RtreeAnalyzer:
@@ -33,7 +32,22 @@ class RtreeAnalyzer:
                              if self.poly_classes[self._generate_poly_key(poly)] == 'scatter']
         return True if len(non_text_polys) == 0 and len(non_scatter_polys) == 0 else False
 
-    def _determine_best_poly(self, scan_poly_intersections: dict, city_coord: tuple) -> Polygon:
+    def _get_poly_class(self, poly_idx: int):
+        poly = self.polygons[poly_idx]
+        poly_class = self.poly_classes[self._generate_poly_key(poly=poly)]
+        return poly_class
+
+    def _calculate_weighted_distance_to_polys(self, poly_point: Point, nearest_polys: list, city_point: Point):
+        weighted_distances = []
+        for poly in nearest_polys:
+            distance_to_coord = poly.distance(poly_point)
+            weighted_distance = distance_to_coord ** 3
+            weighted_distances.append(weighted_distance)
+        weighted_score = sum(weighted_distances) / len(weighted_distances)
+        city_distance = poly_point.distance(city_point)
+        return weighted_score * (1 / city_distance)
+
+    def _determine_best_poly(self, scan_poly_intersections: dict, city_coord: tuple):
         scan_poly_intersections = dict(sorted(scan_poly_intersections.items()))
         non_text_scatter_intersecting_groups = []
         for num_intersections, poly_groups in scan_poly_intersections.items():
@@ -52,12 +66,39 @@ class RtreeAnalyzer:
         else:
             poly_groups = non_text_scatter_intersecting_groups
 
-        # At some point we may want to consider the proximity to other polygons, but for now we just pick the polygon
-        # closest to the city
-        search_polys = [poly_group[0] for poly_group in poly_groups]
-        closest_scan_poly = helper_functions.find_closest_poly(search_polys=search_polys,
-                                                               center_coord=city_coord)
-        return closest_scan_poly
+        poly_distances = {}
+        for scan_poly, poly_intersections in poly_groups:
+            distance_to_city = scan_poly.distance(Point(city_coord))
+            if distance_to_city not in poly_distances:
+                poly_distances[distance_to_city] = []
+            poly_distances[distance_to_city].append(scan_poly)
+        mean_distance = sum(list(poly_distances.keys())) / len(list(poly_distances.keys()))
+
+        accepted_scan_polys = []
+        for poly_distance, polys in poly_distances.items():
+            if poly_distance <= mean_distance:
+                accepted_scan_polys.extend(polys)
+
+        poly_groups = [(scan_poly, intersecting_polys) for scan_poly, intersecting_polys in poly_groups
+                       if scan_poly in accepted_scan_polys]
+        weighted_distances_by_poly = {}
+        for scan_poly, intersecting_polys in poly_groups:
+            yield scan_poly, 'poly_finalist'
+            scan_poly_point = Point((scan_poly.centroid.x, scan_poly.centroid.y))
+            nearest_ids = list(self.rtree_idx.nearest(scan_poly_point.bounds, num_results=15))
+            text_scatter_polys = [self.polygons[nearest_id] for nearest_id in nearest_ids
+                                  if self._get_poly_class(nearest_id) in ('text', 'scatter')]
+            # Higher score is better
+            weighted_distance = self._calculate_weighted_distance_to_polys(poly_point=scan_poly_point,
+                                                                           nearest_polys=text_scatter_polys,
+                                                                           city_point=Point(city_coord))
+            if weighted_distance not in weighted_distances_by_poly:
+                weighted_distances_by_poly[weighted_distance] = []
+            weighted_distances_by_poly[weighted_distance].append(scan_poly)
+
+        highest_weight = max(list(weighted_distances_by_poly.keys()))
+        best_poly = weighted_distances_by_poly[highest_weight][0]
+        yield best_poly, 'best_poly'
 
     def _get_intersecting_polys(self, scan_poly) -> list[Polygon]:
         intersection_indices = list(self.rtree_idx.intersection(scan_poly.bounds))
@@ -113,6 +154,7 @@ class RtreeAnalyzer:
 
                 num_iterations += 1
 
-        best_poly = self._determine_best_poly(scan_poly_intersections=poly_groups_dict,
-                                              city_coord=(search_area_poly.centroid.x, search_area_poly.centroid.y))
-        yield best_poly, 'best_poly'
+        for poly, poly_type in self._determine_best_poly(
+                scan_poly_intersections=poly_groups_dict,
+                city_coord=(search_area_poly.centroid.x, search_area_poly.centroid.y)):
+            yield poly, poly_type

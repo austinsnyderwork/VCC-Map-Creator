@@ -97,6 +97,15 @@ class AlgorithmHandler:
                                                    'immediately_remove_best_poly'] == 'False' else True,
                 'should_plot': False,
                 'center_view': False if config['algo_display']['center_view_on_best_poly'] == 'False' else True
+            },
+            'poly_finalist': {
+                'color': config['algo_display']['poly_finalist_color'],
+                'transparency': float(config['algo_display']['poly_finalist_transparency']),
+                'show_algo': False if config['algo_display']['show_poly_finalist'] == 'False' else True,
+                'immediately_remove': False if config['algo_display'][
+                                                   'immediately_remove_poly_finalist'] == 'False' else True,
+                'should_plot': False,
+                'center_view': False if config['algo_display']['center_view_on_poly_finalist'] == 'False' else True
             }
         }
 
@@ -140,6 +149,7 @@ class AlgorithmHandler:
         best_poly = None
         most_recent_scan_patch = None
         intersecting_patches = []
+        poly_finalist_patches = []
         for poly, poly_type in self.rtree_analyzer.find_available_poly_around_point(scan_poly=scan_poly,
                                                                                     search_area_poly=search_area_poly,
                                                                                     search_steps=search_steps,
@@ -152,6 +162,8 @@ class AlgorithmHandler:
             if poly_type == 'best_poly':
                 if most_recent_scan_patch:
                     self.algo_map_creator.remove_patch_from_map(patch=most_recent_scan_patch)
+                for poly_finalist_patch in poly_finalist_patches:
+                    self.algo_map_creator.remove_patch_from_map(patch=poly_finalist_patch)
                 best_poly = poly
                 logging.info("Found best polygon.")
                 break
@@ -167,6 +179,8 @@ class AlgorithmHandler:
                     self.algo_map_creator.remove_patch_from_map(patch=patch)
             elif poly_type == 'intersecting':
                 intersecting_patches.append(patch)
+            elif poly_type == 'poly_finalist':
+                poly_finalist_patches.append(patch)
 
             if not poly_data['show_algo']:
                 continue
