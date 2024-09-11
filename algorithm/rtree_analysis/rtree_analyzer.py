@@ -50,7 +50,7 @@ class RtreeAnalyzer:
             weighted_distances.append(weighted_distance)
         weighted_score = sum(weighted_distances) / len(weighted_distances)
         city_distance = poly_point.distance(city_point)
-        return weighted_score * (1 / (city_distance ** 2))
+        return weighted_score * (1 / (city_distance ** 8))
 
     def _determine_best_poly(self, scan_poly_num_intersections: dict, city_coord: tuple,
                              steps_to_show_poly_finalist: int):
