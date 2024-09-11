@@ -136,6 +136,7 @@ class AlgorithmHandler:
         search_steps = int(config['algorithm']['search_steps'])
         show_pause = float(config['algo_display']['show_pause'])
         steps_to_show_scan_poly = int(config['algo_display']['steps_to_show_scan_poly'])
+        steps_to_show_poly_finalist = int(config['algo_display']['steps_to_show_poly_finalist'])
 
         scan_poly = poly_creation.create_poly(poly_type='rectangle',
                                               **scan_poly_dimensions)
@@ -153,7 +154,8 @@ class AlgorithmHandler:
         for poly, poly_type in self.rtree_analyzer.find_available_poly_around_point(scan_poly=scan_poly,
                                                                                     search_area_poly=search_area_poly,
                                                                                     search_steps=search_steps,
-                                                                                    steps_to_show_scan_poly=steps_to_show_scan_poly):
+                                                                                    steps_to_show_scan_poly=steps_to_show_scan_poly,
+                                                                                    steps_to_show_poly_finalist=steps_to_show_poly_finalist):
             poly_data = self._lookup_poly_characteristics(poly_type=poly_type)
             patch = self.algo_map_creator.add_poly_to_map(poly=poly,
                                                           show_pause=show_pause,

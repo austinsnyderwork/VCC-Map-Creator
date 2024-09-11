@@ -47,7 +47,8 @@ class RtreeAnalyzer:
         city_distance = poly_point.distance(city_point)
         return weighted_score * (1 / city_distance)
 
-    def _determine_best_poly(self, scan_poly_intersections: dict, city_coord: tuple):
+    def _determine_best_poly(self, scan_poly_intersections: dict, city_coord: tuple,
+                             steps_to_show_poly_finalist: int):
         scan_poly_intersections = dict(sorted(scan_poly_intersections.items()))
         non_text_scatter_intersecting_groups = []
         for num_intersections, poly_groups in scan_poly_intersections.items():
@@ -81,9 +82,11 @@ class RtreeAnalyzer:
 
         poly_groups = [(scan_poly, intersecting_polys) for scan_poly, intersecting_polys in poly_groups
                        if scan_poly in accepted_scan_polys]
+        iterations = 0
         weighted_distances_by_poly = {}
         for scan_poly, intersecting_polys in poly_groups:
-            yield scan_poly, 'poly_finalist'
+            if iterations % steps_to_show_poly_finalist == 0:
+                yield scan_poly, 'poly_finalist'
             scan_poly_point = Point((scan_poly.centroid.x, scan_poly.centroid.y))
             nearest_ids = list(self.rtree_idx.nearest(scan_poly_point.bounds, num_results=15))
             text_scatter_polys = [self.polygons[nearest_id] for nearest_id in nearest_ids
@@ -95,6 +98,7 @@ class RtreeAnalyzer:
             if weighted_distance not in weighted_distances_by_poly:
                 weighted_distances_by_poly[weighted_distance] = []
             weighted_distances_by_poly[weighted_distance].append(scan_poly)
+            iterations += 1
 
         highest_weight = max(list(weighted_distances_by_poly.keys()))
         best_poly = weighted_distances_by_poly[highest_weight][0]
@@ -107,7 +111,7 @@ class RtreeAnalyzer:
         return intersecting_polygons
 
     def find_available_poly_around_point(self, scan_poly, search_area_poly, steps_to_show_scan_poly: int,
-                                         search_steps=100):
+                                         steps_to_show_poly_finalist: int, search_steps=100):
         """
         Create the equally-spaced steps between the start and end of both the width and height of the search area. We
         obviously can't allow the right border of the scan poly to go past the right border of the search area, so
@@ -156,5 +160,6 @@ class RtreeAnalyzer:
 
         for poly, poly_type in self._determine_best_poly(
                 scan_poly_intersections=poly_groups_dict,
-                city_coord=(search_area_poly.centroid.x, search_area_poly.centroid.y)):
+                city_coord=(search_area_poly.centroid.x, search_area_poly.centroid.y),
+                steps_to_show_poly_finalist=steps_to_show_poly_finalist):
             yield poly, poly_type
