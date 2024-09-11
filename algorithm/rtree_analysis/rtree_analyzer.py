@@ -3,7 +3,7 @@ import numpy as np
 from rtree import index
 from shapely.geometry import Point, Polygon
 
-from . import poly_group
+from algorithm.poly_management import PolyGroup, TypedPolygon
 import poly_creation
 
 
@@ -17,13 +17,13 @@ class RtreeAnalyzer:
         self.poly_idx = 0
 
     @staticmethod
-    def _generate_poly_key(poly: Polygon):
+    def _generate_poly_key(poly: TypedPolygon):
         return (poly,)
 
-    def add_poly(self, poly: Polygon, poly_class: str):
-        self.rtree_idx.insert(self.poly_idx, poly.bounds, obj=poly)
-        poly_key = self._generate_poly_key(poly=poly)
-        self.polygons[self.poly_idx] = poly
+    def add_poly(self, t_poly: TypedPolygon, poly_class: str):
+        self.rtree_idx.insert(self.poly_idx, t_poly.poly.bounds, obj=t_poly)
+        poly_key = self._generate_poly_key(poly=t_poly)
+        self.polygons[self.poly_idx] = t_poly
         self.poly_classes[poly_key] = poly_class
         self.poly_idx += 1
 
@@ -65,20 +65,19 @@ class RtreeAnalyzer:
                      f"Log Score {log_score}")
         return log_score
 
-    def _determine_best_poly(self, scan_poly_num_intersections: dict, city_coord: tuple,
-                             steps_to_show_poly_finalist: int):
+    def _determine_best_poly(self, scan_poly_num_intersections: dict, city_coord: tuple):
         logging.info("Filtering text and scatter intersections.")
         scan_poly_num_intersections = dict(sorted(scan_poly_num_intersections.items()))
         filtered_poly_groups = {}
         for num_intersections, poly_groups in scan_poly_num_intersections.items():
             found_non_text_scatter_group = False
-            for scan_poly, intersecting_polys in poly_groups:
-                if not self._is_non_text_scatter_intersecting(intersecting_polys=intersecting_polys):
+            for poly_group in poly_groups:
+                if poly_group.types_present_in_polys(['text', 'scatter']):
                     continue
 
                 found_non_text_scatter_group = True
-                scan_poly_key = self._generate_poly_key(scan_poly)
-                filtered_poly_groups[scan_poly_key] = intersecting_polys
+                scan_poly_key = self._generate_poly_key(poly_group.poly)
+                filtered_poly_groups[scan_poly_key] = poly_group.intersecting_polys
 
             if found_non_text_scatter_group:
                 break
@@ -122,8 +121,7 @@ class RtreeAnalyzer:
         weighted_distances_by_poly = {}
         for scan_poly_key, intersecting_polys in poly_groups_new.items():
             scan_poly = scan_poly_key[0]
-            if iterations % steps_to_show_poly_finalist == 0:
-                yield scan_poly, 'poly_finalist'
+            yield scan_poly, 'poly_finalist'
             scan_poly_point = Point((scan_poly.centroid.x, scan_poly.centroid.y))
             nearest_ids = list(self.rtree_idx.nearest(scan_poly_point.bounds, num_results=15))
             text_scatter_polys = [self.polygons[nearest_id] for nearest_id in nearest_ids
@@ -132,8 +130,6 @@ class RtreeAnalyzer:
             distance_score = self._calculate_weighted_distance_to_polys(poly_point=scan_poly_point,
                                                                         nearest_polys=text_scatter_polys,
                                                                         city_point=Point(city_coord))
-            if iterations % steps_to_show_poly_finalist == 0:
-                logging.info(f"Displayed poly score: {distance_score}")
             if distance_score not in weighted_distances_by_poly:
                 weighted_distances_by_poly[distance_score] = []
             weighted_distances_by_poly[distance_score].append(scan_poly)
@@ -195,8 +191,8 @@ class RtreeAnalyzer:
                 yield scan_poly, 'scan_poly', num_iterations
 
                 intersecting_polys = self._get_intersecting_polys(scan_poly=scan_poly)
-                new_poly_group = poly_group.PolyGroup(poly=scan_poly,
-                                                      interseting_polys=intersecting_polys)
+                new_poly_group = poly_management.PolyGroup(poly=scan_poly,
+                                                           interseting_polys=intersecting_polys)
 
                 num_intersections = len(intersecting_polys)
                 if num_intersections not in poly_groups_dict:
@@ -212,7 +208,7 @@ class RtreeAnalyzer:
 
         logging.info("Determining best poly.")
         determine_iterations = 0
-        for poly, poly_type in self._determine_best_poly(
+        for poly, poly_type, num_iterations in self._determine_best_poly(
                 scan_poly_num_intersections=poly_groups_dict,
                 city_coord=(search_area_poly.centroid.x, search_area_poly.centroid.y)):
             yield poly, poly_type, determine_iterations

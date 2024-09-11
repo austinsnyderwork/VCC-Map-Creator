@@ -5,6 +5,7 @@ from shapely.geometry import Polygon
 from utils.helper_functions import get_config_value
 from . import algorithm_map_creator, helper_functions, rtree_analysis
 import poly_creation
+from poly_management import PolyGroup, TypedPolygon
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -33,7 +34,8 @@ class AlgorithmHandler:
                                                   name='line poly')
             self.rtree_analyzer.add_poly(poly_class='line',
                                          poly=poly)
-
+            t_poly = TypedPolygon(poly=poly,
+                                  poly_type='line')
             self.algo_map_creator.add_poly_to_map(poly=poly,
                                                   show_algo=show_line,
                                                   color=line_color,
@@ -55,7 +57,7 @@ class AlgorithmHandler:
                                                   name='scatter poly')
             self.rtree_analyzer.add_poly(poly_class='scatter',
                                          poly=poly)
-            self.algo_map_creator.add_poly_to_map(poly=poly,
+            self.algo_map_creator.add_poly_to_map(poly=t_poly,
                                                   show_algo=show_scatter,
                                                   color=scatter_color,
                                                   transparency=scatter_transparency,
@@ -139,16 +141,31 @@ class AlgorithmHandler:
                                                 width_adjustment=poly_width_percent_adjust)
         return scan_poly
 
+    def _should_show_algo(self, poly_data, poly_type, num_iterations, city_name) -> bool:
+        display_algo = get_config_value(config, 'algo_display.show_display', bool)
+        display_algo_city = get_config_value(config, 'algo_display.show_poly_finalist_city', str)
+        steps_to_show_scan_poly = get_config_value(config, 'algo_display.steps_to_show_scan_poly', int)
+        steps_to_show_poly_finalist = get_config_value(config, 'algo_display.steps_to_show_poly_finalist', int)
+
+        if not display_algo or city_name != display_algo_city or not poly_data['show_algo']:
+            return False
+
+        if poly_type == 'scan_poly' and num_iterations % steps_to_show_scan_poly != 0:
+            return False
+
+        if poly_type == 'poly_finalist' and num_iterations % steps_to_show_poly_finalist != 0:
+            return False
+
+        if display_algo_city not in (city_name, 'N/A'):
+            return False
+
+        return True
 
     def find_best_poly_around_point(self, scan_poly_dimensions: dict, center_coord, city_name: str):
         search_height = get_config_value(config, 'algorithm.search_height', float)
         search_width = get_config_value(config, 'algorithm.search_width', float)
         search_steps = get_config_value(config, 'algorithm.search_steps', int)
         show_pause = get_config_value(config, 'algo_display.show_pause', float)
-        steps_to_show_scan_poly = get_config_value(config, 'algo_display.steps_to_show_scan_poly', int)
-        steps_to_show_poly_finalist = get_config_value(config, 'algo_display.steps_to_show_poly_finalist', int)
-        display_algo_city = get_config_value(config, 'algo_display.show_poly_finalist_city', bool)
-        display_algo_city = display_algo_city in (city_name, 'N/A')
 
         scan_poly = self._create_scan_poly(scan_poly_dimensions)
 
@@ -173,7 +190,10 @@ class AlgorithmHandler:
 
             poly_data = self._lookup_poly_characteristics(poly_type='best_poly')
 
-            if not display_algo_city or not poly_data['show_algo'] or num_iterations % steps_to_show_scan_poly != 0:
+            if not self._should_show_algo(poly_data=poly_data,
+                                         poly_type=poly_type,
+                                         num_iterations=num_iterations,
+                                         city_name=city_name):
                 self.algo_map_creator.disable()
 
             if poly_type in ('scan_poly', 'best_poly'):
