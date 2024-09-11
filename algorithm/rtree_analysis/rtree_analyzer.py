@@ -48,9 +48,13 @@ class RtreeAnalyzer:
             distance_to_coord = poly.distance(poly_point)
             weighted_distance = distance_to_coord ** 3
             weighted_distances.append(weighted_distance)
+        # Higher score means more suitable (farther away from other elements)
         weighted_score = sum(weighted_distances) / len(weighted_distances)
         city_distance = poly_point.distance(city_point)
-        return weighted_score * (1 / (city_distance ** 8))
+        # Higher score means more suitable (closer to the city)
+        weighted_city_distance = 1 / (city_distance ** 8)
+        score = np.log10(weighted_score * weighted_city_distance)
+        return weighted_score * weighted_city_distance
 
     def _determine_best_poly(self, scan_poly_num_intersections: dict, city_coord: tuple,
                              steps_to_show_poly_finalist: int):
@@ -114,12 +118,14 @@ class RtreeAnalyzer:
             text_scatter_polys = [self.polygons[nearest_id] for nearest_id in nearest_ids
                                   if self._get_poly_class(nearest_id) in ('text', 'scatter')]
             # Higher score is better
-            weighted_distance = self._calculate_weighted_distance_to_polys(poly_point=scan_poly_point,
-                                                                           nearest_polys=text_scatter_polys,
-                                                                           city_point=Point(city_coord))
-            if weighted_distance not in weighted_distances_by_poly:
-                weighted_distances_by_poly[weighted_distance] = []
-            weighted_distances_by_poly[weighted_distance].append(scan_poly)
+            distance_score = self._calculate_weighted_distance_to_polys(poly_point=scan_poly_point,
+                                                                        nearest_polys=text_scatter_polys,
+                                                                        city_point=Point(city_coord))
+            if iterations % steps_to_show_poly_finalist == 0:
+                logging.info(f"Displayed poly score: {distance_score}")
+            if distance_score not in weighted_distances_by_poly:
+                weighted_distances_by_poly[distance_score] = []
+            weighted_distances_by_poly[distance_score].append(scan_poly)
             iterations += 1
         logging.info("Calculated weighted distances for poly finalists.")
 
