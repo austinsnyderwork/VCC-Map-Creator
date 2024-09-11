@@ -117,7 +117,7 @@ class RtreeAnalyzer:
             if iterations % steps_to_show_poly_finalist == 0:
                 yield scan_poly, 'poly_finalist'
             scan_poly_point = Point((scan_poly.centroid.x, scan_poly.centroid.y))
-            nearest_ids = list(self.rtree_idx.nearest(scan_poly_point.bounds, num_results=15))
+            nearest_ids = list(self.rtree_idx.nearest(scan_poly_point.bounds, num_results=7))
             text_scatter_polys = [self.polygons[nearest_id] for nearest_id in nearest_ids
                                   if self._get_poly_class(nearest_id) in ('text', 'scatter')]
             # Higher score is better
