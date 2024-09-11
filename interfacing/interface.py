@@ -96,7 +96,7 @@ class Interface:
                                                                                          config['viz_display'][
                                                                                              'city_font_weight'])
             display_algo_city = config['algo_display']['show_poly_finalist_city']
-            display_algo_city = True if display_algo_city == city_name else False
+            display_algo_city = True if display_algo_city in (city_name, 'N/A') else False
             city_display_coord = self.algo_handler.find_available_poly_around_point(
                 scan_poly_dimensions=text_box_dimensions,
                 center_coord=self._get_coordinate_from_point(point=point),

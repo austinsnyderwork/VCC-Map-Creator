@@ -96,11 +96,13 @@ class RtreeAnalyzer:
             if distance_to_city not in poly_distances:
                 poly_distances[distance_to_city] = []
             poly_distances[distance_to_city].append(scan_poly)
-        mean_distance = sum(list(poly_distances.keys())) / len(list(poly_distances.keys()))
+        distances = sorted(list(poly_distances.keys()))
+        if len(distances) > 3:
+            distances = sorted(list(poly_distances.keys()))[:3]
 
         accepted_scan_polys = []
         for poly_distance, polys in poly_distances.items():
-            if poly_distance <= mean_distance:
+            if poly_distance in distances:
                 accepted_scan_polys.extend(polys)
 
         poly_groups_new = {}
