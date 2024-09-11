@@ -27,6 +27,11 @@ class RtreeAnalyzer:
         self.poly_classes[poly_key] = poly_class
         self.poly_idx += 1
 
+    def _scan_poly_outside_of_search_area(self, scan_poly, search_area_poly):
+        extruding_scan_poly = scan_poly.difference(search_area_poly)
+
+        return not extruding_scan_poly.is_empty
+
     def _is_non_text_scatter_intersecting(self, intersecting_polys):
         non_text_polys = [poly for poly in intersecting_polys
                           if self.poly_classes[self._generate_poly_key(poly)] == 'text']

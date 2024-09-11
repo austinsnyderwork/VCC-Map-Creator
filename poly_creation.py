@@ -47,16 +47,6 @@ def _create_circle_polygon(center, radius, num_points=100) -> Polygon:
     return Polygon(points)
 
 
-def create_search_area_polygon(center_coord, search_distance_height: float, search_distance_width: float) -> Polygon:
-    x_min = center_coord[0] - search_distance_width
-    x_max = center_coord[0] + search_distance_width
-    y_min = center_coord[1] - search_distance_height
-    y_max = center_coord[1] + search_distance_height
-    search_area_poly = _create_rectangle_polygon(x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
-
-    return search_area_poly
-
-
 def _create_rectangle_polygon(**kwargs) -> Polygon:
     if 'lon' in kwargs and 'lat' in kwargs and 'width' in kwargs and 'height' in kwargs:
         lon = kwargs['lon']
@@ -67,6 +57,12 @@ def _create_rectangle_polygon(**kwargs) -> Polygon:
         x_max = lon + width
         y_min = lat - height
         y_max = lat + height
+    elif 'poly_width' in kwargs and 'poly_height' in kwargs:
+        x_min = kwargs['center_coord'][0] - kwargs['poly_width']
+        x_max = kwargs['center_coord'][0] + kwargs['poly_width']
+        y_min = kwargs['center_coord'][1] - kwargs['poly_height']
+        y_max = kwargs['center_coord'][1] + kwargs['poly_height']
+        return _create_rectangle_polygon(x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
     else:
         x_min = kwargs['x_min']
         y_min = kwargs['y_min']
@@ -97,25 +93,3 @@ def _create_polygon_from_coords(**kwargs):
         raise ValueError("Could not form a valid polygon.")
     else:
         return poly
-
-
-def resize_rectangle(min_x, min_y, max_x, max_y, factor):
-    # Calculate the center of the original rectangle
-    center_x = (min_x + max_x) / 2
-    center_y = (min_y + max_y) / 2
-
-    # Calculate the original width and height
-    original_width = max_x - min_x
-    original_height = max_y - min_y
-
-    # Calculate new width and height based on the given factor
-    new_width = original_width / factor
-    new_height = original_height / factor
-
-    # Calculate new min and max coordinates
-    new_min_x = center_x - new_width / 2
-    new_max_x = center_x + new_width / 2
-    new_min_y = center_y - new_height / 2
-    new_max_y = center_y + new_height / 2
-
-    return new_min_x, new_min_y, new_max_x, new_max_y
