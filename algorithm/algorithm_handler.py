@@ -145,6 +145,10 @@ class AlgorithmHandler:
 
         scan_poly = poly_creation.create_poly(poly_type='rectangle',
                                               **scan_poly_dimensions)
+        if poly_width_percent_adjust != 0.0:
+            scan_poly = self._reduce_poly_width(poly=scan_poly,
+                                                width_adjustment=poly_width_percent_adjust)
+
         search_area_poly = poly_creation.create_search_area_polygon(center_coord=center_coord,
                                                                     search_distance_height=search_height,
                                                                     search_distance_width=search_width)
@@ -157,50 +161,48 @@ class AlgorithmHandler:
         most_recent_scan_patch = None
         intersecting_patches = []
         poly_finalist_patches = []
-        if poly_width_percent_adjust != 0.0:
-            scan_poly = self._reduce_poly_width(poly=scan_poly,
-                                                width_adjustment=poly_width_percent_adjust)
 
-        for poly, poly_type in self.rtree_analyzer.find_available_poly_around_point(scan_poly=scan_poly,
-                                                                                    search_area_poly=search_area_poly,
-                                                                                    search_steps=search_steps,
-                                                                                    steps_to_show_scan_poly=steps_to_show_scan_poly,
-                                                                                    steps_to_show_poly_finalist=steps_to_show_poly_finalist):
+        for poly, poly_type, num_iterations in self.rtree_analyzer.find_best_poly_around_point(
+                scan_poly=scan_poly,
+                search_area_poly=search_area_poly,
+                search_steps=search_steps):
 
-            poly_data = self._lookup_poly_characteristics(poly_type=poly_type)
-            patch = self.algo_map_creator.add_poly_to_map(poly=poly,
-                                                          show_pause=show_pause,
-                                                          **poly_data)
+            poly_data = self._lookup_poly_characteristics(poly_type='best_poly')
 
             if poly_type == 'best_poly':
                 if most_recent_scan_patch:
                     self.algo_map_creator.remove_patch_from_map(patch=most_recent_scan_patch)
+                if len(intersecting_patches) > 0:
+                    for i_patch in intersecting_patches:
+                        self.algo_map_creator.remove_patch_from_map(patch=i_patch)
                 for poly_finalist_patch in poly_finalist_patches:
                     self.algo_map_creator.remove_patch_from_map(patch=poly_finalist_patch)
                 best_poly = poly
                 logging.info("Found best polygon.")
                 break
             elif poly_type == 'scan_poly':
+                """
                 if self._scan_poly_outside_of_search_area(scan_poly=poly,
                                                           search_area_poly=search_area_poly):
                     raise ValueError("Scan poly is outside of the search area. Increase the search dimensions.")
+                """
                 if most_recent_scan_patch:
                     self.algo_map_creator.remove_patch_from_map(patch=most_recent_scan_patch)
-                most_recent_scan_patch = patch
 
                 for patch in intersecting_patches:
                     self.algo_map_creator.remove_patch_from_map(patch=patch)
+
+            patch = self.algo_map_creator.add_poly_to_map(poly=poly,
+                                                          show_pause=show_pause,
+                                                          **poly_data)
+
+            # Load patch into appropriate scan history
+            if poly_type == 'scan_poly':
+                most_recent_scan_patch = patch
             elif poly_type == 'intersecting':
                 intersecting_patches.append(patch)
             elif poly_type == 'poly_finalist':
                 poly_finalist_patches.append(patch)
-
-            if not poly_data['show_algo']:
-                continue
-
-        poly_width_percent_adjust = float(config['algorithm']['poly_width_percent_adjustment'])
-        best_poly = self._reduce_poly_width(poly=best_poly,
-                                            width_adjustment=poly_width_percent_adjust)
 
         poly_data = self._lookup_poly_characteristics(poly_type='best_poly')
         self.algo_map_creator.add_poly_to_map(poly=best_poly,

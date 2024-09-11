@@ -3,6 +3,7 @@ import logging
 import matplotlib
 from mpl_toolkits.basemap import Basemap
 
+from . import helper_functions
 import algorithm
 import input_output
 import origin_grouping
@@ -66,25 +67,10 @@ class Interface:
 
         self.data_imported = True
 
-    @staticmethod
-    def _determine_search_area_bounds(city_lon, city_lat):
-        search_area_bounds = {
-            'x_min': city_lon - float(config['algorithm']['search_width']),
-            'y_min': city_lat - float(config['algorithm']['search_height']),
-            'x_max': city_lon + float(config['algorithm']['search_width']),
-            'y_max': city_lat + float(config['algorithm']['search_height'])
-        }
-        return search_area_bounds
-
-    @staticmethod
-    def _get_coordinate_from_point(point):
-        coordinates = point.get_offsets().tolist()
-        coordinate = coordinates[0]
-        return coordinate
-
     def _handle_text_boxes(self, points_by_city: dict):
         city_display_coords_by_name = {}
         for city_name, point in points_by_city.items():
+            logging.info(f"Determining text box dimensions for {city_name}.")
             # Have to input the text into the map to see its dimensions on our view
             text_box, text_box_dimensions = self.vis_map_creator.get_text_box_dimensions(city_name=city_name,
                                                                                          font=config['viz_display'][
@@ -95,11 +81,15 @@ class Interface:
                                                                                          font_weight=
                                                                                          config['viz_display'][
                                                                                              'city_font_weight'])
+            logging.info(f"Determined text box dimensions for {city_name}.")
+
+            logging.info(f"Finding best poly for {city_name}.")
             best_poly = self.algo_handler.find_best_poly_around_point(
                 scan_poly_dimensions=text_box_dimensions,
-                center_coord=self._get_coordinate_from_point(point=point),
+                center_coord=helper_functions.get_coordinate_from_point(point=point),
                 city_name=city_name
             )
+            logging.info(f"Found best poly for {city_name}.")
             city_display_coords_by_name[city_name] = (best_poly.centroid.x, best_poly.centroid.y)
         return city_display_coords_by_name
 
@@ -123,7 +113,7 @@ class Interface:
                                                           dual_origin_outpatient=self.origin_groups_handler_.dual_origin_outpatient)
         city_coords = {}
         for city_name, point in points_by_city.items():
-            city_coords[city_name] = self._get_coordinate_from_point(point=point)
+            city_coords[city_name] = helper_functions.get_coordinate_from_point(point=point)
 
         self.algo_handler.plot_points(city_coords)
         city_display_coords = self._handle_text_boxes(points_by_city)
