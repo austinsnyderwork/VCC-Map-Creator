@@ -87,7 +87,6 @@ def _create_rectangle_polygon(**kwargs) -> Polygon:
 
 def _create_polygon_from_coords(**kwargs):
     poly = None
-    logging.info("Creating polygon from coord permutations.")
     for permutation in itertools.permutations(kwargs['coords']):
         polygon = Polygon(permutation)
         if polygon.is_valid:
