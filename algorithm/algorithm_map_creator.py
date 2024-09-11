@@ -1,6 +1,11 @@
+import configparser
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
+
+
+config = configparser.ConfigParser()
+config.read('config.ini')
 
 
 class AlgorithmMapCreator:
@@ -11,13 +16,23 @@ class AlgorithmMapCreator:
         self.fig, self.ax = None, None
         self.iowa_map = None
 
-        self._create_figure()
+        display_fig_size = (int(config['display']['fig_size_x']), int(config['display']['fig_size_y']))
+        self._create_figure(fig_size=display_fig_size,
+                            county_line_width=float(config['display']['county_line_width']))
 
-    def _create_figure(self):
+        self.enabled = True
+
+    def disable(self):
+        self.enabled = False
+
+    def enable(self):
+        self.enabled = True
+
+    def _create_figure(self, fig_size, county_line_width):
         if not self.show_display:
             return
 
-        self.fig, self.ax = plt.subplots(figsize=(12, 8))
+        self.fig, self.ax = plt.subplots(figsize=fig_size)
         self.ax.set_title("Rtree Polygons")
         self.iowa_map = basemap.Basemap(projection='lcc', resolution='i',
                                         lat_0=41.5, lon_0=-93.5,  # Central latitude and longitude
@@ -25,13 +40,13 @@ class AlgorithmMapCreator:
                                         urcrnrlon=-89, urcrnrlat=44,  # Upper-right corner
                                         ax=self.ax)
         self.iowa_map.drawstates()
-        self.iowa_map.drawcounties(linewidth=0.04)
+        self.iowa_map.drawcounties(linewidth=county_line_width)
 
         plt.figure(self.fig)
 
     def add_poly_to_map(self, poly, show_algo, center_view=False, color='blue', transparency: float = 1.0,
                         immediately_remove=False, show_pause: float = 1.0, **kwargs):
-        if not self.show_display:
+        if not self.show_display or not self.enabled:
             return
 
         # Get polygon coordinates

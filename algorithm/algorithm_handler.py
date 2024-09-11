@@ -130,7 +130,7 @@ class AlgorithmHandler:
 
         return not extruding_scan_poly.is_empty
 
-    def find_available_poly_around_point(self, scan_poly_dimensions: dict, center_coord):
+    def find_available_poly_around_point(self, scan_poly_dimensions: dict, center_coord, display_algo_city: bool):
         search_height = float(config['algorithm']['search_height'])
         search_width = float(config['algorithm']['search_width'])
         search_steps = int(config['algorithm']['search_steps'])
@@ -138,11 +138,15 @@ class AlgorithmHandler:
         steps_to_show_scan_poly = int(config['algo_display']['steps_to_show_scan_poly'])
         steps_to_show_poly_finalist = int(config['algo_display']['steps_to_show_poly_finalist'])
 
+        if not display_algo_city:
+            self.algo_map_creator.disable()
+
         scan_poly = poly_creation.create_poly(poly_type='rectangle',
                                               **scan_poly_dimensions)
         search_area_poly = poly_creation.create_search_area_polygon(center_coord=center_coord,
                                                                     search_distance_height=search_height,
                                                                     search_distance_width=search_width)
+
         search_area_patch = self.algo_map_creator.add_poly_to_map(poly=search_area_poly,
                                                                   show_pause=show_pause,
                                                                   **self._lookup_poly_characteristics(
@@ -194,4 +198,7 @@ class AlgorithmHandler:
                                               **poly_data)
         self.algo_map_creator.remove_patch_from_map(patch=search_area_patch)
         display_coord = best_poly.centroid.x, best_poly.centroid.y
+
+        self.algo_map_creator.enable()
+
         return display_coord

@@ -52,9 +52,12 @@ class RtreeAnalyzer:
         weighted_score = sum(weighted_distances) / len(weighted_distances)
         city_distance = poly_point.distance(city_point)
         # Higher score means more suitable (closer to the city)
-        weighted_city_distance = 1 / (city_distance ** 8)
-        score = np.log10(weighted_score * weighted_city_distance)
-        return weighted_score * weighted_city_distance
+        weighted_city_distance = 1 / (city_distance ** 2)
+        score = weighted_score * weighted_city_distance
+        log_score = np.log10(score)
+        logging.info(f"Weighted score: {weighted_score} | City distance: {city_distance} | Score: {score} | "
+                     f"Log Score {log_score}")
+        return log_score
 
     def _determine_best_poly(self, scan_poly_num_intersections: dict, city_coord: tuple,
                              steps_to_show_poly_finalist: int):
@@ -129,8 +132,9 @@ class RtreeAnalyzer:
             iterations += 1
         logging.info("Calculated weighted distances for poly finalists.")
 
-        highest_weight = max(list(weighted_distances_by_poly.keys()))
-        best_poly = weighted_distances_by_poly[highest_weight][0]
+        highest_score = max(list(weighted_distances_by_poly.keys()))
+        logging.info(f"Highest weight: {highest_score}")
+        best_poly = weighted_distances_by_poly[highest_score][0]
         yield best_poly, 'best_poly'
 
     def _get_intersecting_polys(self, scan_poly) -> list[Polygon]:

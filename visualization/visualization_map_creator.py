@@ -21,11 +21,13 @@ class VisualizationMapCreator:
 
         self.city_coords = {}
 
-        self._create_figure()
+        display_fig_size = (int(config['display']['fig_size_x']), int(config['display']['fig_size_y']))
+        self._create_figure(fig_size=display_fig_size,
+                            county_line_width=float(config['display']['county_line_width']))
 
-    def _create_figure(self):
+    def _create_figure(self, fig_size, county_line_width: float):
         # Create visual Iowa map
-        self.fig, self.ax = plt.subplots(figsize=(12, 8))
+        self.fig, self.ax = plt.subplots(figsize=fig_size)
         self.ax.set_title("Main")
         self.iowa_map = basemap.Basemap(projection='lcc', resolution='i',
                                         lat_0=41.5, lon_0=-93.5,  # Central latitude and longitude
@@ -33,7 +35,7 @@ class VisualizationMapCreator:
                                         urcrnrlon=-89, urcrnrlat=44,  # Upper-right corner
                                         ax=self.ax)
         self.iowa_map.drawstates()
-        self.iowa_map.drawcounties(linewidth=0.04)
+        self.iowa_map.drawcounties(linewidth=county_line_width)
         logging.info("Created base Iowa map.")
 
     def _plot_point(self, coord: dict, origin_and_outpatient: bool, scatter_size,
