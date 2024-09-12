@@ -91,7 +91,7 @@ class Interface:
                 city_name=city_ele.city_name
             )
             logging.info(f"Found best poly for {city_ele.city_name}.")
-            text_box_ele = visualization.VisualizationElement(element_type='text_box',
+            text_box_ele = visualization.VisualizationElement(element_type='text',
                                                               city_name=city_ele.city_name,
                                                               coord=(best_poly.centroid.x, best_poly.centroid.y))
             text_box_eles.append(text_box_ele)

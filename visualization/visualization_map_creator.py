@@ -40,7 +40,7 @@ class VisualizationMapCreator:
 
     def _plot_point(self, coord: dict, origin_and_outpatient: bool, scatter_size,
                     scatter_label, color: str) -> dict:
-        lon, lat = coord['longitude'], coord['latitude']
+        lon, lat = coord[0], coord[1]
 
         marker = "D" if origin_and_outpatient else "s"
         scatter_obj = self.ax.scatter(lon, lat, marker=marker, color=color, s=scatter_size, label=scatter_label)
@@ -49,26 +49,38 @@ class VisualizationMapCreator:
 
     def plot_points(self, scatter_size: float, dual_origin_outpatient: list,
                     origin_groups: dict[str, origin_grouping.OriginGroup]) -> list[visualization_element.VisualizationElement]:
+        cities_plotted = []
         point_eles = []
         for origin, origin_group_ in origin_groups.items():
+            if origin in cities_plotted:
+                continue
             origin_in_oo = True if origin in dual_origin_outpatient else False
-            for outpatient in origin_group_.outpatients:
-                outpatient_in_oo = True if outpatient in dual_origin_outpatient else False
-                origin_point = self._plot_point(coord=self.city_coords[origin],
-                                                color=origin_group_.color,
-                                                origin_and_outpatient=origin_in_oo,
-                                                scatter_size=scatter_size,
-                                                scatter_label='Origin')
-                origin_ele = visualization_element.VisualizationElement(element_type='scatter',
-                                                                        obj=origin_point,
-                                                                        coord=self.city_coords[origin],
-                                                                        color=origin_group_.color,
-                                                                        origin_and_outpatient=origin_in_oo,
-                                                                        scatter_size=scatter_size,
-                                                                        scatter_label='Origin')
+            coord = (self.city_coords[origin]['longitude'], self.city_coords[origin]['latitude'])
+            origin_data = {
+                'coord': coord,
+                'color': origin_group_.color,
+                'origin_and_outpatient': origin_in_oo,
+                'scatter_size': scatter_size,
+                'scatter_label': 'Outpatient'
+            }
 
+            origin_point = self._plot_point(**origin_data)
+            origin_ele = visualization_element.VisualizationElement(element_type='scatter',
+                                                                    obj=origin_point,
+                                                                    city_name=origin,
+                                                                    **origin_data)
+            point_eles.append(origin_ele)
+            cities_plotted.append(origin)
+
+            for outpatient in origin_group_.outpatients:
+                if outpatient in cities_plotted:
+                    continue
+
+                outpatient_in_oo = True if outpatient in dual_origin_outpatient else False
+
+                coord = (self.city_coords[outpatient]['longitude'], self.city_coords[outpatient]['latitude'])
                 outpatient_data = {
-                        'coord': self.city_coords[outpatient],
+                        'coord': coord,
                         'color': origin_group_.color,
                         'origin_and_outpatient': outpatient_in_oo,
                         'scatter_size': scatter_size,
@@ -77,8 +89,11 @@ class VisualizationMapCreator:
                 outpatient_point = self._plot_point(**outpatient_data)
                 outpatient_ele = visualization_element.VisualizationElement(element_type='scatter',
                                                                             obj=outpatient_point,
-                                                                            kwargs=outpatient_data)
-                point_eles.extend([origin_ele, outpatient_ele])
+                                                                            city_name=outpatient,
+                                                                            **outpatient_data)
+                point_eles.append(outpatient_ele)
+
+                cities_plotted.append(outpatient)
         return point_eles
 
     def _plot_line(self, origin: str, outpatient: str, color: str, line_width: int) -> plt.Line2D:
@@ -144,8 +159,8 @@ class VisualizationMapCreator:
     def plot_text_boxes(self, text_box_elements: list[visualization_element.VisualizationElement]):
         for text_box_ele in text_box_elements:
             city_text_box = self._plot_text(city_name=text_box_ele.city_name,
-                                            text_box_lon=text_box_ele.text_box_coord[0],
-                                            text_box_lat=text_box_ele.text_box_coord[1])
+                                            text_box_lon=text_box_ele.coord[0],
+                                            text_box_lat=text_box_ele.coord[1])
 
     def show_map(self, show_pause):
         plt.show(block=False)

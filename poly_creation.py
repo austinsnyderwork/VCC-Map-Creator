@@ -1,9 +1,24 @@
 import itertools
 import logging
+import math
 import numpy as np
 from shapely.geometry import Polygon
 
 from algorithm import helper_functions
+
+
+def move_coordinate(x, y, slope, distance):
+    angle = math.atan(slope)  # arctan gives the angle from the slope
+
+    # Calculate the change in x and y using the angle and distance
+    delta_x = distance * math.cos(angle)  # Adjacent side of the right triangle
+    delta_y = distance * math.sin(angle)  # Opposite side of the right triangle
+
+    # Calculate new coordinates
+    new_x = x + delta_x
+    new_y = y + delta_y
+
+    return new_x, new_y
 
 
 def create_poly(poly_type: str, **kwargs):
@@ -30,10 +45,8 @@ def _create_line_polygon(line_width: float, x_data, y_data) -> Polygon:
 
     poly_coords = []
     for coord in [line_coord_0, line_coord_1]:
-        new_coord_0 = helper_functions.move_coordinate(coord[0], coord[1], slope=perpendicular_slope,
-                                                       distance=line_width / 2)
-        new_coord_1 = helper_functions.move_coordinate(coord[0], coord[1], slope=-perpendicular_slope,
-                                                       distance=line_width / 2)
+        new_coord_0 = move_coordinate(coord[0], coord[1], slope=perpendicular_slope, distance=line_width / 2)
+        new_coord_1 = move_coordinate(coord[0], coord[1], slope=-perpendicular_slope, distance=line_width / 2)
         poly_coords.append(new_coord_0)
         poly_coords.append(new_coord_1)
 
