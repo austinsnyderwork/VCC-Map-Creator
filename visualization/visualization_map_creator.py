@@ -3,8 +3,8 @@ import logging
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 
-from . import helper_functions
 import origin_grouping
+from . import visualization_element
 
 logging.basicConfig(level=logging.INFO)
 config = configparser.ConfigParser()
@@ -48,8 +48,8 @@ class VisualizationMapCreator:
         return scatter_obj
 
     def plot_points(self, scatter_size: float, dual_origin_outpatient: list,
-                    origin_groups: dict[str, origin_grouping.OriginGroup]) -> dict:
-        points = {}
+                    origin_groups: dict[str, origin_grouping.OriginGroup]) -> list[visualization_element.VisualizationElement]:
+        point_eles = []
         for origin, origin_group_ in origin_groups.items():
             origin_in_oo = True if origin in dual_origin_outpatient else False
             for outpatient in origin_group_.outpatients:
@@ -59,14 +59,27 @@ class VisualizationMapCreator:
                                                 origin_and_outpatient=origin_in_oo,
                                                 scatter_size=scatter_size,
                                                 scatter_label='Origin')
-                outpatient_point = self._plot_point(coord=self.city_coords[outpatient],
-                                                    color=origin_group_.color,
-                                                    origin_and_outpatient=outpatient_in_oo,
-                                                    scatter_size=scatter_size,
-                                                    scatter_label='Outpatient')
-                points[origin] = origin_point
-                points[outpatient] = outpatient_point
-        return points
+                origin_ele = visualization_element.VisualizationElement(element_type='scatter',
+                                                                        obj=origin_point,
+                                                                        coord=self.city_coords[origin],
+                                                                        color=origin_group_.color,
+                                                                        origin_and_outpatient=origin_in_oo,
+                                                                        scatter_size=scatter_size,
+                                                                        scatter_label='Origin')
+
+                outpatient_data = {
+                        'coord': self.city_coords[outpatient],
+                        'color': origin_group_.color,
+                        'origin_and_outpatient': outpatient_in_oo,
+                        'scatter_size': scatter_size,
+                        'scatter_label': 'Outpatient'
+                    }
+                outpatient_point = self._plot_point(**outpatient_data)
+                outpatient_ele = visualization_element.VisualizationElement(element_type='scatter',
+                                                                            obj=outpatient_point,
+                                                                            kwargs=outpatient_data)
+                point_eles.extend([origin_ele, outpatient_ele])
+        return point_eles
 
     def _plot_line(self, origin: str, outpatient: str, color: str, line_width: int) -> plt.Line2D:
         from_lat = self.city_coords[origin]['latitude']
@@ -80,21 +93,29 @@ class VisualizationMapCreator:
 
         return line
 
-    def plot_lines(self, origin_groups: dict, line_width: int) -> dict:
-        lines = {}
+    def plot_lines(self, origin_groups: dict, line_width: int) -> list[visualization_element.VisualizationElement]:
+        line_eles = []
         for i, (origin, origin_group_) in enumerate(origin_groups.items()):
             for outpatient in origin_group_.outpatients:
                 new_line = self._plot_line(color=origin_group_.color,
                                            origin=origin,
                                            outpatient=outpatient,
                                            line_width=line_width)
-                lines[(origin, outpatient)] = new_line
-        return lines
+                line_ele = visualization_element.VisualizationElement(element_type='line',
+                                                                      obj=new_line,
+                                                                      origin=origin,
+                                                                      outpatient=outpatient,
+                                                                      line_width=line_width,
+                                                                      x_data=new_line.get_xdata(),
+                                                                      y_data=new_line.get_ydata()
+                                                                      )
+                line_eles.append(line_ele)
+        return line_eles
 
-    def _plot_text(self, city_name, city_lon, city_lat):
+    def _plot_text(self, city_name, text_box_lon, text_box_lat):
         # We don't want Iowa cities to have the state abbreviation
         city_name = city_name.replace(', IA', '')
-        city_text = self.ax.text(city_lon, city_lat, city_name, fontsize=7, font='Tahoma', ha='center', va='center',
+        city_text = self.ax.text(text_box_lon, text_box_lat, city_name, fontsize=7, font='Tahoma', ha='center', va='center',
                                  color='black',
                                  fontweight='semibold')
         return city_text
@@ -113,29 +134,18 @@ class VisualizationMapCreator:
         x_min, y_min = text_bbox_data.xmin, text_bbox_data.ymin
         x_max, y_max = text_bbox_data.xmax, text_bbox_data.ymax
         text_box_dimensions = {
-                                'x_min': x_min,
-                                'y_min': y_min,
-                                'x_max': x_max,
-                                'y_max': y_max
-                              }
+            'x_min': x_min,
+            'y_min': y_min,
+            'x_max': x_max,
+            'y_max': y_max
+        }
         return text_box, text_box_dimensions
 
-    def plot_text_boxes(self, origin_groups: dict, city_display_coords: dict) -> dict:
-        city_text_boxes = {}
-        for origin_name, origin_group_ in origin_groups.items():
-            if origin_name not in city_text_boxes:
-                city_text_box = self._plot_text(city_name=origin_name,
-                                                city_lon=city_display_coords[origin_name][0],
-                                                city_lat=city_display_coords[origin_name][1])
-                city_text_boxes[origin_name] = city_text_box
-            for outpatient_name in origin_group_.outpatients:
-                if outpatient_name not in city_text_boxes:
-                    city_text_box = self._plot_text(city_name=outpatient_name,
-                                                    city_lon=city_display_coords[outpatient_name][0],
-                                                    city_lat=city_display_coords[outpatient_name][1])
-                    city_text_boxes[outpatient_name] = city_text_box
-
-        return city_text_boxes
+    def plot_text_boxes(self, text_box_elements: list[visualization_element.VisualizationElement]):
+        for text_box_ele in text_box_elements:
+            city_text_box = self._plot_text(city_name=text_box_ele.city_name,
+                                            text_box_lon=text_box_ele.text_box_coord[0],
+                                            text_box_lat=text_box_ele.text_box_coord[1])
 
     def show_map(self, show_pause):
         plt.show(block=False)

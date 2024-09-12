@@ -1,4 +1,4 @@
-from typed_polygon import TypedPolygon
+from .typed_polygon import TypedPolygon
 
 
 class PolyGroup:

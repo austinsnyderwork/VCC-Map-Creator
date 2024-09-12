@@ -5,7 +5,8 @@ from shapely.geometry import Polygon
 from utils.helper_functions import get_config_value
 from . import algorithm_map_creator, helper_functions, rtree_analysis
 import poly_creation
-from poly_management import PolyGroup, TypedPolygon
+from .poly_management import PolyGroup, TypedPolygon, PolyGroupManager
+import visualization
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -18,31 +19,32 @@ class AlgorithmHandler:
         self.algo_map_creator = algorithm_map_creator.AlgorithmMapCreator(show_display=show_algo_display)
         self.rtree_analyzer = rtree_analysis.RtreeAnalyzer()
 
-    def plot_lines(self, lines_by_origin_outpatient: dict):
+    def plot_lines(self, line_eles: list[visualization.VisualizationElement]):
         line_color = str(config['algo_display']['line_color'])
         show_line = False if config['algo_display']['show_line'] == 'False' else True
         line_transparency = float(config['algo_display']['line_transparency'])
         immediately_remove_line = False if config['algo_display']['immediately_remove_line'] == 'False' else True
 
-        for (origin_name, outpatient_name), line_data in lines_by_origin_outpatient.items():
-            if origin_name == outpatient_name:
-                logging.error(f"Origin and outpatient both found to be the same: {origin_name} = {outpatient_name}")
-                continue
-            poly = poly_creation.create_poly(poly_type='line', x_data=line_data['x_data'], y_data=line_data['y_data'],
-                                             line_width=line_data['line_width'])
+        t_polys = []
+        for line_ele in line_eles:
+            poly = poly_creation.create_poly(poly_type='line', x_data=line_ele.x_data, y_data=line_ele.y_data,
+                                             line_width=line_ele.line_width)
             helper_functions.verify_poly_validity(poly=poly,
                                                   name='line poly')
-            self.rtree_analyzer.add_poly(poly_class='line',
-                                         poly=poly)
             t_poly = TypedPolygon(poly=poly,
                                   poly_type='line')
+            t_polys.append(t_poly)
+            self.rtree_analyzer.add_poly(poly_class='line',
+                                         t_poly=t_poly)
             self.algo_map_creator.add_poly_to_map(poly=poly,
                                                   show_algo=show_line,
                                                   color=line_color,
                                                   transparency=line_transparency,
                                                   immediately_remove=immediately_remove_line)
+        return t_polys
 
-    def plot_points(self, city_coords):
+
+    def plot_points(self, scatter_eles: list[visualization.VisualizationElement]):
         scatter_size = float(config['dimensions']['scatter_size'])
         units_radius_per_1_scatter_size = float(config['dimensions']['units_radius_per_1_scatter_size'])
 
@@ -50,18 +52,23 @@ class AlgorithmHandler:
         show_scatter = False if config['algo_display']['show_scatter'] == 'False' else True
         scatter_transparency = float(config['algo_display']['scatter_transparency'])
         immediately_remove_scatter = False if config['algo_display']['immediately_remove_scatter'] == 'False' else True
-        for i, (city_name, city_coord) in enumerate(city_coords.items()):
+        t_polys = []
+        for scatter_ele in scatter_eles:
             units_radius = scatter_size * units_radius_per_1_scatter_size
-            poly = poly_creation.create_poly(poly_type='scatter', center=city_coord, radius=units_radius)
+            poly = poly_creation.create_poly(poly_type='scatter', center=scatter_ele.coord, radius=units_radius)
             helper_functions.verify_poly_validity(poly=poly,
                                                   name='scatter poly')
+            t_poly = TypedPolygon(poly=poly,
+                                  poly_type='scatter')
+            t_polys.append(t_poly)
             self.rtree_analyzer.add_poly(poly_class='scatter',
-                                         poly=poly)
+                                         t_poly=t_poly)
             self.algo_map_creator.add_poly_to_map(poly=t_poly,
                                                   show_algo=show_scatter,
                                                   color=scatter_color,
                                                   transparency=scatter_transparency,
                                                   immediately_remove=immediately_remove_scatter)
+        return t_polys
 
     def _reduce_poly_width(self, poly: Polygon, width_adjustment: float):
         x_min, y_min, x_max, y_max = poly.bounds
