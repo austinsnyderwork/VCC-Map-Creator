@@ -24,8 +24,12 @@ class TypedPolygon:
     def exterior(self):
         return self.poly.exterior
 
-    def distance(self, other):
-        return self.poly.distance(other)
+    def distance(self, other_poly):
+        if isinstance(other_poly, TypedPolygon):
+            other_poly = other_poly.poly
+        return self.poly.distance(other_poly)
 
     def intersects(self, other_poly):
+        if isinstance(other_poly, TypedPolygon):
+            other_poly = other_poly.poly
         return self.poly.intersects(other_poly)

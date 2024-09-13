@@ -7,7 +7,7 @@ from shapely.geometry import Polygon
 from algorithm import helper_functions
 
 
-def move_coordinate(x, y, slope, distance):
+def move_coordinate(x, y, slope, distance) -> tuple:
     angle = math.atan(slope)  # arctan gives the angle from the slope
 
     # Calculate the change in x and y using the angle and distance
@@ -21,7 +21,7 @@ def move_coordinate(x, y, slope, distance):
     return new_x, new_y
 
 
-def create_poly(poly_type: str, **kwargs):
+def create_poly(poly_type: str, **kwargs) -> Polygon:
     poly_create_functions = {
         'line': _create_line_polygon,
         'scatter': _create_circle_polygon,
@@ -94,7 +94,7 @@ def _create_rectangle_polygon(**kwargs) -> Polygon:
     return Polygon(coordinates)
 
 
-def _create_polygon_from_coords(**kwargs):
+def _create_polygon_from_coords(**kwargs) -> Polygon:
     poly = None
     for permutation in itertools.permutations(kwargs['coords']):
         polygon = Polygon(permutation)

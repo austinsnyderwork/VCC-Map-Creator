@@ -67,35 +67,18 @@ class Interface:
 
         self.data_imported = True
 
-    def _create_text_box_elements(self, city_elements: list[visualization.VisualizationElement]) -> list[visualization.VisualizationElement]:
-        text_box_eles = []
-        for city_ele in city_elements:
-            logging.info(f"Determining text box dimensions for {city_ele.city_name}.")
-            # Have to input the text into the map to see its dimensions on our view
-            text_box, text_box_dimensions = self.vis_map_creator.get_text_box_dimensions(
-                city_name=city_ele.city_name,
-                font=config['viz_display'][
-                    'city_font'],
-                font_size=int(
-                    config['viz_display'][
-                        'city_font_size']),
-                font_weight=
-                config['viz_display'][
-                    'city_font_weight'])
-            logging.info(f"Determined text box dimensions for {city_ele.city_name}.")
-
-            logging.info(f"Finding best poly for {city_ele.city_name}.")
+    def find_best_poly_around_cities(self, text_box_elements: list[visualization.VisualizationElement]) -> (
+            list[visualization.VisualizationElement]):
+        for text_box_ele in text_box_elements:
+            logging.info(f"Finding best poly for {text_box_ele.city_name}.")
             best_poly = self.algo_handler.find_best_poly_around_point(
-                scan_poly_dimensions=text_box_dimensions,
-                center_coord=city_ele.coord,
-                city_name=city_ele.city_name
+                scan_poly_dimensions=text_box_ele.dimensions,
+                center_coord=text_box_ele.city_coord,
+                city_name=text_box_ele.city_name
             )
-            logging.info(f"Found best poly for {city_ele.city_name}.")
-            text_box_ele = visualization.VisualizationElement(element_type='text',
-                                                              city_name=city_ele.city_name,
-                                                              coord=(best_poly.centroid.x, best_poly.centroid.y))
-            text_box_eles.append(text_box_ele)
-        return text_box_eles
+            logging.info(f"Found best poly for {text_box_ele.city_name}.")
+            text_box_ele.add_value(element='best_poly',
+                                   value=best_poly)
 
     def create_maps(self):
         if not self.data_imported:
@@ -103,14 +86,17 @@ class Interface:
         line_width = int(config['dimensions']['line_width'])
         line_vis_elements: list[visualization.VisualizationElement] = self.vis_map_creator.plot_lines(
             origin_groups=self.origin_groups_handler_.origin_groups,
-            line_width=line_width)
+            line_width=line_width,
+            zorder=1)
         self.algo_handler.plot_lines(line_vis_elements)
         city_vis_elements = self.vis_map_creator.plot_points(origin_groups=self.origin_groups_handler_.origin_groups,
                                                              scatter_size=float(
                                                                  config['dimensions']['scatter_size']),
-                                                             dual_origin_outpatient=self.origin_groups_handler_.dual_origin_outpatient)
+                                                             dual_origin_outpatient=self.origin_groups_handler_.dual_origin_outpatient,
+                                                             zorder=3)
         self.algo_handler.plot_points(city_vis_elements)
-        text_box_eles = self._create_text_box_elements(city_elements=city_vis_elements)
-        self.vis_map_creator.plot_text_boxes(text_box_elements=text_box_eles)
+        text_box_elements = self.vis_map_creator.plot_sample_text_boxes(city_elements=city_vis_elements)
+        self.find_best_poly_around_cities(text_box_elements=text_box_elements)
+        self.vis_map_creator.plot_text_boxes(text_box_elements=text_box_elements, zorder=2)
         show_pause = 360
         self.vis_map_creator.show_map(show_pause=show_pause)

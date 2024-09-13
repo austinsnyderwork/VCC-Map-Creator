@@ -1,5 +1,3 @@
-import pandas as pd
-
 from . import origin_group
 
 

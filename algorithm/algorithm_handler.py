@@ -35,51 +35,55 @@ def reduce_poly_width(poly, width_adjustment: float):
 def lookup_poly_characteristics(poly_type: str):
     poly_type_data = {
         'search_area': {
-            'color': config['algo_display']['search_area_poly_color'],
-            'transparency': float(config['algo_display']['search_area_poly_transparency']),
-            'show_algo': False if config['algo_display']['show_search_area_poly'] == 'False' else True,
-            'immediately_remove': False if config['algo_display'][
-                                               'immediately_remove_search_area_poly'] == 'False' else True,
+            'color': get_config_value(config, 'algo_display.search_area_poly_color', str),
+            'transparency': get_config_value(config, 'algo_display.search_area_poly_transparency', float),
+            'show_algo': get_config_value(config, 'algo_display.show_search_area_poly', bool),
+            'immediately_remove': get_config_value(config, 'algo_display.immediately_remove_search_area_poly', bool),
             'should_plot': False,
-            'center_view': False if config['algo_display']['center_view_on_search_area_poly'] == 'False' else True
+            'center_view': get_config_value(config, 'algo_display.center_view_on_search_area_poly', bool)
         },
         'scan_poly': {
-            'color': config['algo_display']['scan_poly_color'],
-            'transparency': float(config['algo_display']['scan_poly_transparency']),
-            'show_algo': False if config['algo_display']['show_scan_poly'] == 'False' else True,
-            'immediately_remove': False if config['algo_display'][
-                                               'immediately_remove_scan_poly'] == 'False' else True,
+            'color': get_config_value(config, 'algo_display.scan_poly_color', str),
+            'transparency': get_config_value(config, 'algo_display.scan_poly_transparency', float),
+            'show_algo': get_config_value(config, 'algo_display.show_scan_poly', bool),
+            'immediately_remove': get_config_value(config, 'algo_display.immediately_remove_scan_poly', bool),
             'should_plot': False,
-            'center_view': False if config['algo_display']['center_view_on_scan_poly'] == 'False' else True
+            'center_view': get_config_value(config, 'algo_display.center_view_on_scan_poly', bool)
         },
         'intersecting': {
-            'color': config['algo_display']['intersecting_poly_color'],
-            'transparency': float(config['algo_display']['intersecting_poly_transparency']),
-            'show_algo': False if config['algo_display']['show_intersecting_poly'] == 'False' else True,
-            'immediately_remove': False if config['algo_display'][
-                                               'immediately_remove_intersecting_poly'] == 'False' else True,
+            'color': get_config_value(config, 'algo_display.intersecting_poly_color', str),
+            'transparency': get_config_value(config, 'algo_display.intersecting_poly_transparency', float),
+            'show_algo': get_config_value(config, 'algo_display.show_intersecting_poly', bool),
+            'immediately_remove': get_config_value(config, 'algo_display.immediately_remove_intersecting_poly', bool),
             'should_plot': False,
-            'center_view': False if config['algo_display']['center_view_on_intersecting_poly'] == 'False' else True
+            'center_view': get_config_value(config, 'algo_display.center_view_on_intersecting_poly', bool)
         },
         'best_poly': {
-            'color': config['algo_display']['best_poly_color'],
-            'transparency': float(config['algo_display']['best_poly_transparency']),
-            'show_algo': False if config['algo_display']['show_best_poly'] == 'False' else True,
-            'immediately_remove': False if config['algo_display'][
-                                               'immediately_remove_best_poly'] == 'False' else True,
+            'color': get_config_value(config, 'algo_display.best_poly_color', str),
+            'transparency': get_config_value(config, 'algo_display.best_poly_transparency', float),
+            'show_algo': get_config_value(config, 'algo_display.show_best_poly', bool),
+            'immediately_remove': get_config_value(config, 'algo_display.immediately_remove_best_poly', bool),
             'should_plot': False,
-            'center_view': False if config['algo_display']['center_view_on_best_poly'] == 'False' else True
+            'center_view': get_config_value(config, 'algo_display.center_view_on_best_poly', bool)
         },
         'poly_finalist': {
-            'color': config['algo_display']['poly_finalist_color'],
-            'transparency': float(config['algo_display']['poly_finalist_transparency']),
-            'show_algo': False if config['algo_display']['show_poly_finalist'] == 'False' else True,
-            'immediately_remove': False if config['algo_display'][
-                                               'immediately_remove_poly_finalist'] == 'False' else True,
+            'color': get_config_value(config, 'algo_display.poly_finalist_color', str),
+            'transparency': get_config_value(config, 'algo_display.poly_finalist_transparency', float),
+            'show_algo': get_config_value(config, 'algo_display.show_poly_finalist', bool),
+            'immediately_remove': get_config_value(config, 'algo_display.immediately_remove_poly_finalist', bool),
             'should_plot': False,
-            'center_view': False if config['algo_display']['center_view_on_poly_finalist'] == 'False' else True
+            'center_view': get_config_value(config, 'algo_display.center_view_on_poly_finalist', bool)
+        },
+        'nearby_search_poly': {
+            'color': get_config_value(config, 'algo_display.nearby_search_poly_color', str),
+            'transparency': get_config_value(config, 'algo_display.nearby_search_poly_transparency', float),
+            'show_algo': get_config_value(config, 'algo_display.show_nearby_search_poly', bool),
+            'immediately_remove': get_config_value(config, 'algo_display.immediately_remove_nearby_search_poly', bool),
+            'should_plot': False,
+            'center_view': get_config_value(config, 'algo_display.center_view_on_nearby_search_poly', bool)
         }
     }
+
     return poly_type_data[poly_type]
 
 
@@ -127,7 +131,7 @@ class AlgorithmHandler:
                                   poly_type='line')
             t_polys.append(t_poly)
             self.rtree_analyzer.add_poly(poly_class='line',
-                                         t_poly=t_poly)
+                                         poly=t_poly)
             self.algo_map_creator.add_poly_to_map(poly=poly,
                                                   show_algo=show_line,
                                                   color=line_color,
@@ -153,13 +157,14 @@ class AlgorithmHandler:
                                   poly_type='scatter')
             t_polys.append(t_poly)
             self.rtree_analyzer.add_poly(poly_class='scatter',
-                                         t_poly=t_poly)
+                                         poly=t_poly)
             self.algo_map_creator.add_poly_to_map(poly=t_poly,
                                                   show_algo=show_scatter,
                                                   color=scatter_color,
                                                   transparency=scatter_transparency,
                                                   immediately_remove=immediately_remove_scatter)
         return t_polys
+
 
     def _scan_poly_outside_of_search_area(self, scan_poly, search_area_poly):
         extruding_scan_poly = scan_poly.difference(search_area_poly)
@@ -176,14 +181,21 @@ class AlgorithmHandler:
         return scan_poly
 
     def find_best_poly_around_point(self, scan_poly_dimensions: dict, center_coord, city_name: str):
-        search_height = get_config_value(config, 'algorithm.search_height', float)
-        search_width = get_config_value(config, 'algorithm.search_width', float)
+        max_text_distance_to_city = get_config_value(config, 'algorithm.maximum_distance_to_city', int)
         search_steps = get_config_value(config, 'algorithm.search_steps', int)
         show_pause = get_config_value(config, 'algo_display.show_pause', float)
+        nearby_poly_search_width = get_config_value(config, 'algorithm.nearby_poly_search_width', int)
+        nearby_poly_search_height = get_config_value(config, 'algorithm.nearby_poly_search_height', int)
 
         scan_poly = self._create_scan_poly(scan_poly_dimensions)
-        t_scan_poly = TypedPolygon(poly=scan_poly,
-                                   poly_type='text')
+        scan_poly = TypedPolygon(poly=scan_poly,
+                                 poly_type='text')
+
+        x_min, y_min, x_max, y_max = scan_poly.bounds
+        y_dist = y_max - scan_poly.centroid.y
+        x_dist = x_max - scan_poly.centroid.x
+        search_height = (y_dist + max_text_distance_to_city) * 2
+        search_width = (x_dist + max_text_distance_to_city) * 2
 
         search_area_poly = poly_creation.create_poly(poly_type='rectangle',
                                                      center_coord=center_coord,
@@ -200,16 +212,19 @@ class AlgorithmHandler:
                                                                       **lookup_poly_characteristics(
                                                                           poly_type='search_area'))
         best_poly = None
+        most_recent_nearby_search_patch = None
         most_recent_scan_patch = None
         intersecting_patches = []
         poly_finalist_patches = []
 
         for poly, poly_type, num_iterations in self.rtree_analyzer.find_best_poly_around_point(
-                scan_poly=t_scan_poly,
+                scan_poly=scan_poly,
                 search_area_poly=search_area_poly,
-                search_steps=search_steps):
+                search_steps=search_steps,
+                nearby_poly_search_width=nearby_poly_search_width,
+                nearby_poly_search_height=nearby_poly_search_height):
 
-            poly_data = lookup_poly_characteristics(poly_type='best_poly')
+            poly_data = lookup_poly_characteristics(poly_type=poly_type)
 
             if not should_show_algo(poly_data=poly_data,
                                     poly_type=poly_type,
@@ -217,15 +232,19 @@ class AlgorithmHandler:
                                     city_name=city_name):
                 self.algo_map_creator.disable()
 
-            if poly_type in ('scan_poly', 'best_poly'):
+            if poly_type in ('scan_poly', 'best_poly', 'nearby_search_poly'):
                 if most_recent_scan_patch:
                     self.algo_map_creator.remove_patch_from_map(most_recent_scan_patch)
+                if most_recent_nearby_search_patch:
+                    self.algo_map_creator.remove_patch_from_map(most_recent_nearby_search_patch)
                 for i_patch in intersecting_patches:
                     self.algo_map_creator.remove_patch_from_map(i_patch)
 
             if poly_type == 'best_poly':
                 for poly_finalist_patch in poly_finalist_patches:
                     self.algo_map_creator.remove_patch_from_map(patch=poly_finalist_patch)
+                if most_recent_nearby_search_patch:
+                    self.algo_map_creator.remove_patch_from_map(most_recent_nearby_search_patch)
                 best_poly = poly
                 logging.info("Found best polygon.")
                 """
@@ -242,6 +261,8 @@ class AlgorithmHandler:
             # Load patch into appropriate scan history
             if poly_type == 'scan_poly':
                 most_recent_scan_patch = patch
+            if poly_type == 'nearby_search_poly':
+                most_recent_nearby_search_patch = patch
             elif poly_type == 'intersecting':
                 intersecting_patches.append(patch)
             elif poly_type == 'poly_finalist':
@@ -253,7 +274,7 @@ class AlgorithmHandler:
         poly_data = lookup_poly_characteristics(poly_type='best_poly')
         self.algo_map_creator.add_poly_to_map(poly=best_poly,
                                               **poly_data)
-        self.rtree_analyzer.add_poly(t_poly=best_poly,
+        self.rtree_analyzer.add_poly(poly=best_poly,
                                      poly_class='text')
         self.algo_map_creator.remove_patch_from_map(patch=search_area_patch)
 
