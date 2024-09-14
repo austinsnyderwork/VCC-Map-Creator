@@ -55,6 +55,7 @@ class RtreeAnalyzer:
             distance_to_coord = scan_poly.distance(near_poly)
             weighted_distance = distance_to_coord ** 3
             weighted_distances.append(weighted_distance)
+        logging.info(f"Weighted distances: {weighted_distances}")
         # Higher score means more suitable (farther away from other elements)
         weighted_score = sum(weighted_distances) / len(weighted_distances)
 
@@ -108,15 +109,16 @@ class RtreeAnalyzer:
         best_poly = weighted_distances_by_poly[highest_score][0]
         yield best_poly, 'best_poly', iterations
 
-    def _get_intersecting_polys(self, scan_poly: TypedPolygon) -> list[TypedPolygon]:
+    def _get_intersecting_polys(self, scan_poly: TypedPolygon, ignore_polys: list[TypedPolygon]) -> list[TypedPolygon]:
         intersection_indices = list(self.rtree_idx.intersection(scan_poly.bounds))
         intersecting_polygons = [self.polygons[idx] for idx in intersection_indices]
-        intersecting_polygons = [t_poly for t_poly in intersecting_polygons if scan_poly.intersects(t_poly.poly)]
+        intersecting_polygons = [t_poly for t_poly in intersecting_polygons if scan_poly.intersects(t_poly.poly) and
+                                 t_poly not in ignore_polys]
         return intersecting_polygons
 
     def find_best_poly_around_point(self, scan_poly: TypedPolygon, search_area_poly,
                                     search_steps: int, nearby_poly_search_width: int,
-                                    nearby_poly_search_height: int) -> (TypedPolygon, str, int):
+                                    nearby_poly_search_height: int, point_poly: Polygon) -> (TypedPolygon, str, int):
         """
         Create the equally-spaced steps between the start and end of both the width and height of the search area. We
         obviously can't allow the right border of the scan poly to go past the right border of the search area, so
@@ -162,7 +164,8 @@ class RtreeAnalyzer:
                 scan_poly = TypedPolygon(poly=scan_poly,
                                          poly_type='text')
 
-                intersecting_polys = self._get_intersecting_polys(scan_poly=scan_poly)
+                intersecting_polys = self._get_intersecting_polys(scan_poly=scan_poly,
+                                                                  ignore_polys=[point_poly])
                 """bad_polys = [poly for poly in intersecting_polys if poly.poly_type in ('text', 'scatter')]
                 if len(bad_polys) > 0:
                     continue"""

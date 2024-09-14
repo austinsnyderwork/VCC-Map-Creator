@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 
 import origin_grouping
-from . import visualization_element
+from interfacing import visualization_element
 from utils.helper_functions import get_config_value
 
 logging.basicConfig(level=logging.INFO)
@@ -181,14 +181,15 @@ class VisualizationMapCreator:
         }
         return text_box, text_box_dimensions
 
-    def plot_text_boxes(self, text_box_elements: list[visualization_element.VisualizationElement],
+    def plot_text_boxes(self, city_elements: list[visualization_element.VisualizationElement],
                         zorder: int):
         fontsize = get_config_value(config, 'viz_display.city_font_size', int)
         font_color = get_config_value(config, 'viz_display.city_font_color', str)
         font_weight = get_config_value(config, 'viz_display.city_font_weight', str)
         font = get_config_value(config, 'viz_display.city_font', str)
-        for text_box_ele in text_box_elements:
-            city_text_box = self._plot_text(city_name=text_box_ele.city_name,
+        for city_ele in city_elements:
+            text_box_ele = city_ele.text_box_element
+            city_text_box = self._plot_text(city_name=city_ele.city_name,
                                             text_box_lon=text_box_ele.best_poly.centroid.x,
                                             text_box_lat=text_box_ele.best_poly.centroid.y,
                                             zorder=zorder,
@@ -196,10 +197,10 @@ class VisualizationMapCreator:
                                             color=font_color,
                                             fontweight=font_weight,
                                             font=font)
+            text_box_ele.add_value(element='text_box',
+                                   value=city_text_box)
 
-    def plot_sample_text_boxes(self, city_elements: list[visualization_element.VisualizationElement]) -> (
-            list)[visualization_element.VisualizationElement]:
-        text_box_eles = []
+    def plot_sample_text_boxes(self, city_elements: list[visualization_element.VisualizationElement]):
         for city_ele in city_elements:
             logging.info(f"Determining text box dimensions for {city_ele.city_name}.")
             # Have to input the text into the map to see its dimensions on our view
@@ -214,12 +215,10 @@ class VisualizationMapCreator:
                 config['viz_display'][
                     'city_font_weight'])
             logging.info(f"\tDetermined text box dimensions for {city_ele.city_name}.")
-            text_box_ele = visualization_element.VisualizationElement(element_type='text_box',
-                                                                      city_name=city_ele.city_name,
-                                                                      city_coord=city_ele.coord,
-                                                                      dimensions=text_box_dimensions)
-            text_box_eles.append(text_box_ele)
-        return text_box_eles
+            text_ele = visualization_element.VisualizationElement(element_type='text_box',
+                                                                  dimensions=text_box_dimensions)
+            city_ele.add_value(element='text_box_element',
+                               value=text_ele)
 
     def show_map(self, show_pause):
         plt.show(block=False)

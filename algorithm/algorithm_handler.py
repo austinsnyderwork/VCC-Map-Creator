@@ -2,11 +2,11 @@ import configparser
 import logging
 from shapely.geometry import Polygon
 
+from interfacing import VisualizationElement
 from utils.helper_functions import get_config_value
 from . import algorithm_map_creator, helper_functions, rtree_analysis
 import poly_creation
 from .poly_management import PolyGroup, TypedPolygon, PolyGroupsManager
-import visualization
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -115,7 +115,7 @@ class AlgorithmHandler:
         self.algo_map_creator = algorithm_map_creator.AlgorithmMapCreator(show_display=show_algo_display)
         self.rtree_analyzer = rtree_analysis.RtreeAnalyzer()
 
-    def plot_lines(self, line_eles: list[visualization.VisualizationElement]):
+    def plot_lines(self, line_eles: list[VisualizationElement]):
         line_color = str(config['algo_display']['line_color'])
         show_line = False if config['algo_display']['show_line'] == 'False' else True
         line_transparency = float(config['algo_display']['line_transparency'])
@@ -139,7 +139,7 @@ class AlgorithmHandler:
                                                   immediately_remove=immediately_remove_line)
         return t_polys
 
-    def plot_points(self, scatter_eles: list[visualization.VisualizationElement]):
+    def plot_points(self, scatter_eles: list[VisualizationElement]):
         scatter_size = float(config['dimensions']['scatter_size'])
         units_radius_per_1_scatter_size = float(config['dimensions']['units_radius_per_1_scatter_size'])
 
@@ -156,6 +156,7 @@ class AlgorithmHandler:
             t_poly = TypedPolygon(poly=poly,
                                   poly_type='scatter')
             t_polys.append(t_poly)
+            scatter_ele.add_value('city_poly', value=t_poly)
             self.rtree_analyzer.add_poly(poly_class='scatter',
                                          poly=t_poly)
             self.algo_map_creator.add_poly_to_map(poly=t_poly,
@@ -180,7 +181,7 @@ class AlgorithmHandler:
                                                            width_adjustment=poly_width_percent_adjust)
         return scan_poly
 
-    def find_best_poly_around_point(self, scan_poly_dimensions: dict, center_coord, city_name: str):
+    def find_best_poly_around_point(self, scan_poly_dimensions: dict, center_coord, city_name: str, city_poly: Polygon):
         max_text_distance_to_city = get_config_value(config, 'algorithm.maximum_distance_to_city', int)
         search_steps = get_config_value(config, 'algorithm.search_steps', int)
         show_pause = get_config_value(config, 'algo_display.show_pause', float)
@@ -222,7 +223,8 @@ class AlgorithmHandler:
                 search_area_poly=search_area_poly,
                 search_steps=search_steps,
                 nearby_poly_search_width=nearby_poly_search_width,
-                nearby_poly_search_height=nearby_poly_search_height):
+                nearby_poly_search_height=nearby_poly_search_height,
+                point_poly=city_poly):
 
             poly_data = lookup_poly_characteristics(poly_type=poly_type)
 

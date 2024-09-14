@@ -4,6 +4,7 @@ import matplotlib
 from mpl_toolkits.basemap import Basemap
 
 from . import helper_functions
+from .visualization_element import VisualizationElement
 import algorithm
 import input_output
 import origin_grouping
@@ -67,16 +68,17 @@ class Interface:
 
         self.data_imported = True
 
-    def find_best_poly_around_cities(self, text_box_elements: list[visualization.VisualizationElement]) -> (
-            list[visualization.VisualizationElement]):
-        for text_box_ele in text_box_elements:
-            logging.info(f"Finding best poly for {text_box_ele.city_name}.")
+    def find_best_poly_around_cities(self, city_elements: list[VisualizationElement]):
+        for city_ele in city_elements:
+            text_box_ele = city_ele.text_box_element
+            logging.info(f"Finding best poly for {city_ele.city_name}.")
             best_poly = self.algo_handler.find_best_poly_around_point(
                 scan_poly_dimensions=text_box_ele.dimensions,
-                center_coord=text_box_ele.city_coord,
-                city_name=text_box_ele.city_name
+                center_coord=city_ele.coord,
+                city_name=city_ele.city_name,
+                city_poly=city_ele.city_poly
             )
-            logging.info(f"Found best poly for {text_box_ele.city_name}.")
+            logging.info(f"Found best poly for {city_ele.city_name}.")
             text_box_ele.add_value(element='best_poly',
                                    value=best_poly)
 
@@ -84,7 +86,7 @@ class Interface:
         if not self.data_imported:
             raise ValueError(f"Have to import data first before calling {__name__}.")
         line_width = int(config['dimensions']['line_width'])
-        line_vis_elements: list[visualization.VisualizationElement] = self.vis_map_creator.plot_lines(
+        line_vis_elements: list[VisualizationElement] = self.vis_map_creator.plot_lines(
             origin_groups=self.origin_groups_handler_.origin_groups,
             line_width=line_width,
             zorder=1)
@@ -95,8 +97,8 @@ class Interface:
                                                              dual_origin_outpatient=self.origin_groups_handler_.dual_origin_outpatient,
                                                              zorder=3)
         self.algo_handler.plot_points(city_vis_elements)
-        text_box_elements = self.vis_map_creator.plot_sample_text_boxes(city_elements=city_vis_elements)
-        self.find_best_poly_around_cities(text_box_elements=text_box_elements)
-        self.vis_map_creator.plot_text_boxes(text_box_elements=text_box_elements, zorder=2)
+        self.vis_map_creator.plot_sample_text_boxes(city_elements=city_vis_elements)
+        self.find_best_poly_around_cities(city_elements=city_vis_elements)
+        self.vis_map_creator.plot_text_boxes(city_elements=city_vis_elements, zorder=2)
         show_pause = 360
         self.vis_map_creator.show_map(show_pause=show_pause)
