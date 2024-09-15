@@ -10,7 +10,8 @@ class TypedPolygon:
             raise ValueError(f"Poly type '{poly_type}' not one of acceptable values {a_poly_types}")
         self.poly_type = poly_type
 
-        self.poly_details = kwargs
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
     @property
     def bounds(self):

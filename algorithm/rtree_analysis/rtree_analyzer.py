@@ -5,7 +5,7 @@ from shapely.geometry import Point, Polygon
 
 from algorithm.poly_management import PolyGroup, TypedPolygon, PolyGroupsManager
 import poly_creation
-from .. import poly_management
+from .. import poly_management, poly_result
 
 
 class RtreeAnalyzer:
@@ -45,21 +45,15 @@ class RtreeAnalyzer:
         poly_class = self.poly_classes[self._generate_poly_key(poly=poly)]
         return poly_class
 
-    def _calculate_weighted_distance_to_polys(self, scan_poly: Polygon, nearest_polys: list, city_point: Point):
+    def _calculate_weighted_distance_to_polys(self, scan_poly: TypedPolygon, nearest_polys: list):
         weighted_distances = []
         for near_poly in nearest_polys:
-            poly_coord = (scan_poly.centroid.x, scan_poly.centroid.y)
-            # Skip the city coordinate point
-            if Point(poly_coord) == city_point:
-                continue
             distance_to_coord = scan_poly.distance(near_poly)
             weighted_distance = distance_to_coord ** 3
             weighted_distances.append(weighted_distance)
         logging.info(f"Weighted distances: {weighted_distances}")
         # Higher score means more suitable (farther away from other elements)
         weighted_score = sum(weighted_distances) / len(weighted_distances)
-
-        logging.info(f"Weighted score: {weighted_score}")
         return weighted_score
 
     def _determine_best_poly(self, poly_groups_manager: PolyGroupsManager, city_coord: tuple,
@@ -72,31 +66,41 @@ class RtreeAnalyzer:
         logging.info("Calculating weighted distances for poly finalists.")
         iterations = 0
         weighted_distances_by_poly = {}
+        best_score = 0
         for poly_group in least_intersecting_poly_groups:
             center_coord = poly_group.poly.centroid.x, poly_group.poly.centroid.y
-            nearby_search_poly = poly_creation.create_poly(poly_type='rectangle',
-                                                           poly_width=nearby_poly_search_width,
-                                                           poly_height=nearby_poly_search_height,
-                                                           center_coord=(
-                                                           poly_group.poly.centroid.x, poly_group.poly.centroid.y))
-            yield poly_group.poly, 'poly_finalist', iterations
-            yield nearby_search_poly, 'nearby_search', iterations
             nearby_search_poly = poly_creation.create_poly(poly_type='rectangle',
                                                            center_coord=center_coord,
                                                            poly_width=nearby_poly_search_width,
                                                            poly_height=nearby_poly_search_height)
             nearby_search_poly_bounds = nearby_search_poly.bounds
             nearby_poly_idxs = list(self.rtree_idx.intersection(nearby_search_poly_bounds))
-            nearest_polys = [self.polygons[idx] for idx in nearby_poly_idxs
-                             if (self.polygons[idx].centroid.x, self.polygons[idx].centroid.y) not in city_coord]
+            nearest_polys = []
+            for idx in nearby_poly_idxs:
+                if (self.polygons[idx].centroid.x, self.polygons[idx].centroid.y) in city_coord:
+                    continue
+                nearest_polys.append(self.polygons[idx])
             # Higher score is better
             distance_score = self._calculate_weighted_distance_to_polys(scan_poly=poly_group.poly,
-                                                                        nearest_polys=nearest_polys,
-                                                                        city_point=Point(city_coord))
+                                                                        nearest_polys=nearest_polys)
             city_distance = Point(center_coord).distance(Point(city_coord))
             # Again, higher score is better
             city_score = 1 / city_distance
             score = distance_score * city_score
+            logging.info(f"Total score for finalist: {score / 1000000}")
+            new_max_score = score > best_score
+            finalist_result = poly_result.PolyResult(poly=poly_group.poly,
+                                                     poly_type='poly_finalist',
+                                                     num_iterations=iterations,
+                                                     new_max_score=new_max_score)
+            nearby_search_result = poly_result.PolyResult(poly=nearby_search_poly,
+                                                          poly_type='nearby_search',
+                                                          num_iterations=iterations,
+                                                          new_max_score=new_max_score)
+            yield finalist_result
+            yield nearby_search_result
+            if new_max_score:
+                best_score = score
             if distance_score not in weighted_distances_by_poly:
                 weighted_distances_by_poly[score] = []
 
@@ -107,7 +111,10 @@ class RtreeAnalyzer:
         highest_score = max(list(weighted_distances_by_poly.keys()))
         logging.info(f"Highest weight: {highest_score}")
         best_poly = weighted_distances_by_poly[highest_score][0]
-        yield best_poly, 'best_poly', iterations
+        result = poly_result.PolyResult(poly=best_poly,
+                                        poly_type='best_poly',
+                                        num_iterations=iterations)
+        yield result
 
     def _get_intersecting_polys(self, scan_poly: TypedPolygon, ignore_polys: list[TypedPolygon]) -> list[TypedPolygon]:
         intersection_indices = list(self.rtree_idx.intersection(scan_poly.bounds))
@@ -118,7 +125,7 @@ class RtreeAnalyzer:
 
     def find_best_poly_around_point(self, scan_poly: TypedPolygon, search_area_poly,
                                     search_steps: int, nearby_poly_search_width: int,
-                                    nearby_poly_search_height: int, point_poly: Polygon) -> (TypedPolygon, str, int):
+                                    nearby_poly_search_height: int, point_poly: Polygon) -> poly_result.PolyResult:
         """
         Create the equally-spaced steps between the start and end of both the width and height of the search area. We
         obviously can't allow the right border of the scan poly to go past the right border of the search area, so
@@ -166,11 +173,10 @@ class RtreeAnalyzer:
 
                 intersecting_polys = self._get_intersecting_polys(scan_poly=scan_poly,
                                                                   ignore_polys=[point_poly])
-                """bad_polys = [poly for poly in intersecting_polys if poly.poly_type in ('text', 'scatter')]
-                if len(bad_polys) > 0:
-                    continue"""
-
-                yield scan_poly, 'scan_poly', num_iterations
+                result = poly_result.PolyResult(poly=scan_poly,
+                                                poly_type='scan_poly',
+                                                num_iterations=num_iterations)
+                yield result
                 poly_group = PolyGroup(poly=scan_poly,
                                        intersecting_polys=intersecting_polys)
                 poly_groups_manager.add_poly_group(poly_group)
@@ -181,7 +187,10 @@ class RtreeAnalyzer:
 
                 poly_groups_dict[num_intersections].append(poly_group)
                 for poly in intersecting_polys:
-                    yield poly, 'intersecting', num_iterations
+                    result = poly_result.PolyResult(poly=poly,
+                                                    poly_type='intersecting',
+                                                    num_iterations=num_iterations)
+                    yield result
 
                 num_iterations += 1
 
@@ -189,11 +198,11 @@ class RtreeAnalyzer:
 
         logging.info("Determining best poly.")
         determine_iterations = 0
-        for poly, poly_type, num_iterations in self._determine_best_poly(
+        for result in self._determine_best_poly(
                 poly_groups_manager=poly_groups_manager,
                 city_coord=(search_area_poly.centroid.x, search_area_poly.centroid.y),
                 nearby_poly_search_width=nearby_poly_search_width,
                 nearby_poly_search_height=nearby_poly_search_height):
-            yield poly, poly_type, determine_iterations
+            yield result
             determine_iterations += 1
         logging.info("\tBest poly determined.")
