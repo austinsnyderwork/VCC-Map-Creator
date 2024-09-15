@@ -74,7 +74,7 @@ def lookup_poly_characteristics(poly_type: str):
             'should_plot': False,
             'center_view': get_config_value(config, 'algo_display.center_view_on_poly_finalist', bool)
         },
-        'nearby_search_poly': {
+        'nearby_search': {
             'color': get_config_value(config, 'algo_display.nearby_search_poly_color', str),
             'transparency': get_config_value(config, 'algo_display.nearby_search_poly_transparency', float),
             'show_algo': get_config_value(config, 'algo_display.show_nearby_search_poly', bool),
@@ -93,13 +93,13 @@ def should_show_algo(poly_data, poly_type, city_name, num_iterations=None) -> bo
     steps_to_show_scan_poly = get_config_value(config, 'algo_display.steps_to_show_scan_poly', int)
     steps_to_show_poly_finalist = get_config_value(config, 'algo_display.steps_to_show_poly_finalist', int)
 
-    if not display_algo or display_algo_city not in (city_name, 'N/A', '') or not poly_data['show_algo']:
+    if not display_algo or display_algo_city not in (city_name, 'N/A') or not poly_data['show_algo']:
         return False
 
     if poly_type in ('scan_poly', 'intersecting') and num_iterations % steps_to_show_scan_poly != 0:
         return False
 
-    if poly_type == 'poly_finalist' and num_iterations % steps_to_show_poly_finalist != 0:
+    if poly_type in ('poly_finalist', 'nearby_search_poly') and num_iterations % steps_to_show_poly_finalist != 0:
         return False
 
     if display_algo_city not in (city_name, 'N/A'):
@@ -116,10 +116,10 @@ class AlgorithmHandler:
         self.rtree_analyzer = rtree_analysis.RtreeAnalyzer()
 
     def plot_lines(self, line_eles: list[VisualizationElement]):
-        line_color = str(config['algo_display']['line_color'])
-        show_line = False if config['algo_display']['show_line'] == 'False' else True
-        line_transparency = float(config['algo_display']['line_transparency'])
-        immediately_remove_line = False if config['algo_display']['immediately_remove_line'] == 'False' else True
+        line_color = get_config_value(config, 'algo_display.line_color', str)
+        show_line = get_config_value(config, 'algo_display.show_line', bool)
+        line_transparency = get_config_value(config, 'algo_display.line_transparency', float)
+        immediately_remove_line = get_config_value(config, 'algo_display.immediately_remove_line', bool)
 
         t_polys = []
         for line_ele in line_eles:
@@ -140,13 +140,13 @@ class AlgorithmHandler:
         return t_polys
 
     def plot_points(self, scatter_eles: list[VisualizationElement]):
-        scatter_size = float(config['dimensions']['scatter_size'])
-        units_radius_per_1_scatter_size = float(config['dimensions']['units_radius_per_1_scatter_size'])
+        scatter_size = get_config_value(config, 'dimensions.scatter_size', float)
+        units_radius_per_1_scatter_size = get_config_value(config, 'dimensions.units_radius_per_1_scatter_size', float)
 
-        scatter_color = config['algo_display']['scatter_color']
-        show_scatter = False if config['algo_display']['show_scatter'] == 'False' else True
-        scatter_transparency = float(config['algo_display']['scatter_transparency'])
-        immediately_remove_scatter = False if config['algo_display']['immediately_remove_scatter'] == 'False' else True
+        scatter_color = get_config_value(config, 'algo_display.scatter_color', str)
+        show_scatter = get_config_value(config, 'algo_display.show_scatter', bool)
+        scatter_transparency = get_config_value(config, 'algo_display.scatter_transparency', float)
+        immediately_remove_scatter = get_config_value(config, 'algo_display.immediately_remove_scatter', bool)
         t_polys = []
         for scatter_ele in scatter_eles:
             units_radius = scatter_size * units_radius_per_1_scatter_size
@@ -212,11 +212,20 @@ class AlgorithmHandler:
                                                                       show_pause=show_pause,
                                                                       **lookup_poly_characteristics(
                                                                           poly_type='search_area'))
-        best_poly = None
-        most_recent_nearby_search_patch = None
-        most_recent_scan_patch = None
-        intersecting_patches = []
-        poly_finalist_patches = []
+        poly_patches = {
+            'best_poly': None,
+            'nearby_search': None,
+            'scan': None,
+            'finalist': None,
+            'intersecting': []
+        }
+
+        remove_polys_by_type = {
+            'scan': ['scan', 'intersecting'],
+            'finalist': ['scan', 'intersecting'],
+            'nearby_search': ['finalist', 'nearby_search'],
+            'best_poly': ['scan', 'intersecting', 'finalist', 'nearby_search']
+        }
 
         for poly, poly_type, num_iterations in self.rtree_analyzer.find_best_poly_around_point(
                 scan_poly=scan_poly,
@@ -234,19 +243,23 @@ class AlgorithmHandler:
                                     city_name=city_name):
                 self.algo_map_creator.disable()
 
-            if poly_type in ('scan_poly', 'best_poly', 'nearby_search_poly'):
-                if most_recent_scan_patch:
-                    self.algo_map_creator.remove_patch_from_map(most_recent_scan_patch)
-                if most_recent_nearby_search_patch:
-                    self.algo_map_creator.remove_patch_from_map(most_recent_nearby_search_patch)
-                for i_patch in intersecting_patches:
-                    self.algo_map_creator.remove_patch_from_map(i_patch)
+            if poly_type in remove_polys_by_type:
+                polys_to_remove = remove_polys_by_type[poly_type]
+                for remove_poly_type in polys_to_remove:
+                    if remove_poly_type == 'intersecting':
+                        if len(poly_patches['intersecting']) > 0:
+                            for idx in reversed(range(len(poly_patches['intersecting']))):
+                                i_patch = poly_patches['intersecting'][idx - 1]
+                                self.algo_map_creator.remove_patch_from_map(i_patch)
+                                poly_patches['intersecting'].pop(idx - 1)
+                    elif poly_patches[remove_poly_type]:
+                        self.algo_map_creator.remove_patch_from_map(poly_patches[remove_poly_type])
+                        poly_patches[remove_poly_type] = None
 
             if poly_type == 'best_poly':
-                for poly_finalist_patch in poly_finalist_patches:
-                    self.algo_map_creator.remove_patch_from_map(patch=poly_finalist_patch)
-                if most_recent_nearby_search_patch:
-                    self.algo_map_creator.remove_patch_from_map(most_recent_nearby_search_patch)
+                if poly_patches['nearby_search']:
+                    self.algo_map_creator.remove_patch_from_map(poly_patches['nearby_search'])
+                    poly_patches['nearby_search'] = None
                 best_poly = poly
                 logging.info("Found best polygon.")
                 """
@@ -261,14 +274,15 @@ class AlgorithmHandler:
                                                           **poly_data)
 
             # Load patch into appropriate scan history
-            if poly_type == 'scan_poly':
-                most_recent_scan_patch = patch
-            if poly_type == 'nearby_search_poly':
-                most_recent_nearby_search_patch = patch
-            elif poly_type == 'intersecting':
-                intersecting_patches.append(patch)
-            elif poly_type == 'poly_finalist':
-                poly_finalist_patches.append(patch)
+            if patch:
+                if poly_type == 'scan_poly':
+                    poly_patches['scan'] = patch
+                if poly_type == 'nearby_search':
+                    poly_patches['nearby_search'] = patch
+                elif poly_type == 'intersecting':
+                    poly_patches['intersecting'].append(patch)
+                elif poly_type == 'poly_finalist':
+                    poly_patches['finalist'] = patch
 
             self.algo_map_creator.enable()
 
@@ -278,7 +292,8 @@ class AlgorithmHandler:
                                               **poly_data)
         self.rtree_analyzer.add_poly(poly=best_poly,
                                      poly_class='text')
-        self.algo_map_creator.remove_patch_from_map(patch=search_area_patch)
+        if search_area_patch:
+            self.algo_map_creator.remove_patch_from_map(patch=search_area_patch)
 
         self.algo_map_creator.enable()
 

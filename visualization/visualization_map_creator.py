@@ -128,8 +128,7 @@ class VisualizationMapCreator:
 
         return line
 
-    def plot_lines(self, origin_groups: dict, line_width: int, zorder: int) -> list[
-        visualization_element.VisualizationElement]:
+    def plot_lines(self, origin_groups: dict, line_width: int, zorder: int) -> list[visualization_element.VisualizationElement]:
         line_eles = []
         for i, (origin, origin_group_) in enumerate(origin_groups.items()):
             for outpatient in origin_group_.outpatients:

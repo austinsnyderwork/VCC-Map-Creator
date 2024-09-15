@@ -86,9 +86,4 @@ class AlgorithmMapCreator:
 
     @staticmethod
     def remove_patch_from_map(patch):
-        if not patch:
-            return
-        try:
-            patch.remove()
-        except ValueError:
-            return
+        patch.remove()

@@ -79,8 +79,8 @@ class RtreeAnalyzer:
                                                            poly_height=nearby_poly_search_height,
                                                            center_coord=(
                                                            poly_group.poly.centroid.x, poly_group.poly.centroid.y))
-            yield nearby_search_poly, 'nearby_search_poly', iterations
             yield poly_group.poly, 'poly_finalist', iterations
+            yield nearby_search_poly, 'nearby_search', iterations
             nearby_search_poly = poly_creation.create_poly(poly_type='rectangle',
                                                            center_coord=center_coord,
                                                            poly_width=nearby_poly_search_width,
