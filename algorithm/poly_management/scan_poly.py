@@ -13,6 +13,13 @@ class ScanPoly(TypedPolygon):
         self.nearby_polys = []
         self.score = -1
 
+    def types_present_in_polys(self, poly_types: list[str]):
+        for poly in self.intersecting_polys:
+            if poly.poly_type in poly_types:
+                return True
+
+        return False
+
     @property
     def bounds(self):
         return self.poly.bounds
@@ -24,4 +31,10 @@ class ScanPoly(TypedPolygon):
     @property
     def exterior(self):
         return self.poly.exterior
+
+    def distance(self, other):
+        while not isinstance(other, Polygon):
+            other = other.poly
+        return self.poly.distance(other)
+
 

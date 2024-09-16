@@ -9,6 +9,7 @@ class TypedPolygon:
         acceptable_poly_types = ['line', 'scatter', 'scan', 'scan_area', 'nearby_search']
         if poly_type not in acceptable_poly_types:
             raise ValueError(f"Poly type '{poly_type}' not one of acceptable values {acceptable_poly_types}.")
+        self.poly_type = poly_type
 
         accepted_poly_classes = ('text', 'scatter', 'line', 'algorithm_misc')
         if poly_class not in accepted_poly_classes:

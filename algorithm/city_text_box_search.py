@@ -1,4 +1,5 @@
 import configparser
+import logging
 
 from utils import get_config_value
 import poly_creation
@@ -99,7 +100,10 @@ class CityTextBoxSearch:
             intersecting_polys = spatial_analysis.get_intersecting_polys(rtree_idx=rtree_idx,
                                                                          polygons=polygons,
                                                                          scan_poly=scan_poly_obj,
-                                                                         ignore_polys=[self.city_poly])
+                                                                         omitting_poly_attributes={
+                                                                             'city_name': self.city_name
+                                                                         })
+            print(f"Found {len(intersecting_polys)} intersecting polys.")
             scan_poly_obj.intersecting_polys = intersecting_polys
             scan_result = poly_result.PolyResult(poly=scan_poly_obj,
                                                  poly_type='scan',
@@ -108,6 +112,7 @@ class CityTextBoxSearch:
             non_starter_polys = [poly for poly in intersecting_polys if
                                  poly.poly_class in unacceptable_scan_overlap_classes]
             if len(non_starter_polys) > 0:
+                print(f"\tThis scan is a non-starter.")
                 continue
 
             yield scan_result
@@ -122,7 +127,7 @@ class CityTextBoxSearch:
 
             num_iterations += 1
 
-    def _determine_nearest_polys(self, scan_polys: list[TypedPolygon], rtree_idx, polygons):
+    def _determine_nearby_polys(self, scan_polys: list[TypedPolygon], rtree_idx, polygons):
         nearby_poly_search_width = get_config_value(config, 'algorithm.nearby_poly_search_width', int)
         nearby_poly_search_height = get_config_value(config, 'algorithm.nearby_poly_search_height', int)
 
@@ -141,8 +146,10 @@ class CityTextBoxSearch:
             nearby_polys = spatial_analysis.get_intersecting_polys(rtree_idx=rtree_idx,
                                                                    polygons=polygons,
                                                                    scan_poly=nearby_search_poly,
-                                                                   ignore_polys=[self.city_poly])
-            scan_poly.nearest_polys = nearby_polys
+                                                                   omitting_poly_attributes={
+                                                                       'city_name': self.city_name
+                                                                   })
+            scan_poly.nearby_polys = nearby_polys
 
             num_iterations += 1
 
@@ -167,17 +174,18 @@ class CityTextBoxSearch:
 
         finalist_scan_polys = self.scan_polys_manager.get_least_intersections_poly_groups(
             poly_types_to_omit=['scatter', 'text'])
+        logging.info(f"Beginning scan of {len(finalist_scan_polys)} finalist polygons")
 
         # Fills ScanPoly objects .nearest_poly parameter
-        self._determine_nearest_polys(scan_polys=finalist_scan_polys,
-                                      rtree_idx=rtree_idx,
-                                      polygons=polygons)
+        self._determine_nearby_polys(scan_polys=finalist_scan_polys,
+                                     rtree_idx=rtree_idx,
+                                     polygons=polygons)
 
         for result in scoring.score_scan_polys(city_poly=self.city_poly,
                                                scan_polys=finalist_scan_polys):
             yield result
 
         best_scan_poly = self._determine_best_poly_finalist(finalist_scan_polys)
-        yield poly_result.PolyResult(poly=best_scan_poly.poly,
+        yield poly_result.PolyResult(poly=best_scan_poly,
                                      poly_type='best',
                                      num_iterations=-1)

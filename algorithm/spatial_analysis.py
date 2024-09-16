@@ -12,11 +12,20 @@ def get_distance_between_elements(item1, item2):
     return distance
 
 
-def get_intersecting_polys(rtree_idx, polygons, scan_poly: TypedPolygon, ignore_polys: list[TypedPolygon]) -> list:
+def get_intersecting_polys(rtree_idx, polygons, scan_poly: TypedPolygon, omitting_poly_attributes: dict) -> list:
     intersection_indices = list(rtree_idx.intersection(scan_poly.bounds))
     intersecting_polygons = [polygons[idx] for idx in intersection_indices]
-    intersecting_polygons = [poly for poly in intersecting_polygons if scan_poly.intersects(poly) and
-                             poly not in ignore_polys]
+    filtered_polys = []
+    for poly in intersecting_polygons:
+        should_omit = False
+        for omit_key, omit_value in omitting_poly_attributes.items():
+            if hasattr(poly, omit_key):
+                if getattr(poly, omit_key) == omit_value:
+                    should_omit = True
+        if should_omit:
+            continue
+        filtered_polys.append(poly)
+    intersecting_polygons = [poly for poly in filtered_polys if scan_poly.intersects(poly)]
     return intersecting_polygons
 
 

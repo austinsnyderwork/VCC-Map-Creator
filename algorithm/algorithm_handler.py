@@ -8,30 +8,10 @@ from utils.helper_functions import get_config_value
 from .city_text_box_search import CityTextBoxSearch
 from .algo_utils import helper_functions
 import poly_creation
-from .poly_management import TypedPolygon
+from .poly_management import TypedPolygon, ScanPoly
 
 config = configparser.ConfigParser()
 config.read('config.ini')
-
-
-def verify_poly_validity(poly, name):
-    if not poly.is_valid:
-        raise ValueError(f"{name} poly was invalid on creation.")
-
-
-def reduce_poly_width(poly, width_adjustment: float):
-    x_min, y_min, x_max, y_max = poly.bounds
-    poly_width = x_max - x_min
-    width_adjust_percent = width_adjustment / 100.0
-    width_change = poly_width * width_adjust_percent
-    x_min = x_min + (width_change / 2)
-    x_max = x_max - (width_change / 2)
-    poly = poly_creation.create_poly(poly_type='rectangle',
-                                     x_min=x_min,
-                                     y_min=y_min,
-                                     x_max=x_max,
-                                     y_max=y_max)
-    return poly
 
 
 def lookup_poly_characteristics(poly_type: str):
@@ -174,33 +154,6 @@ class AlgorithmHandler:
                                                   transparency=scatter_transparency,
                                                   immediately_remove=immediately_remove_scatter)
         return t_polys
-
-    def _create_scan_poly(self, scan_poly_dimensions: dict) -> TypedPolygon:
-        poly_width_percent_adjust = get_config_value(config, 'algorithm.poly_width_percent_adjustment', float)
-        scan_poly = poly_creation.create_poly(poly_type='rectangle',
-                                              **scan_poly_dimensions)
-        if poly_width_percent_adjust != 0.0:
-            scan_poly = helper_functions.reduce_poly_width(poly=scan_poly,
-                                                           width_adjustment=poly_width_percent_adjust)
-        t_scan_poly = TypedPolygon(poly=scan_poly,
-                                   poly_class='text')
-        return t_scan_poly
-
-    def _create_search_area_poly(self, scan_poly: Polygon, max_text_distance_to_city: int):
-        x_min, y_min, x_max, y_max = scan_poly.bounds
-        y_dist = y_max - scan_poly.centroid.y
-        x_dist = x_max - scan_poly.centroid.x
-        search_height = (y_dist + max_text_distance_to_city) * 2
-        search_width = (x_dist + max_text_distance_to_city) * 2
-
-        center_coord = scan_poly.centroid.x, scan_poly.centroid.y
-        search_area_poly = poly_creation.create_poly(poly_type='rectangle',
-                                                     center_coord=center_coord,
-                                                     poly_height=search_height,
-                                                     poly_width=search_width)
-        t_search_area_poly = TypedPolygon(poly=search_area_poly,
-                                          center_coord=(scan_poly.centroid.x, scan_poly.centroid.y))
-        return t_search_area_poly
 
     def _handle_city_text_box_search(self, city_text_box_search: CityTextBoxSearch) -> TypedPolygon:
         poly_patches = {
