@@ -69,11 +69,15 @@ def lookup_poly_characteristics(poly_type: str):
     return poly_type_data[poly_type]
 
 
-def should_show_algo(poly_data, poly_type, city_name, new_max_score: bool = False, num_iterations: int = None) -> bool:
+def should_show_algo(poly_data, poly_type, city_name, new_max_score: bool = False, num_iterations: int = None,
+                     force_show: bool = False) -> bool:
     display_algo = get_config_value(config, 'algo_display.show_display', bool)
     display_algo_city = get_config_value(config, 'algo_display.show_poly_finalist_city', str)
     steps_to_show_scan_poly = get_config_value(config, 'algo_display.steps_to_show_scan_poly', int)
     steps_to_show_poly_finalist = get_config_value(config, 'algo_display.steps_to_show_poly_finalist', int)
+
+    if force_show:
+        return True
 
     if not display_algo or display_algo_city not in (city_name, 'N/A') or not poly_data['show_algo']:
         return False
@@ -171,6 +175,7 @@ class AlgorithmHandler:
         }
         show_pause = get_config_value(config, 'algo_display.show_pause', float)
         extra_pause_for_new_max_score = get_config_value(config, 'algo_display.extra_pause_for_new_max_score', int)
+        extra_pause_for_force_show = get_config_value(config, 'algo_display.extra_pause_for_force_show', int)
 
         for result in city_text_box_search.find_best_poly(rtree_idx=self.rtree_analyzer.rtree_idx,
                                                           polygons=self.rtree_analyzer.polygons):
@@ -179,7 +184,8 @@ class AlgorithmHandler:
                                                   poly_type=result.poly_type,
                                                   num_iterations=result.num_iterations,
                                                   city_name=city_text_box_search.city_name,
-                                                  new_max_score=result.new_max_score)
+                                                  new_max_score=result.new_max_score,
+                                                  force_show=result.force_show)
             if show_algo_for_poly:
                 if result.poly_type in remove_polys_by_type:
                     polys_to_remove = remove_polys_by_type[result.poly_type]
@@ -197,6 +203,8 @@ class AlgorithmHandler:
                 temp_show_pause = show_pause
                 if result.new_max_score:
                     temp_show_pause = show_pause + extra_pause_for_new_max_score
+                if result.force_show:
+                    temp_show_pause = temp_show_pause + extra_pause_for_force_show
                 patch = self.algo_map_creator.add_poly_to_map(poly=result.poly,
                                                               show_pause=temp_show_pause,
                                                               **poly_data)

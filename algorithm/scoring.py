@@ -40,21 +40,23 @@ def _get_scan_poly_nearby_distances(city_poly, scan_poly: ScanPoly):
 
 
 def _score(scan_poly_score: ScanPolyScore):
-    default_score = 1e15
-
+    # This means we're out in the middle of nowhere basically - not even close to the city which naturally has a
+    # line. So just ignore this one
     if len(scan_poly_score.poly_distances) == 0:
-        return default_score
+        return -1, False, 0, []
 
     # We want the city distance to be weighted higher than the poly distances
     city_distance_score = 2 * (1 / (scan_poly_score.norm_city_distance + 1e-5))
-    logging.info(f"City distance: {scan_poly_score.norm_city_distance} | City score: {city_distance_score}")
-    weighted_poly_distances = [1 / (d ** 1.5 + 1e-10) for d in scan_poly_score.norm_poly_distances]
+    need_to_show = scan_poly_score.city_distance == 0.0
+    if scan_poly_score.city_distance == 0.0:
+        logging.info(f"!!!This poly's city distance is 0.0.!!!")
+    weighted_poly_distances = [(d ** 1.5 + 1e-10) for d in scan_poly_score.norm_poly_distances]
     poly_distances_score = sum(weighted_poly_distances) / len(weighted_poly_distances)
     score = city_distance_score * poly_distances_score
-    logging.info(f"Score for poly finalist: City Distance ({city_distance_score}) * "
-                 f"Nearby Poly Distances({poly_distances_score}) = {score}")
+    # logging.info(f"Score for poly finalist: City Distance ({city_distance_score}) * "
+    #             f"Nearby Poly Distances({poly_distances_score}) = {score}")
     scan_poly_score.scan_poly.score = score
-    return score
+    return score, need_to_show, city_distance_score, weighted_poly_distances
 
 
 def score_scan_polys(city_poly, scan_polys: list[ScanPoly]):
@@ -96,16 +98,23 @@ def score_scan_polys(city_poly, scan_polys: list[ScanPoly]):
                                                                   new_max=1)
     max_score = -1
     for i, scan_poly_score in enumerate(scan_poly_scores):
-        new_score = _score(scan_poly_score)
-        new_max = new_score > max_score
-        max_score = new_score if new_max else max_score
+        new_score, force_show, city_score, poly_distances = _score(scan_poly_score)
+        if new_score > max_score:
+            new_max_score_achieved = True
+            max_score = new_score
+            logging.info(f"!!!New max score achieved: {new_score}!!!\n"
+                         f"\tWeighted poly distances:{poly_distances} | City score: {city_score}")
+        else:
+            new_max_score_achieved = False
         finalist_result = poly_result.PolyResult(poly=scan_poly_score.scan_poly,
                                                  poly_type='finalist',
                                                  num_iterations=i,
-                                                 new_max_score=new_max)
+                                                 new_max_score=new_max_score_achieved,
+                                                 force_show=force_show)
         yield finalist_result
         nearby_scan_result = poly_result.PolyResult(poly=scan_poly_score.scan_poly.nearby_search_poly,
                                                     poly_type='nearby_search',
                                                     num_iterations=i,
-                                                    new_max_score=new_max)
+                                                    new_max_score=new_max_score_achieved,
+                                                    force_show=force_show)
         yield nearby_scan_result
