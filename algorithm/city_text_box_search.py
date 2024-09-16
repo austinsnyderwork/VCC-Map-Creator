@@ -3,7 +3,7 @@ import configparser
 from . import poly_result
 from .helper_functions import get_config_value, reduce_poly_width
 import poly_creation
-from poly_management import ScanPolyIntersectionsManager, ScanPolyIntersections, TypedPolygon
+from poly_management import ScanPolysManager, ScanPoly, TypedPolygon
 from rtree_analysis import RtreeAnalyzer
 from shapely import Polygon
 from . import scoring, spatial_analysis_functions
@@ -43,7 +43,7 @@ class CityTextBoxSearch:
         self.city_poly = city_poly
         self.city_coord = city_poly.centroid.x, city_poly.centroid.y
 
-        self.scan_poly_intersections_manager = ScanPolyIntersectionsManager()
+        self.scan_polys_manager = ScanPolysManager()
 
     @property
     def text_width_height(self):
@@ -113,15 +113,27 @@ class CityTextBoxSearch:
                                                 num_iterations=num_iterations)
                 yield result
 
-            scan_poly_intersections = ScanPolyIntersections(scan_poly=scan_poly,
-                                                            intersecting_polys=intersecting_polys)
-            self.scan_poly_intersections_manager.add_scan_poly_intersections(scan_poly_intersections)
+            scan_poly_intersections = ScanPoly(poly=scan_poly,
+                                               intersecting_polys=intersecting_polys)
+            self.scan_polys_manager.add_scan_poly(scan_poly_intersections)
 
             num_iterations += 1
 
-    def _find_best_finalist_poly(self, scan_poly_intersections: list[ScanPolyIntersections]):
-        scorer = scoring.Scorer(scan_poly_intersections)
-        for scan_poly_intersection_obj in scan_poly_intersections:
+    def _find_best_finalist_poly(self, scan_polys: list[TypedPolygon], rtree_idx, polygons):
+        nearby_poly_search_width = get_config_value(config, 'algorithm.nearby_poly_search_width', int)
+        nearby_poly_search_height = get_config_value(config, 'algorithm.nearby_poly_search_height', int)
+        for scan_poly in scan_polys:
+            center_coord = scan_poly.poly.centroid.x, scan_poly.poly.centroid.y
+            nearby_search_poly = poly_creation.create_poly(poly_type='rectangle',
+                                                           center_coord=center_coord,
+                                                           poly_width=nearby_poly_search_width,
+                                                           poly_height=nearby_poly_search_height)
+            nearby_search_poly_bounds = nearby_search_poly.bounds
+            nearby_poly_idxs = list(rtree_idx.intersection(nearby_search_poly_bounds))
+            nearest_polys = [polygons[idx] for idx in nearby_poly_idxs]
+            scan_poly.nearest_polys = nearest_polys
+
+        for scan_poly in scan_polys:
 
 
     def find_best_poly(self, rtree_analyzer: RtreeAnalyzer):
@@ -136,8 +148,10 @@ class CityTextBoxSearch:
         for result in self._run_initial_scan(x_min_steps, y_min_steps, rtree_idx=rtree_analyzer.rtree_idx):
             yield result
 
-        finalist_scan_poly_intersections = self.scan_poly_intersections_manager.get_least_intersections_poly_groups(
+        finalist_scan_poly_intersections = self.scan_polys_manager.get_least_intersections_poly_groups(
             poly_types_to_omit=['scatter', 'text'])
+
+
 
         for result in scoring.Scorer(finalist_scan_poly_intersections)
         for result in self._find_best_finalist_poly(scan_poly_intersections=finalist_scan_poly_intersections)

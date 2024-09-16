@@ -1,19 +1,18 @@
-from shapely import Point
-from .scan_poly_and_intersections import ScanPolyAndIntersections
+from .scan_poly import ScanPoly
 
 
-class ScanPolyIntersectionsManager:
+class ScanPolysManager:
 
     def __init__(self):
         self._poly_types = {}
 
         self.scan_poly_intersections = {}
 
-    def add_scan_poly_intersections(self, scan_poly_intersections: ScanPolyAndIntersections):
-        num_intersections = len(scan_poly_intersections.intersecting_polys)
+    def add_scan_poly(self, scan_poly: ScanPoly):
+        num_intersections = len(scan_poly.intersecting_polys)
         if num_intersections not in self.scan_poly_intersections:
             self.scan_poly_intersections[num_intersections] = []
-        self.scan_poly_intersections[num_intersections].append(scan_poly_intersections)
+        self.scan_poly_intersections[num_intersections].append(scan_poly)
 
     def get_least_intersections_poly_groups(self, poly_types_to_omit: list[str]):
         met_omit_condition = False
