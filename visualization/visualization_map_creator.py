@@ -189,8 +189,8 @@ class VisualizationMapCreator:
         for city_ele in city_elements:
             text_box_ele = city_ele.text_box_element
             city_text_box = self._plot_text(city_name=city_ele.city_name,
-                                            text_box_lon=text_box_ele.best_poly.centroid.x,
-                                            text_box_lat=text_box_ele.best_poly.centroid.y,
+                                            text_box_lon=city_ele.best_poly.centroid.x,
+                                            text_box_lat=city_ele.best_poly.centroid.y,
                                             zorder=zorder,
                                             fontsize=fontsize,
                                             color=font_color,

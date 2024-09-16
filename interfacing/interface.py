@@ -83,6 +83,7 @@ class Interface:
                                                              zorder=3)
         self.algo_handler.plot_points(city_vis_elements)
         self.vis_map_creator.plot_sample_text_boxes(city_elements=city_vis_elements)
+        logging.info("Finding best polygons for city vis elements.")
         self.algo_handler.find_best_polys(city_vis_elements)
         self.vis_map_creator.plot_text_boxes(city_elements=city_vis_elements, zorder=2)
         show_pause = 360

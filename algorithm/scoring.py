@@ -27,6 +27,11 @@ def _get_scan_poly_nearby_distances(city_poly, scan_poly: ScanPoly):
 
 
 def _score(scan_poly_score: ScanPolyScore):
+    default_score = 1e15
+
+    if len(scan_poly_score.poly_distances) == 0:
+        return default_score
+
     # We want the city distance to be weighted higher than the poly distances
     city_distance_score = 2 * (1 / scan_poly_score.norm_city_distance)
     weighted_poly_distances = [1 / (d ** 1.5 + 1e-10) for d in scan_poly_score.norm_poly_distances]
@@ -40,12 +45,17 @@ def score_scan_polys(city_poly, scan_polys: list[ScanPoly]):
     for scan_poly in scan_polys:
         scan_poly_distances = _get_scan_poly_nearby_distances(city_poly=city_poly,
                                                               scan_poly=scan_poly)
-
         near_poly_distances.extend(scan_poly_distances['poly_distances'])
         scan_poly_score = ScanPolyScore(scan_poly=scan_poly,
                                         poly_distances=scan_poly_distances['poly_distances'],
                                         city_distance=scan_poly_distances['city_distance'])
         scan_poly_scores.append(scan_poly_score)
+
+    if len(near_poly_distances) == 0:
+        for scan_poly_score in scan_poly_scores:
+            city_distance = 2 * (1 / (scan_poly_score.city_distance + 1e-10))
+            scan_poly_score.scan_poly.score = city_distance
+        return
 
     near_poly_distances_mean = np.mean(near_poly_distances)
     for scan_poly_score in scan_poly_scores:

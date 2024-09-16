@@ -25,6 +25,8 @@ class ScanPolysManager:
                     met_omit_condition = True
             if met_omit_condition:
                 return poly_groups
+        if len(self.scan_poly_intersections) == 0:
+            return []
 
         return self.scan_poly_intersections[intersections[0]]
 

@@ -1,4 +1,5 @@
 import configparser
+import logging
 from shapely.geometry import Polygon
 
 from interfacing import VisualizationElement
@@ -35,7 +36,7 @@ def reduce_poly_width(poly, width_adjustment: float):
 
 def lookup_poly_characteristics(poly_type: str):
     poly_type_data = {
-        'search_area_poly': {
+        'scan_area': {
             'color': get_config_value(config, 'algo_display.search_area_poly_color', str),
             'transparency': get_config_value(config, 'algo_display.search_area_poly_transparency', float),
             'show_algo': get_config_value(config, 'algo_display.show_search_area_poly', bool),
@@ -131,7 +132,7 @@ class AlgorithmHandler:
             helper_functions.verify_poly_validity(poly=poly,
                                                   name='line poly')
             t_poly = TypedPolygon(poly=poly,
-                                  poly_type='line',
+                                  poly_class='line',
                                   origin=line_ele.origin,
                                   outpatient=line_ele.outpatient)
             t_polys.append(t_poly)
@@ -159,7 +160,7 @@ class AlgorithmHandler:
             helper_functions.verify_poly_validity(poly=poly,
                                                   name='scatter poly')
             t_poly = TypedPolygon(poly=poly,
-                                  poly_type='scatter',
+                                  poly_class='scatter',
                                   city_name=scatter_ele.city_name)
             t_polys.append(t_poly)
             scatter_ele.add_value('city_poly', value=t_poly)
@@ -180,7 +181,7 @@ class AlgorithmHandler:
             scan_poly = helper_functions.reduce_poly_width(poly=scan_poly,
                                                            width_adjustment=poly_width_percent_adjust)
         t_scan_poly = TypedPolygon(poly=scan_poly,
-                                   poly_type='text')
+                                   poly_class='text')
         return t_scan_poly
 
     def _create_search_area_poly(self, scan_poly: Polygon, max_text_distance_to_city: int):
@@ -263,19 +264,21 @@ class AlgorithmHandler:
                 return result.poly
 
     def find_best_polys(self, city_elements: list[VisualizationElement]):
-        city_text_box_search_objs = []
         for city_ele in city_elements:
+            logging.info(f"Finding best poly for {city_ele.city_name}")
             text_box_dimensions = city_ele.text_box_element.dimensions
             city_text_box_search = CityTextBoxSearch(text_box_dimensions=text_box_dimensions,
                                                      city_poly=city_ele.city_poly,
                                                      city_name=city_ele.city_name)
-            city_text_box_search_objs.append(city_text_box_search)
-
-        for city_text_box_search in city_text_box_search_objs:
             best_poly = self._handle_city_text_box_search(city_text_box_search=city_text_box_search)
+            city_ele.best_poly = best_poly
 
             poly_data = lookup_poly_characteristics(poly_type='best_poly')
-            self.algo_map_creator.add_poly_to_map(poly=best_poly,
-                                                  **poly_data)
+            show_poly = should_show_algo(poly_data=poly_data,
+                                         poly_type='best_poly',
+                                         city_name=city_ele.city_name)
+            if show_poly:
+                self.algo_map_creator.add_poly_to_map(poly=best_poly,
+                                                      **poly_data)
             self.rtree_analyzer.add_poly(poly=best_poly,
                                          poly_class='text')

@@ -3,12 +3,12 @@ from shapely import Polygon
 
 class TypedPolygon:
 
-    def __init__(self, poly: Polygon, poly_type: str, **kwargs):
+    def __init__(self, poly: Polygon, poly_class: str, **kwargs):
         self.poly = poly
-        accepted_poly_types = ('text', 'scatter', 'line')
-        if poly_type not in accepted_poly_types:
-            raise ValueError(f"Poly type '{poly_type}' not one of acceptable values {accepted_poly_types}")
-        self.poly_type = poly_type
+        accepted_poly_classes = ('text', 'scatter', 'line', 'algorithm_misc')
+        if poly_class not in accepted_poly_classes:
+            raise ValueError(f"Poly type '{poly_class}' not one of acceptable values {accepted_poly_classes}")
+        self.poly_class = poly_class
 
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -31,6 +31,6 @@ class TypedPolygon:
         return self.poly.distance(other_poly)
 
     def intersects(self, other_poly):
-        if isinstance(other_poly, TypedPolygon):
+        while not isinstance(other_poly, Polygon):
             other_poly = other_poly.poly
         return self.poly.intersects(other_poly)
