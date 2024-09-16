@@ -5,7 +5,7 @@ from shapely.geometry import Polygon
 from algorithm import CityTextBoxSearch
 from interfacing import VisualizationElement
 from utils.helper_functions import get_config_value
-from . import algorithm_map_creator, helper_functions, rtree_analysis
+from . import algorithm_map_creator, helper_functions, poly_result, rtree_analysis
 import poly_creation
 from .poly_management import TypedPolygon
 
@@ -199,13 +199,7 @@ class AlgorithmHandler:
                                           center_coord=(scan_poly.centroid.x, scan_poly.centroid.y))
         return t_search_area_poly
 
-    def find_best_polys(self, city_elements: list[VisualizationElement]) -> list[VisualizationElement]:
-        max_text_distance_to_city = get_config_value(config, 'algorithm.maximum_distance_to_city', int)
-        search_steps = get_config_value(config, 'algorithm.search_steps', int)
-        show_pause = get_config_value(config, 'algo_display.show_pause', float)
-        nearby_poly_search_width = get_config_value(config, 'algorithm.nearby_poly_search_width', int)
-        nearby_poly_search_height = get_config_value(config, 'algorithm.nearby_poly_search_height', int)
-        extra_pause_for_new_max_score = get_config_value(config, 'algo_display.extra_pause_for_new_max_score', int)
+    def _handle_city_text_box_search(self, city_text_box_search: CityTextBoxSearch) -> TypedPolygon:
         poly_patches = {
             'best_poly': None,
             'nearby_search': None,
@@ -219,33 +213,15 @@ class AlgorithmHandler:
             'poly_finalist': ['scan', 'intersecting', 'poly_finalist', 'nearby_search'],
             'best_poly': ['scan', 'intersecting', 'poly_finalist', 'nearby_search']
         }
-        city_text_box_search_objs = []
-        for city_ele in city_elements:
-            text_box_dimensions = city_ele.text_box_element.text_box_dimensions
-            scan_poly = self._create_scan_poly(text_box_dimensions)
-            search_area_poly = self._create_search_area_poly(scan_poly, max_text_distance_to_city=max_text_distance_to_city)
-            if should_show_algo(poly_data=lookup_poly_characteristics('search_area_poly'),
-                                poly_type='rectangle',
-                                city_name=city_ele.city_name):
-                search_area_patch = self.algo_map_creator.add_poly_to_map(poly=search_area_poly,
-                                                                          show_pause=show_pause,
-                                                                          **lookup_poly_characteristics(
-                                                                              poly_type='search_area_poly'))
+        show_pause = get_config_value(config, 'algo_display.show_pause', float)
+        extra_pause_for_new_max_score = get_config_value(config, 'algo_display.extra_pause_for_new_max_score', int)
 
-
-        for result in self.rtree_analyzer.find_best_poly_around_point(
-                scan_poly=scan_poly,
-                search_area_poly=search_area_poly,
-                search_steps=search_steps,
-                nearby_poly_search_width=nearby_poly_search_width,
-                nearby_poly_search_height=nearby_poly_search_height,
-                point_poly=city_poly):
-
+        for result in city_text_box_search.find_best_poly(rtree_analyzer=self.rtree_analyzer):
             poly_data = lookup_poly_characteristics(poly_type=result.poly_type)
             show_algo_for_poly = should_show_algo(poly_data=poly_data,
                                                   poly_type=result.poly_type,
                                                   num_iterations=result.num_iterations,
-                                                  city_name=city_name,
+                                                  city_name=city_text_box_search.city_name,
                                                   new_max_score=result.new_max_score)
             if not show_algo_for_poly:
                 self.algo_map_creator.disable()
@@ -283,26 +259,22 @@ class AlgorithmHandler:
                         poly_patches['best_poly'] = patch
 
             if result.poly_type == 'best_poly':
-                best_poly = result.poly
-                logging.info("Found best polygon.")
-                """
-                if self._scan_poly_outside_of_search_area(scan_poly=poly,
-                                                          search_area_poly=search_area_poly):
-                    raise ValueError("Scan poly is outside of the search area. Increase the search dimensions.")
-                """
-                break
+                return result.poly
 
-            self.algo_map_creator.enable()
+    def find_best_polys(self, city_elements: list[VisualizationElement]):
+        city_text_box_search_objs = []
+        for city_ele in city_elements:
+            text_box_dimensions = city_ele.text_box_element.text_box_dimensions
+            city_text_box_search = CityTextBoxSearch(text_box_dimensions=text_box_dimensions,
+                                                     city_poly=city_ele.poly,
+                                                     city_name=city_ele.city_name)
+            city_text_box_search_objs.append(city_text_box_search)
 
-        # We have found the best poly
-        poly_data = lookup_poly_characteristics(poly_type='best_poly')
-        self.algo_map_creator.add_poly_to_map(poly=best_poly,
-                                              **poly_data)
-        self.rtree_analyzer.add_poly(poly=best_poly,
-                                     poly_class='text')
-        if search_area_patch:
-            self.algo_map_creator.remove_patch_from_map(patch=search_area_patch)
+        for city_text_box_search in city_text_box_search_objs:
+            best_poly = self._handle_city_text_box_search(city_text_box_search=city_text_box_search)
 
-        self.algo_map_creator.enable()
-
-        return best_poly
+            poly_data = lookup_poly_characteristics(poly_type='best_poly')
+            self.algo_map_creator.add_poly_to_map(poly=best_poly,
+                                                  **poly_data)
+            self.rtree_analyzer.add_poly(poly=best_poly,
+                                         poly_class='text')

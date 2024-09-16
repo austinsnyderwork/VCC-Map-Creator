@@ -69,21 +69,6 @@ class Interface:
 
         self.data_imported = True
 
-    def find_best_poly_around_cities(self, city_elements: list[VisualizationElement]):
-        self.algo_handler.find_best_polys(city_elements)
-        for city_ele in city_elements:
-            text_box_ele = city_ele.text_box_element
-            logging.info(f"Finding best poly for {city_ele.city_name}.")
-            best_poly = self.algo_handler.find_best_poly_around_point(
-                scan_poly_dimensions=text_box_ele.dimensions,
-                center_coord=city_ele.coord,
-                city_name=city_ele.city_name,
-                city_poly=city_ele.city_poly
-            )
-            logging.info(f"Found best poly for {city_ele.city_name}.")
-            text_box_ele.add_value(element='best_poly',
-                                   value=best_poly)
-
     def create_maps(self):
         if not self.data_imported:
             raise ValueError(f"Have to import data first before calling {__name__}.")
@@ -100,7 +85,7 @@ class Interface:
                                                              zorder=3)
         self.algo_handler.plot_points(city_vis_elements)
         self.vis_map_creator.plot_sample_text_boxes(city_elements=city_vis_elements)
-        self.find_best_poly_around_cities(city_elements=city_vis_elements)
+        self.algo_handler.find_best_polys(city_vis_elements)
         self.vis_map_creator.plot_text_boxes(city_elements=city_vis_elements, zorder=2)
         show_pause = 360
         self.vis_map_creator.show_map(show_pause=show_pause)
