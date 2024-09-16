@@ -1,7 +1,7 @@
 import numpy as np
 
 from .poly_management import ScanPoly
-from .spatial_analysis_functions import get_distance_between_elements
+from algorithm.algo_utils.spatial_analysis_functions import get_distance_between_elements
 
 
 class ScanPolyScore:

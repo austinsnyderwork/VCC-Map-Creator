@@ -1,11 +1,11 @@
 import configparser
-import logging
 from shapely.geometry import Polygon
 
-from algorithm import CityTextBoxSearch
 from interfacing import VisualizationElement
 from utils.helper_functions import get_config_value
-from . import algorithm_map_creator, helper_functions, rtree_analysis
+from . import algorithm_map_creator, rtree_analyzer
+from .city_text_box_search import CityTextBoxSearch
+from .algo_utils import helper_functions
 import poly_creation
 from .poly_management import TypedPolygon
 
@@ -116,7 +116,7 @@ class AlgorithmHandler:
     def __init__(self):
         show_algo_display = False if config['algo_display']['show_display'] == 'False' else True
         self.algo_map_creator = algorithm_map_creator.AlgorithmMapCreator(show_display=show_algo_display)
-        self.rtree_analyzer = rtree_analysis.RtreeAnalyzer()
+        self.rtree_analyzer = rtree_analyzer.RtreeAnalyzer()
 
     def plot_lines(self, line_eles: list[VisualizationElement]):
         line_color = get_config_value(config, 'algo_display.line_color', str)
@@ -216,7 +216,8 @@ class AlgorithmHandler:
         show_pause = get_config_value(config, 'algo_display.show_pause', float)
         extra_pause_for_new_max_score = get_config_value(config, 'algo_display.extra_pause_for_new_max_score', int)
 
-        for result in city_text_box_search.find_best_poly(rtree_analyzer=self.rtree_analyzer):
+        for result in city_text_box_search.find_best_poly(rtree_idx=self.rtree_analyzer.rtree_idx,
+                                                          polygons=self.rtree_analyzer.polygons):
             poly_data = lookup_poly_characteristics(poly_type=result.poly_type)
             show_algo_for_poly = should_show_algo(poly_data=poly_data,
                                                   poly_type=result.poly_type,
@@ -264,9 +265,9 @@ class AlgorithmHandler:
     def find_best_polys(self, city_elements: list[VisualizationElement]):
         city_text_box_search_objs = []
         for city_ele in city_elements:
-            text_box_dimensions = city_ele.text_box_element.text_box_dimensions
+            text_box_dimensions = city_ele.text_box_element.dimensions
             city_text_box_search = CityTextBoxSearch(text_box_dimensions=text_box_dimensions,
-                                                     city_poly=city_ele.poly,
+                                                     city_poly=city_ele.city_poly,
                                                      city_name=city_ele.city_name)
             city_text_box_search_objs.append(city_text_box_search)
 

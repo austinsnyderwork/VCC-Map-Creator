@@ -1,9 +1,10 @@
 import configparser
 
-from ..utils import get_config_value
+from utils import get_config_value
 import poly_creation
-from poly_management import TypedPolygon
-from . import scoring, spatial_analysis_functions, poly_result
+from .poly_management import TypedPolygon, ScanPolysManager
+from . import scoring
+from .algo_utils import spatial_analysis_functions, poly_result
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -41,7 +42,6 @@ class CityTextBoxSearch:
         self.city_coord = city_poly.centroid.x, city_poly.centroid.y
         self.city_name = city_name
 
-        from poly_management import ScanPolysManager
         self.scan_polys_manager = ScanPolysManager()
 
     @property
@@ -51,7 +51,7 @@ class CityTextBoxSearch:
         return width, height
 
     def _create_scan_poly(self, text_box_dimensions: dict) -> TypedPolygon:
-        from .helper_functions import reduce_poly_width
+        from algorithm.algo_utils.helper_functions import reduce_poly_width
         poly_width_percent_adjust = get_config_value(config, 'algorithm.poly_width_percent_adjustment', float)
         scan_poly = poly_creation.create_poly(poly_type='rectangle',
                                               **text_box_dimensions)
