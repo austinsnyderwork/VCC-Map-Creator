@@ -5,7 +5,7 @@ from shapely.geometry import Polygon
 from algorithm import CityTextBoxSearch
 from interfacing import VisualizationElement
 from utils.helper_functions import get_config_value
-from . import algorithm_map_creator, helper_functions, poly_result, rtree_analysis
+from . import algorithm_map_creator, helper_functions, rtree_analysis
 import poly_creation
 from .poly_management import TypedPolygon
 

@@ -1,7 +1,7 @@
 import configparser
 
-from . import poly_result
-from .helper_functions import get_config_value, reduce_poly_width
+from .helper_functions import reduce_poly_width
+from ..utils import get_config_value
 import poly_creation
 from poly_management import ScanPolysManager, ScanPoly, TypedPolygon
 from rtree_analysis import RtreeAnalyzer

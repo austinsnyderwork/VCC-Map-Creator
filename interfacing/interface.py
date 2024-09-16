@@ -3,8 +3,6 @@ import logging
 import matplotlib
 from mpl_toolkits.basemap import Basemap
 
-from . import helper_functions
-from algorithm import CityTextBoxSearch
 from .visualization_element import VisualizationElement
 import algorithm
 import input_output

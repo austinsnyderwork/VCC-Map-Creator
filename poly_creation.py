@@ -4,8 +4,6 @@ import math
 import numpy as np
 from shapely.geometry import Polygon
 
-from algorithm import helper_functions
-
 
 def move_coordinate(x, y, slope, distance) -> tuple:
     angle = math.atan(slope)  # arctan gives the angle from the slope

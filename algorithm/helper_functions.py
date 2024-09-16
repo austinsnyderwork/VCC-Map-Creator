@@ -1,8 +1,6 @@
 import configparser
-import math
 
 import poly_creation
-from utils.helper_functions import get_config_value
 
 config = configparser.ConfigParser()
 config.read('config.ini')
