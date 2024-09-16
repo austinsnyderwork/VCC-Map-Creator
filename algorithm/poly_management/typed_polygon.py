@@ -5,9 +5,9 @@ class TypedPolygon:
 
     def __init__(self, poly: Polygon, poly_type: str, **kwargs):
         self.poly = poly
-        a_poly_types = ('text', 'scatter', 'line')
-        if poly_type not in a_poly_types:
-            raise ValueError(f"Poly type '{poly_type}' not one of acceptable values {a_poly_types}")
+        accepted_poly_types = ('text', 'scatter', 'line')
+        if poly_type not in accepted_poly_types:
+            raise ValueError(f"Poly type '{poly_type}' not one of acceptable values {accepted_poly_types}")
         self.poly_type = poly_type
 
         for k, v in kwargs.items():

@@ -8,4 +8,7 @@ def get_config_value(config, key, cast_type):
 
     if cast_type is bool:
         return True if value == 'True' else False
+    elif cast_type is list:
+        list_ = [item.strip() for item in value.split(',')]
+        return list_
     return cast_type(value)

@@ -3,9 +3,10 @@ import configparser
 from . import poly_result
 from .helper_functions import get_config_value, reduce_poly_width
 import poly_creation
-from poly_management import ScanPolyIntersectionsManager, TypedPolygon
+from poly_management import ScanPolyIntersectionsManager, ScanPolyIntersections, TypedPolygon
+from rtree_analysis import RtreeAnalyzer
 from shapely import Polygon
-
+from . import scoring, spatial_analysis_functions
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -37,12 +38,18 @@ def _create_scan_steps(text_box_dimensions: dict, scan_area_poly: TypedPolygon) 
 
 class CityTextBoxSearch:
 
-    def __init__(self, text_box_dimensions, city_poly: Polygon):
+    def __init__(self, text_box_dimensions: dict, city_poly: TypedPolygon):
         self.text_box_dimensions = text_box_dimensions
         self.city_poly = city_poly
         self.city_coord = city_poly.centroid.x, city_poly.centroid.y
 
-        self.poly_groups_manager = None
+        self.scan_poly_intersections_manager = ScanPolyIntersectionsManager()
+
+    @property
+    def text_width_height(self):
+        width = self.text_box_dimensions['x_max'] - self.text_box_dimensions['x_min']
+        height = self.text_box_dimensions['y_max'] - self.text_box_dimensions['y_min']
+        return width, height
 
     def _create_scan_poly(self, text_box_dimensions: dict) -> TypedPolygon:
         poly_width_percent_adjust = get_config_value(config, 'algorithm.poly_width_percent_adjustment', float)
@@ -58,8 +65,8 @@ class CityTextBoxSearch:
     def _create_scan_area_poly(self, max_text_distance_to_city: int):
         x_dist = self.text_box_dimensions['x_max'] - self.text_box_dimensions['x_min']
         y_dist = self.text_box_dimensions['y_max'] - self.text_box_dimensions['y_min']
-        center_x_coord = self.text_box_dimensions['x_min'] + x_dist/2
-        center_y_coord = self.text_box_dimensions['y_min'] + y_dist/2
+        center_x_coord = self.text_box_dimensions['x_min'] + x_dist / 2
+        center_y_coord = self.text_box_dimensions['y_min'] + y_dist / 2
         center_coord = (center_x_coord, center_y_coord)
         search_height = (y_dist + max_text_distance_to_city) * 2
         search_width = (x_dist + max_text_distance_to_city) * 2
@@ -72,14 +79,14 @@ class CityTextBoxSearch:
                                           center_coord=center_coord)
         return t_search_area_poly
 
-    def _run_initial_scan(self, x_steps: list, y_steps: list):
-        text_x_len = self.text_box_dimensions['x_max'] - self.text_box_dimensions['x_min']
-        text_y_len = self.text_box_dimensions['y_max'] - self.text_box_dimensions['y_min']
+    def _run_initial_scan(self, x_min_steps: list, y_min_steps: list, rtree_idx):
+        unacceptable_scan_overlap_types = get_config_value(config, 'algorithm.unacceptable_scan_overlap_types', list)
 
         num_iterations = 0
-        for x_min, y_min in zip(x_steps, y_steps):
-            x_max = x_min + text_x_len
-            y_max = y_min + text_y_len
+        for x_min, y_min in zip(x_min_steps, y_min_steps):
+            scan_poly_width, scan_poly_height = self.text_width_height
+            x_max = x_min + scan_poly_width
+            y_max = y_min + scan_poly_height
             scan_poly = poly_creation.create_poly(poly_type='rectangle',
                                                   x_min=x_min,
                                                   y_min=y_min,
@@ -87,38 +94,50 @@ class CityTextBoxSearch:
                                                   y_max=y_max)
             scan_poly = TypedPolygon(poly=scan_poly,
                                      poly_type='text')
-            result = poly_result.PolyResult(poly=scan_poly,
-                                            poly_type='scan_poly',
-                                            num_iterations=num_iterations)
-            yield result
-
-            intersecting_polys = self._get_intersecting_polys(scan_poly=scan_poly,
-                                                              ignore_polys=[point_poly])
-            invalid_polys = [poly for poly in intersecting_polys if poly.poly_type in ['scatter', 'text']]
-            if len(invalid_polys) > 0:
+            scan_result = poly_result.PolyResult(poly=scan_poly,
+                                                 poly_type='scan_poly',
+                                                 num_iterations=num_iterations)
+            intersecting_polys = spatial_analysis_functions.get_intersecting_polys(rtree_idx=rtree_idx,
+                                                                                   scan_poly=scan_poly,
+                                                                                   ignore_polys=[self.city_poly])
+            non_starter_polys = [poly for poly in intersecting_polys if
+                                 poly.poly_type in unacceptable_scan_overlap_types]
+            if len(non_starter_polys) > 0:
                 continue
-            poly_group = PolyGroup(scan_poly=scan_poly,
-                                   intersecting_polys=intersecting_polys)
-            poly_groups_manager.add_poly_group(poly_group)
 
-            num_intersections = len(intersecting_polys)
-            if num_intersections not in poly_groups_dict:
-                poly_groups_dict[num_intersections] = []
+            yield scan_result
 
-            poly_groups_dict[num_intersections].append(poly_group)
             for poly in intersecting_polys:
                 result = poly_result.PolyResult(poly=poly,
                                                 poly_type='intersecting',
                                                 num_iterations=num_iterations)
                 yield result
 
+            scan_poly_intersections = ScanPolyIntersections(scan_poly=scan_poly,
+                                                            intersecting_polys=intersecting_polys)
+            self.scan_poly_intersections_manager.add_scan_poly_intersections(scan_poly_intersections)
+
             num_iterations += 1
 
-    def find_best_poly(self):
+    def _find_best_finalist_poly(self, scan_poly_intersections: list[ScanPolyIntersections]):
+        scorer = scoring.Scorer(scan_poly_intersections)
+        for scan_poly_intersection_obj in scan_poly_intersections:
+
+
+    def find_best_poly(self, rtree_analyzer: RtreeAnalyzer):
         max_text_distance_to_city = get_config_value(config, 'algorithm.maximum_distance_to_city', int)
 
         scan_area_poly = self._create_scan_area_poly(max_text_distance_to_city=max_text_distance_to_city)
-        yield scan_area_poly, 'scan_area_poly'
+        yield poly_result.PolyResult(poly=scan_area_poly,
+                                     poly_type='scan_area',
+                                     num_iterations=0)
         x_min_steps, y_min_steps = _create_scan_steps(text_box_dimensions=self.text_box_dimensions,
                                                       scan_area_poly=scan_area_poly)
-        scan_poly_intersections_manager = ScanPolyIntersectionsManager()
+        for result in self._run_initial_scan(x_min_steps, y_min_steps, rtree_idx=rtree_analyzer.rtree_idx):
+            yield result
+
+        finalist_scan_poly_intersections = self.scan_poly_intersections_manager.get_least_intersections_poly_groups(
+            poly_types_to_omit=['scatter', 'text'])
+
+        for result in scoring.Scorer(finalist_scan_poly_intersections)
+        for result in self._find_best_finalist_poly(scan_poly_intersections=finalist_scan_poly_intersections)

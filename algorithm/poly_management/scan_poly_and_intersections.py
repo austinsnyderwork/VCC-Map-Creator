@@ -1,7 +1,7 @@
 from .typed_polygon import TypedPolygon
 
 
-class ScanPolyIntersections:
+class ScanPolyAndIntersections:
 
     def __init__(self, scan_poly: TypedPolygon, intersecting_polys: list[TypedPolygon] = None):
         self.scan_poly = scan_poly
