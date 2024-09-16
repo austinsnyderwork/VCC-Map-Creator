@@ -4,6 +4,7 @@ import matplotlib
 from mpl_toolkits.basemap import Basemap
 
 from . import helper_functions
+from algorithm import CityTextBoxSearch
 from .visualization_element import VisualizationElement
 import algorithm
 import input_output
@@ -69,6 +70,7 @@ class Interface:
         self.data_imported = True
 
     def find_best_poly_around_cities(self, city_elements: list[VisualizationElement]):
+        self.algo_handler.find_best_polys(city_elements)
         for city_ele in city_elements:
             text_box_ele = city_ele.text_box_element
             logging.info(f"Finding best poly for {city_ele.city_name}.")

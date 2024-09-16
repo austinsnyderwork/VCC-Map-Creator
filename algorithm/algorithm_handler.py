@@ -2,11 +2,12 @@ import configparser
 import logging
 from shapely.geometry import Polygon
 
+from algorithm import CityTextBoxSearch
 from interfacing import VisualizationElement
 from utils.helper_functions import get_config_value
-from . import algorithm_map_creator, helper_functions, rtree_analysis, poly_result
+from . import algorithm_map_creator, helper_functions, rtree_analysis
 import poly_creation
-from .poly_management import PolyGroup, TypedPolygon, PolyGroupsManager
+from .poly_management import TypedPolygon
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -34,7 +35,7 @@ def reduce_poly_width(poly, width_adjustment: float):
 
 def lookup_poly_characteristics(poly_type: str):
     poly_type_data = {
-        'search_area': {
+        'search_area_poly': {
             'color': get_config_value(config, 'algo_display.search_area_poly_color', str),
             'transparency': get_config_value(config, 'algo_display.search_area_poly_transparency', float),
             'show_algo': get_config_value(config, 'algo_display.show_search_area_poly', bool),
@@ -171,53 +172,40 @@ class AlgorithmHandler:
                                                   immediately_remove=immediately_remove_scatter)
         return t_polys
 
-    def _scan_poly_outside_of_search_area(self, scan_poly, search_area_poly):
-        extruding_scan_poly = scan_poly.difference(search_area_poly)
-
-        return not extruding_scan_poly.is_empty
-
-    def _create_scan_poly(self, scan_poly_dimensions: dict):
+    def _create_scan_poly(self, scan_poly_dimensions: dict) -> TypedPolygon:
         poly_width_percent_adjust = get_config_value(config, 'algorithm.poly_width_percent_adjustment', float)
         scan_poly = poly_creation.create_poly(poly_type='rectangle',
                                               **scan_poly_dimensions)
         if poly_width_percent_adjust != 0.0:
             scan_poly = helper_functions.reduce_poly_width(poly=scan_poly,
                                                            width_adjustment=poly_width_percent_adjust)
-        return scan_poly
+        t_scan_poly = TypedPolygon(poly=scan_poly,
+                                   poly_type='text')
+        return t_scan_poly
 
-    def find_best_poly_around_point(self, scan_poly_dimensions: dict, center_coord, city_name: str, city_poly: Polygon)\
-            -> Polygon:
-        max_text_distance_to_city = get_config_value(config, 'algorithm.maximum_distance_to_city', int)
-        search_steps = get_config_value(config, 'algorithm.search_steps', int)
-        show_pause = get_config_value(config, 'algo_display.show_pause', float)
-        nearby_poly_search_width = get_config_value(config, 'algorithm.nearby_poly_search_width', int)
-        nearby_poly_search_height = get_config_value(config, 'algorithm.nearby_poly_search_height', int)
-        extra_pause_for_new_max_score = get_config_value(config, 'algo_display.extra_pause_for_new_max_score', int)
-
-        scan_poly = self._create_scan_poly(scan_poly_dimensions)
-        scan_poly = TypedPolygon(poly=scan_poly,
-                                 poly_type='text')
-
+    def _create_search_area_poly(self, scan_poly: Polygon, max_text_distance_to_city: int):
         x_min, y_min, x_max, y_max = scan_poly.bounds
         y_dist = y_max - scan_poly.centroid.y
         x_dist = x_max - scan_poly.centroid.x
         search_height = (y_dist + max_text_distance_to_city) * 2
         search_width = (x_dist + max_text_distance_to_city) * 2
 
+        center_coord = scan_poly.centroid.x, scan_poly.centroid.y
         search_area_poly = poly_creation.create_poly(poly_type='rectangle',
                                                      center_coord=center_coord,
                                                      poly_height=search_height,
                                                      poly_width=search_width)
-        poly_data = lookup_poly_characteristics(poly_type='search_area')
+        t_search_area_poly = TypedPolygon(poly=search_area_poly,
+                                          center_coord=(scan_poly.centroid.x, scan_poly.centroid.y))
+        return t_search_area_poly
 
-        search_area_patch = None
-        if should_show_algo(poly_data=poly_data,
-                            poly_type='rectangle',
-                            city_name=city_name):
-            search_area_patch = self.algo_map_creator.add_poly_to_map(poly=search_area_poly,
-                                                                      show_pause=show_pause,
-                                                                      **lookup_poly_characteristics(
-                                                                          poly_type='search_area'))
+    def find_best_polys(self, city_elements: list[VisualizationElement]) -> list[VisualizationElement]:
+        max_text_distance_to_city = get_config_value(config, 'algorithm.maximum_distance_to_city', int)
+        search_steps = get_config_value(config, 'algorithm.search_steps', int)
+        show_pause = get_config_value(config, 'algo_display.show_pause', float)
+        nearby_poly_search_width = get_config_value(config, 'algorithm.nearby_poly_search_width', int)
+        nearby_poly_search_height = get_config_value(config, 'algorithm.nearby_poly_search_height', int)
+        extra_pause_for_new_max_score = get_config_value(config, 'algo_display.extra_pause_for_new_max_score', int)
         poly_patches = {
             'best_poly': None,
             'nearby_search': None,
@@ -227,10 +215,23 @@ class AlgorithmHandler:
         }
 
         remove_polys_by_type = {
-            'scan': ['scan', 'intersecting'],
+            'scan_poly': ['scan', 'intersecting'],
             'poly_finalist': ['scan', 'intersecting', 'poly_finalist', 'nearby_search'],
             'best_poly': ['scan', 'intersecting', 'poly_finalist', 'nearby_search']
         }
+        city_text_box_search_objs = []
+        for city_ele in city_elements:
+            text_box_dimensions = city_ele.text_box_element.text_box_dimensions
+            scan_poly = self._create_scan_poly(text_box_dimensions)
+            search_area_poly = self._create_search_area_poly(scan_poly, max_text_distance_to_city=max_text_distance_to_city)
+            if should_show_algo(poly_data=lookup_poly_characteristics('search_area_poly'),
+                                poly_type='rectangle',
+                                city_name=city_ele.city_name):
+                search_area_patch = self.algo_map_creator.add_poly_to_map(poly=search_area_poly,
+                                                                          show_pause=show_pause,
+                                                                          **lookup_poly_characteristics(
+                                                                              poly_type='search_area_poly'))
+
 
         for result in self.rtree_analyzer.find_best_poly_around_point(
                 scan_poly=scan_poly,

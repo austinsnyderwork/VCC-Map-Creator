@@ -1,4 +1,4 @@
-from .poly_group import PolyGroup
+from .scan_poly_intersections import ScanPolyIntersections
 from .typed_polygon import TypedPolygon
-from .poly_groups_manager import PolyGroupsManager
+from .scan_poly_intersections_manager import ScanPolyIntersectionsManager
 

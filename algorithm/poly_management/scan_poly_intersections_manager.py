@@ -1,7 +1,8 @@
-from .poly_group import PolyGroup
+from shapely import Point
+from .scan_poly_intersections import PolyGroup
 
 
-class PolyGroupsManager:
+class ScanPolyIntersectionsManager:
 
     def __init__(self):
         self._poly_types = {}
@@ -27,3 +28,6 @@ class PolyGroupsManager:
                 return poly_groups
 
         return self._poly_group_intersections[intersections[0]]
+
+    def get_distances_to_coord(self, coord: tuple):
+
