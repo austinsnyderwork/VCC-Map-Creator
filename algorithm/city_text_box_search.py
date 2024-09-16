@@ -3,8 +3,8 @@ import configparser
 from utils import get_config_value
 import poly_creation
 from .poly_management import TypedPolygon, ScanPolysManager
-from . import scoring
-from .algo_utils import spatial_analysis_functions, poly_result
+from . import scoring, spatial_analysis
+from .algo_utils import poly_result
 from .poly_management import ScanPoly
 
 config = configparser.ConfigParser()
@@ -74,15 +74,18 @@ class CityTextBoxSearch:
                                                    poly_width=search_width)
         t_scan_area_poly = TypedPolygon(poly=scan_area_poly,
                                         poly_class='algorithm_misc',
-                                        poly_type='scan_area_poly',
+                                        poly_type='scan_area',
                                         center_coord=center_coord)
         return t_scan_area_poly
 
     def _run_initial_scan(self, x_min_steps: list, y_min_steps: list, rtree_idx, polygons):
-        unacceptable_scan_overlap_classes = get_config_value(config, 'algorithm.unacceptable_scan_overlap_classes', list)
+        unacceptable_scan_overlap_classes = get_config_value(config, 'algorithm.unacceptable_scan_overlap_classes',
+                                                             list)
 
         num_iterations = 0
-        for x_min, y_min in zip(x_min_steps, y_min_steps):
+
+        x_y_steps = [(x_min, y_min) for x_min in x_min_steps for y_min in y_min_steps]
+        for x_min, y_min in x_y_steps:
             scan_poly_width, scan_poly_height = self.text_width_height
             x_max = x_min + scan_poly_width
             y_max = y_min + scan_poly_height
@@ -91,15 +94,17 @@ class CityTextBoxSearch:
                                                   y_min=y_min,
                                                   x_max=x_max,
                                                   y_max=y_max)
-            scan_poly = TypedPolygon(poly=scan_poly,
-                                     poly_class='text')
-            scan_result = poly_result.PolyResult(poly=scan_poly,
-                                                 poly_type='scan_poly',
+            scan_poly_obj = ScanPoly(poly=scan_poly,
+                                     poly_class='algorithm_misc')
+            intersecting_polys = spatial_analysis.get_intersecting_polys(rtree_idx=rtree_idx,
+                                                                         polygons=polygons,
+                                                                         scan_poly=scan_poly_obj,
+                                                                         ignore_polys=[self.city_poly])
+            scan_poly_obj.intersecting_polys = intersecting_polys
+            scan_result = poly_result.PolyResult(poly=scan_poly_obj,
+                                                 poly_type='scan',
                                                  num_iterations=num_iterations)
-            intersecting_polys = spatial_analysis_functions.get_intersecting_polys(rtree_idx=rtree_idx,
-                                                                                   polygons=polygons,
-                                                                                   scan_poly=scan_poly,
-                                                                                   ignore_polys=[self.city_poly])
+
             non_starter_polys = [poly for poly in intersecting_polys if
                                  poly.poly_class in unacceptable_scan_overlap_classes]
             if len(non_starter_polys) > 0:
@@ -113,9 +118,7 @@ class CityTextBoxSearch:
                                                 num_iterations=num_iterations)
                 yield result
 
-            scan_poly_intersections = ScanPoly(poly=scan_poly,
-                                               intersecting_polys=intersecting_polys)
-            self.scan_polys_manager.add_scan_poly(scan_poly_intersections)
+            self.scan_polys_manager.add_scan_poly(scan_poly_obj)
 
             num_iterations += 1
 
@@ -125,23 +128,21 @@ class CityTextBoxSearch:
 
         num_iterations = 0
         for scan_poly in scan_polys:
-            scan_result = poly_result.PolyResult(poly=scan_poly,
-                                                 poly_type='poly_finalist',
-                                                 num_iterations=num_iterations)
-            yield scan_result
             center_coord = scan_poly.poly.centroid.x, scan_poly.poly.centroid.y
             nearby_search_poly = poly_creation.create_poly(poly_type='rectangle',
                                                            center_coord=center_coord,
                                                            poly_width=nearby_poly_search_width,
                                                            poly_height=nearby_poly_search_height)
-            nearby_search_result = poly_result.PolyResult(poly=nearby_search_poly,
-                                                          poly_type='nearby_search',
-                                                          num_iterations=num_iterations)
-            yield nearby_search_result
-            nearby_search_poly_bounds = nearby_search_poly.bounds
-            nearby_poly_idxs = list(rtree_idx.intersection(nearby_search_poly_bounds))
-            nearest_polys = [polygons[idx] for idx in nearby_poly_idxs]
-            scan_poly.nearest_polys = nearest_polys
+            nearby_search_poly = TypedPolygon(poly=nearby_search_poly,
+                                              poly_type='nearby_search',
+                                              poly_class='algorithm_misc')
+            scan_poly.nearby_search_poly = nearby_search_poly
+
+            nearby_polys = spatial_analysis.get_intersecting_polys(rtree_idx=rtree_idx,
+                                                                   polygons=polygons,
+                                                                   scan_poly=nearby_search_poly,
+                                                                   ignore_polys=[self.city_poly])
+            scan_poly.nearest_polys = nearby_polys
 
             num_iterations += 1
 
@@ -152,7 +153,6 @@ class CityTextBoxSearch:
                 best_scan_poly = scan_poly
         return best_scan_poly
 
-
     def find_best_poly(self, rtree_idx, polygons: dict):
         max_text_distance_to_city = get_config_value(config, 'algorithm.maximum_distance_to_city', int)
 
@@ -162,24 +162,22 @@ class CityTextBoxSearch:
                                      num_iterations=0)
         x_min_steps, y_min_steps = _create_scan_steps(text_box_dimensions=self.text_box_dimensions,
                                                       scan_area_poly=scan_area_poly)
-        for result in self._run_initial_scan(x_min_steps, y_min_steps, rtree_idx=rtree_idx, polygons=polygons):
-            yield result
+        for scan_result in self._run_initial_scan(x_min_steps, y_min_steps, rtree_idx=rtree_idx, polygons=polygons):
+            yield scan_result
 
         finalist_scan_polys = self.scan_polys_manager.get_least_intersections_poly_groups(
             poly_types_to_omit=['scatter', 'text'])
 
-        if len(finalist_scan_polys) == 0:
-            x=0
-
         # Fills ScanPoly objects .nearest_poly parameter
-        for result in self._determine_nearest_polys(scan_polys=finalist_scan_polys,
-                                                    rtree_idx=rtree_idx,
-                                                    polygons=polygons):
+        self._determine_nearest_polys(scan_polys=finalist_scan_polys,
+                                      rtree_idx=rtree_idx,
+                                      polygons=polygons)
+
+        for result in scoring.score_scan_polys(city_poly=self.city_poly,
+                                               scan_polys=finalist_scan_polys):
             yield result
 
-        scoring.score_scan_polys(city_poly=self.city_poly,
-                                 scan_polys=finalist_scan_polys)
         best_scan_poly = self._determine_best_poly_finalist(finalist_scan_polys)
-        yield poly_result.PolyResult(poly=best_scan_poly,
-                                     poly_type='best_poly',
+        yield poly_result.PolyResult(poly=best_scan_poly.poly,
+                                     poly_type='best',
                                      num_iterations=-1)

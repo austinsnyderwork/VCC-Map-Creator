@@ -2,9 +2,9 @@ import configparser
 import logging
 from shapely.geometry import Polygon
 
+from . import algorithm_map_creator, rtree_analyzer
 from interfacing import VisualizationElement
 from utils.helper_functions import get_config_value
-from . import algorithm_map_creator, rtree_analyzer
 from .city_text_box_search import CityTextBoxSearch
 from .algo_utils import helper_functions
 import poly_creation
@@ -44,7 +44,7 @@ def lookup_poly_characteristics(poly_type: str):
             'should_plot': False,
             'center_view': get_config_value(config, 'algo_display.center_view_on_search_area_poly', bool)
         },
-        'scan_poly': {
+        'scan': {
             'color': get_config_value(config, 'algo_display.scan_poly_color', str),
             'transparency': get_config_value(config, 'algo_display.scan_poly_transparency', float),
             'show_algo': get_config_value(config, 'algo_display.show_scan_poly', bool),
@@ -60,7 +60,7 @@ def lookup_poly_characteristics(poly_type: str):
             'should_plot': False,
             'center_view': get_config_value(config, 'algo_display.center_view_on_intersecting_poly', bool)
         },
-        'best_poly': {
+        'best': {
             'color': get_config_value(config, 'algo_display.best_poly_color', str),
             'transparency': get_config_value(config, 'algo_display.best_poly_transparency', float),
             'show_algo': get_config_value(config, 'algo_display.show_best_poly', bool),
@@ -68,7 +68,7 @@ def lookup_poly_characteristics(poly_type: str):
             'should_plot': False,
             'center_view': get_config_value(config, 'algo_display.center_view_on_best_poly', bool)
         },
-        'poly_finalist': {
+        'finalist': {
             'color': get_config_value(config, 'algo_display.poly_finalist_color', str),
             'transparency': get_config_value(config, 'algo_display.poly_finalist_transparency', float),
             'show_algo': get_config_value(config, 'algo_display.show_poly_finalist', bool),
@@ -100,10 +100,10 @@ def should_show_algo(poly_data, poly_type, city_name, new_max_score: bool = Fals
     elif new_max_score:
         return True
 
-    if poly_type in ('scan_poly', 'intersecting') and num_iterations % steps_to_show_scan_poly != 0:
+    if poly_type in ('scan', 'intersecting') and num_iterations % steps_to_show_scan_poly != 0:
         return False
 
-    if poly_type in ('poly_finalist', 'nearby_search') and num_iterations % steps_to_show_poly_finalist != 0:
+    if poly_type in ('finalist', 'nearby_search') and num_iterations % steps_to_show_poly_finalist != 0:
         return False
 
     if display_algo_city not in (city_name, 'N/A'):
@@ -133,6 +133,7 @@ class AlgorithmHandler:
                                                   name='line poly')
             t_poly = TypedPolygon(poly=poly,
                                   poly_class='line',
+                                  poly_type='line',
                                   origin=line_ele.origin,
                                   outpatient=line_ele.outpatient)
             t_polys.append(t_poly)
@@ -161,6 +162,7 @@ class AlgorithmHandler:
                                                   name='scatter poly')
             t_poly = TypedPolygon(poly=poly,
                                   poly_class='scatter',
+                                  poly_type='scatter',
                                   city_name=scatter_ele.city_name)
             t_polys.append(t_poly)
             scatter_ele.add_value('city_poly', value=t_poly)
@@ -202,17 +204,17 @@ class AlgorithmHandler:
 
     def _handle_city_text_box_search(self, city_text_box_search: CityTextBoxSearch) -> TypedPolygon:
         poly_patches = {
-            'best_poly': None,
+            'best': None,
             'nearby_search': None,
             'scan': None,
-            'poly_finalist': None,
+            'finalist': None,
             'intersecting': []
         }
 
         remove_polys_by_type = {
-            'scan_poly': ['scan', 'intersecting'],
-            'poly_finalist': ['scan', 'intersecting', 'poly_finalist', 'nearby_search'],
-            'best_poly': ['scan', 'intersecting', 'poly_finalist', 'nearby_search']
+            'scan': ['scan', 'intersecting'],
+            'finalist': ['scan', 'intersecting', 'finalist', 'nearby_search'],
+            'best': ['scan', 'intersecting', 'finalist', 'nearby_search']
         }
         show_pause = get_config_value(config, 'algo_display.show_pause', float)
         extra_pause_for_new_max_score = get_config_value(config, 'algo_display.extra_pause_for_new_max_score', int)
@@ -225,9 +227,7 @@ class AlgorithmHandler:
                                                   num_iterations=result.num_iterations,
                                                   city_name=city_text_box_search.city_name,
                                                   new_max_score=result.new_max_score)
-            if not show_algo_for_poly:
-                self.algo_map_creator.disable()
-            else:
+            if show_algo_for_poly:
                 if result.poly_type in remove_polys_by_type:
                     polys_to_remove = remove_polys_by_type[result.poly_type]
                     for remove_poly_type in polys_to_remove:
@@ -249,18 +249,18 @@ class AlgorithmHandler:
                                                               **poly_data)
                 # Load patch into appropriate scan history
                 if patch:
-                    if result.poly_type == 'scan_poly':
+                    if result.poly_type == 'scan':
                         poly_patches['scan'] = patch
                     if result.poly_type == 'nearby_search':
                         poly_patches['nearby_search'] = patch
                     elif result.poly_type == 'intersecting':
                         poly_patches['intersecting'].append(patch)
-                    elif result.poly_type == 'poly_finalist':
-                        poly_patches['poly_finalist'] = patch
-                    elif result.poly_type == 'best_poly':
-                        poly_patches['best_poly'] = patch
+                    elif result.poly_type == 'finalist':
+                        poly_patches['finalist'] = patch
+                    elif result.poly_type == 'best':
+                        poly_patches['best'] = patch
 
-            if result.poly_type == 'best_poly':
+            if result.poly_type == 'best':
                 return result.poly
 
     def find_best_polys(self, city_elements: list[VisualizationElement]):
@@ -271,11 +271,12 @@ class AlgorithmHandler:
                                                      city_poly=city_ele.city_poly,
                                                      city_name=city_ele.city_name)
             best_poly = self._handle_city_text_box_search(city_text_box_search=city_text_box_search)
+            logging.info(f"Found best poly for {city_ele.city_name}.")
             city_ele.best_poly = best_poly
 
-            poly_data = lookup_poly_characteristics(poly_type='best_poly')
+            poly_data = lookup_poly_characteristics(poly_type='best')
             show_poly = should_show_algo(poly_data=poly_data,
-                                         poly_type='best_poly',
+                                         poly_type='best',
                                          city_name=city_ele.city_name)
             if show_poly:
                 self.algo_map_creator.add_poly_to_map(poly=best_poly,

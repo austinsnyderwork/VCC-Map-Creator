@@ -1,7 +1,9 @@
+import logging
 import numpy as np
 
+from .algo_utils import poly_result
 from .poly_management import ScanPoly
-from algorithm.algo_utils.spatial_analysis_functions import get_distance_between_elements
+from algorithm.spatial_analysis import get_distance_between_elements
 
 
 class ScanPolyScore:
@@ -36,7 +38,10 @@ def _score(scan_poly_score: ScanPolyScore):
     city_distance_score = 2 * (1 / scan_poly_score.norm_city_distance)
     weighted_poly_distances = [1 / (d ** 1.5 + 1e-10) for d in scan_poly_score.norm_poly_distances]
     poly_distances_score = sum(weighted_poly_distances) / len(weighted_poly_distances)
-    scan_poly_score.scan_poly.score = city_distance_score + poly_distances_score
+    score = city_distance_score + poly_distances_score
+    logging.info(f"Score for poly finalist: {city_distance_score} + {poly_distances_score} = {score}")
+    scan_poly_score.scan_poly.score = score
+    return score
 
 
 def score_scan_polys(city_poly, scan_polys: list[ScanPoly]):
@@ -60,12 +65,24 @@ def score_scan_polys(city_poly, scan_polys: list[ScanPoly]):
     near_poly_distances_mean = np.mean(near_poly_distances)
     for scan_poly_score in scan_poly_scores:
         scan_poly_score.norm_city_distance = scan_poly_score.city_distance / (
-                    scan_poly_score.city_distance / near_poly_distances_mean)
+                scan_poly_score.city_distance / near_poly_distances_mean)
 
     near_poly_max_distance = np.max(near_poly_distances)
     for scan_poly_score in scan_poly_scores:
         scan_poly_score.norm_poly_distances = [distance / near_poly_max_distance for distance in
                                                scan_poly_score.poly_distances]
-
-    for scan_poly_score in scan_poly_scores:
-        _score(scan_poly_score)
+    max_score = -1
+    for i, scan_poly_score in enumerate(scan_poly_scores):
+        new_score = _score(scan_poly_score)
+        new_max = new_score > max_score
+        max_score = new_score if new_max else max_score
+        finalist_result = poly_result.PolyResult(poly=scan_poly_score.scan_poly.poly,
+                                                 poly_type='finalist',
+                                                 num_iterations=i,
+                                                 new_max_score=new_max)
+        yield finalist_result
+        nearby_scan_result = poly_result.PolyResult(poly=scan_poly_score.scan_poly.nearby_search_poly,
+                                                    poly_type='nearby_search',
+                                                    num_iterations=i,
+                                                    new_max_score=new_max)
+        yield nearby_scan_result

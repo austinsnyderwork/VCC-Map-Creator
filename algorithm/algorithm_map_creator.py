@@ -1,4 +1,5 @@
 import configparser
+import logging
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
@@ -20,12 +21,6 @@ class AlgorithmMapCreator:
         self._create_figure(fig_size=display_fig_size,
                             county_line_width=float(config['display']['county_line_width']))
 
-        self.enabled = True
-
-    def disable(self):
-        self.enabled = False
-
-    def enable(self):
         self.enabled = True
 
     def _create_figure(self, fig_size, county_line_width):
