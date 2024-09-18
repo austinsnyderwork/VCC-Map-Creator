@@ -10,3 +10,4 @@ class PolyResult:
         self.num_iterations = num_iterations
         self.new_max_score = new_max_score
         self.force_show = force_show
+

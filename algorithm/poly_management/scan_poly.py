@@ -5,13 +5,14 @@ from .typed_polygon import TypedPolygon
 
 class ScanPoly(TypedPolygon):
 
-    def __init__(self, poly: Polygon, poly_class: str, intersecting_polys: list[TypedPolygon] = None):
+    def __init__(self, poly: Polygon, poly_class: str, city_name: str, intersecting_polys: list[TypedPolygon] = None):
         super().__init__(poly, poly_type='scan', poly_class=poly_class)
         self.intersecting_polys = intersecting_polys if intersecting_polys else []
+        self.city_name = city_name
 
         self.nearby_search_poly = None
         self.nearby_polys = []
-        self.score = -1
+        self.score = None
 
     def types_present_in_polys(self, poly_types: list[str]):
         for poly in self.intersecting_polys:

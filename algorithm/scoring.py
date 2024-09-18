@@ -25,13 +25,27 @@ class ScanPolyScore:
         self.poly_distances = poly_distances
         self.city_distance = city_distance
 
-        self.norm_city_distance = -1
+        self.norm_city_distance = None
         self.norm_poly_distances = []
+
+        self.score = None
+        self.force_show = None
+        self.city_score = None
+        self.poly_distances_scores = None
 
 
 def _get_scan_poly_nearby_distances(city_poly, scan_poly: ScanPoly):
-    distances = [spatial_analysis.get_distance_between_elements(scan_poly, nearby_poly)
-                 for nearby_poly in scan_poly.nearby_polys]
+    distances = []
+    for nearby_poly in scan_poly.nearby_polys:
+        # Don't consider the city point or its line when scoring nearby polys
+        if hasattr(nearby_poly, 'city_name') and nearby_poly.city_name == scan_poly.city_name:
+            continue
+        if (hasattr(nearby_poly, 'outpatient') and hasattr(nearby_poly, 'origin') and nearby_poly.outpatient == scan_poly.city_name
+                or nearby_poly.origin == scan_poly.city_name):
+            continue
+
+        distances.append(spatial_analysis.get_distance_between_elements(scan_poly, nearby_poly))
+
     city_distance = spatial_analysis.get_distance_between_elements(city_poly, scan_poly)
     return {
         'poly_distances': distances,
@@ -39,31 +53,58 @@ def _get_scan_poly_nearby_distances(city_poly, scan_poly: ScanPoly):
     }
 
 
+def _check_for_scans_without_nearby_polys(scan_polys):
+    best_scan_polys = []
+    for scan_poly in scan_polys:
+        filtered_nearby_polys = []
+        near_city = False
+        for nearby_poly in scan_poly.nearby_polys:
+            if hasattr(nearby_poly, 'city_name') and nearby_poly.city_name == scan_poly.city_name:
+                near_city = True
+                continue
+            if (hasattr(nearby_poly, 'outpatient') and hasattr(nearby_poly,
+                                                               'origin') and nearby_poly.outpatient == scan_poly.city_name
+                    or nearby_poly.origin == scan_poly.city_name):
+                near_city = True
+                continue
+            filtered_nearby_polys.append(nearby_poly)
+        if near_city and len(filtered_nearby_polys) == 0:
+            best_scan_polys.append(scan_poly)
+    return best_scan_polys
+
+
 def _score(scan_poly_score: ScanPolyScore):
-    # This means we're out in the middle of nowhere basically - not even close to the city which naturally has a
-    # line. So just ignore this one
-    if len(scan_poly_score.poly_distances) == 0:
-        return -1, False, 0, []
+
+    logging.info(f"New poly:\n\tNorm city distance: {scan_poly_score.norm_city_distance}\n\tNorm poly distances: "
+                 f"{scan_poly_score.norm_poly_distances}")
 
     # We want the city distance to be weighted higher than the poly distances
-    city_distance_score = 2 * (1 / (scan_poly_score.norm_city_distance + 1e-5))
+    city_distance_score = 4 * (1 / (scan_poly_score.norm_city_distance + 1e-5))
     need_to_show = False
     # need_to_show = scan_poly_score.city_distance == 0.0
     if scan_poly_score.city_distance == 0.0:
-        logging.info(f"!!!This poly's city distance is 0.0.!!!")
+        logging.info("\t!!!This poly's city distance is 0.0.!!!")
     weighted_poly_distances = [(d ** 1.5 + 1e-10) for d in scan_poly_score.norm_poly_distances]
-    poly_distances_score = sum(weighted_poly_distances) / len(weighted_poly_distances)
+    poly_distances_score = sum(weighted_poly_distances) / (len(weighted_poly_distances)) # Don't divide by zero
     score = city_distance_score * poly_distances_score
-    # logging.info(f"Score for poly finalist: City Distance ({city_distance_score}) * "
-    #             f"Nearby Poly Distances({poly_distances_score}) = {score}")
+    logging.info(f"\tCity Distance ({city_distance_score}) * "
+                 f"Nearby Poly Distances({poly_distances_score}) = {score}")
+    scan_poly_score.score = score
+    # For now because the result that we yield only takes in a TypedPolygon (not ScanPolyScore), then we just attach
+    # this score to the scan poly. More realistically should be a part of the ScanPolyScore, but here we are!
     scan_poly_score.scan_poly.score = score
-    return score, need_to_show, city_distance_score, weighted_poly_distances
+    scan_poly_score.force_show = need_to_show
+    scan_poly_score.city_score = city_distance_score
+    scan_poly_score.poly_distances_scores = weighted_poly_distances
 
 
-def score_scan_polys(city_poly, scan_polys: list[ScanPoly]):
+def score_scan_polys(city_poly, scan_polys: list[ScanPoly]) -> tuple:
     logging.info(f"Scoring scan polys for {city_poly.city_name}")
     scan_poly_scores = []
     near_poly_distances = []
+    best_scan_polys = _check_for_scans_without_nearby_polys(scan_polys=scan_polys)
+    if len(best_scan_polys) > 0:
+        scan_polys = best_scan_polys
     for scan_poly in scan_polys:
         scan_poly_distances = _get_scan_poly_nearby_distances(city_poly=city_poly,
                                                               scan_poly=scan_poly)
@@ -73,11 +114,6 @@ def score_scan_polys(city_poly, scan_polys: list[ScanPoly]):
                                         city_distance=scan_poly_distances['city_distance'])
         scan_poly_scores.append(scan_poly_score)
     logging.info(f"\tThere are {len(near_poly_distances)} nearby polys total for all scan polys for this city.")
-    if len(near_poly_distances) == 0:
-        for scan_poly_score in scan_poly_scores:
-            city_distance = 2 * (1 / (scan_poly_score.city_distance + 1e-10))
-            scan_poly_score.scan_poly.score = city_distance
-        return
 
     city_distances = [scan_poly_score.city_distance for scan_poly_score in scan_poly_scores]
     city_distances_min = min(city_distances)
@@ -97,25 +133,28 @@ def score_scan_polys(city_poly, scan_polys: list[ScanPoly]):
                                                                   old_max=near_poly_distances_max,
                                                                   new_min=0,
                                                                   new_max=1)
+    for scan_poly_score in scan_poly_scores:
+        _score(scan_poly_score)
+
     max_score = -1
     for i, scan_poly_score in enumerate(scan_poly_scores):
-        new_score, force_show, city_score, poly_distances = _score(scan_poly_score)
-        if new_score > max_score:
+        if scan_poly_score.score > max_score:
             new_max_score_achieved = True
-            max_score = new_score
-            logging.info(f"!!!New max score achieved: {new_score}!!!\n"
-                         f"\tWeighted poly distances:{poly_distances} | City score: {city_score}")
+            max_score = scan_poly_score.score
+            logging.info(f"!!!New max score achieved: {scan_poly_score.scan_poly.score}!!!\n"
+                         f"\tWeighted poly distances:{scan_poly_score.poly_distances_scores} | "
+                         f"City score: {scan_poly_score.city_score}")
         else:
             new_max_score_achieved = False
         finalist_result = poly_result.PolyResult(poly=scan_poly_score.scan_poly,
                                                  poly_type='finalist',
                                                  num_iterations=i,
                                                  new_max_score=new_max_score_achieved,
-                                                 force_show=force_show)
+                                                 force_show=scan_poly_score.force_show)
         yield finalist_result
         nearby_scan_result = poly_result.PolyResult(poly=scan_poly_score.scan_poly.nearby_search_poly,
                                                     poly_type='nearby_search',
                                                     num_iterations=i,
                                                     new_max_score=new_max_score_achieved,
-                                                    force_show=force_show)
+                                                    force_show=scan_poly_score.force_show)
         yield nearby_scan_result
