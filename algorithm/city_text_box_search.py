@@ -99,10 +99,7 @@ class CityTextBoxSearch:
                                      poly_class='algorithm_misc')
             intersecting_polys = spatial_analysis.get_intersecting_polys(rtree_idx=rtree_idx,
                                                                          polygons=polygons,
-                                                                         scan_poly=scan_poly_obj,
-                                                                         omitting_poly_attributes={
-                                                                             'city_name': self.city_name
-                                                                         })
+                                                                         scan_poly=scan_poly_obj)
             print(f"Found {len(intersecting_polys)} intersecting polys.")
             scan_poly_obj.intersecting_polys = intersecting_polys
             scan_result = poly_result.PolyResult(poly=scan_poly_obj,
@@ -146,7 +143,7 @@ class CityTextBoxSearch:
             nearby_polys = spatial_analysis.get_intersecting_polys(rtree_idx=rtree_idx,
                                                                    polygons=polygons,
                                                                    scan_poly=nearby_search_poly,
-                                                                   omitting_poly_attributes={
+                                                                   attributes_of_polys_to_ignore={
                                                                        'city_name': self.city_name
                                                                    })
             scan_poly.nearby_polys = nearby_polys

@@ -47,7 +47,8 @@ def _score(scan_poly_score: ScanPolyScore):
 
     # We want the city distance to be weighted higher than the poly distances
     city_distance_score = 2 * (1 / (scan_poly_score.norm_city_distance + 1e-5))
-    need_to_show = scan_poly_score.city_distance == 0.0
+    need_to_show = False
+    # need_to_show = scan_poly_score.city_distance == 0.0
     if scan_poly_score.city_distance == 0.0:
         logging.info(f"!!!This poly's city distance is 0.0.!!!")
     weighted_poly_distances = [(d ** 1.5 + 1e-10) for d in scan_poly_score.norm_poly_distances]
