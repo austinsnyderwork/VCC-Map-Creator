@@ -37,13 +37,6 @@ class ScanPolyScore:
 def _get_scan_poly_nearby_distances(city_poly, scan_poly: ScanPoly):
     distances = []
     for nearby_poly in scan_poly.nearby_polys:
-        # Don't consider the city point or its line when scoring nearby polys
-        if hasattr(nearby_poly, 'city_name') and nearby_poly.city_name == scan_poly.city_name:
-            continue
-        if (hasattr(nearby_poly, 'outpatient') and hasattr(nearby_poly, 'origin') and nearby_poly.outpatient == scan_poly.city_name
-                or nearby_poly.origin == scan_poly.city_name):
-            continue
-
         distances.append(spatial_analysis.get_distance_between_elements(scan_poly, nearby_poly))
 
     city_distance = spatial_analysis.get_distance_between_elements(city_poly, scan_poly)
@@ -53,24 +46,29 @@ def _get_scan_poly_nearby_distances(city_poly, scan_poly: ScanPoly):
     }
 
 
-def _check_for_scans_without_nearby_polys(scan_polys):
-    best_scan_polys = []
+def _nearby_poly_is_city_associated(city_name, nearby_poly):
+    if hasattr(nearby_poly, 'city_name') and nearby_poly.city_name == city_name:
+        return True
+    elif hasattr(nearby_poly, 'outpatient') and (nearby_poly.outpatient == city_name):
+        return True
+    elif hasattr(nearby_poly, 'origin') and nearby_poly.origin == city_name:
+        return True
+
+    return False
+
+
+def _remove_scan_polys_without_nearby(scan_polys):
+    valid_scan_polys = []
     for scan_poly in scan_polys:
-        filtered_nearby_polys = []
-        near_city = False
+        valid_nearby_polys = []
         for nearby_poly in scan_poly.nearby_polys:
-            if hasattr(nearby_poly, 'city_name') and nearby_poly.city_name == scan_poly.city_name:
-                near_city = True
+            if _nearby_poly_is_city_associated(city_name=scan_poly.city_name,
+                                               nearby_poly=nearby_poly):
                 continue
-            if (hasattr(nearby_poly, 'outpatient') and hasattr(nearby_poly,
-                                                               'origin') and nearby_poly.outpatient == scan_poly.city_name
-                    or nearby_poly.origin == scan_poly.city_name):
-                near_city = True
-                continue
-            filtered_nearby_polys.append(nearby_poly)
-        if near_city and len(filtered_nearby_polys) == 0:
-            best_scan_polys.append(scan_poly)
-    return best_scan_polys
+            valid_nearby_polys.append(nearby_poly)
+        if len(valid_nearby_polys) > 0:
+            valid_scan_polys.append(scan_poly)
+    return valid_scan_polys
 
 
 def _score(scan_poly_score: ScanPolyScore):
@@ -80,12 +78,8 @@ def _score(scan_poly_score: ScanPolyScore):
 
     # We want the city distance to be weighted higher than the poly distances
     city_distance_score = 4 * (1 / (scan_poly_score.norm_city_distance + 1e-5))
-    need_to_show = False
-    # need_to_show = scan_poly_score.city_distance == 0.0
-    if scan_poly_score.city_distance == 0.0:
-        logging.info("\t!!!This poly's city distance is 0.0.!!!")
     weighted_poly_distances = [(d ** 1.5 + 1e-10) for d in scan_poly_score.norm_poly_distances]
-    poly_distances_score = sum(weighted_poly_distances) / (len(weighted_poly_distances)) # Don't divide by zero
+    poly_distances_score = sum(weighted_poly_distances) / (len(weighted_poly_distances))  # Don't divide by zero
     score = city_distance_score * poly_distances_score
     logging.info(f"\tCity Distance ({city_distance_score}) * "
                  f"Nearby Poly Distances({poly_distances_score}) = {score}")
@@ -93,7 +87,7 @@ def _score(scan_poly_score: ScanPolyScore):
     # For now because the result that we yield only takes in a TypedPolygon (not ScanPolyScore), then we just attach
     # this score to the scan poly. More realistically should be a part of the ScanPolyScore, but here we are!
     scan_poly_score.scan_poly.score = score
-    scan_poly_score.force_show = need_to_show
+    scan_poly_score.force_show = False
     scan_poly_score.city_score = city_distance_score
     scan_poly_score.poly_distances_scores = weighted_poly_distances
 
@@ -102,9 +96,9 @@ def score_scan_polys(city_poly, scan_polys: list[ScanPoly]) -> tuple:
     logging.info(f"Scoring scan polys for {city_poly.city_name}")
     scan_poly_scores = []
     near_poly_distances = []
-    best_scan_polys = _check_for_scans_without_nearby_polys(scan_polys=scan_polys)
-    if len(best_scan_polys) > 0:
-        scan_polys = best_scan_polys
+
+    scan_polys = _remove_scan_polys_without_nearby(scan_polys=scan_polys)
+
     for scan_poly in scan_polys:
         scan_poly_distances = _get_scan_poly_nearby_distances(city_poly=city_poly,
                                                               scan_poly=scan_poly)
