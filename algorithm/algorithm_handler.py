@@ -75,13 +75,14 @@ def should_show_algo(poly_data, poly_type, city_name, new_max_score: bool = Fals
     display_algo_city = get_config_value(config, 'algo_display.show_poly_finalist_city', str)
     steps_to_show_scan_poly = get_config_value(config, 'algo_display.steps_to_show_scan_poly', int)
     steps_to_show_poly_finalist = get_config_value(config, 'algo_display.steps_to_show_poly_finalist', int)
+    force_show_new_max_score = get_config_value(config, 'algo_display.force_show_new_max_score', bool)
 
     if force_show:
         return True
 
     if not display_algo or display_algo_city not in (city_name, 'N/A') or not poly_data['show_algo']:
         return False
-    elif new_max_score:
+    elif force_show_new_max_score and new_max_score:
         return True
 
     if poly_type in ('scan', 'intersecting') and num_iterations % steps_to_show_scan_poly != 0:
