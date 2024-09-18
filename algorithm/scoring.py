@@ -57,7 +57,7 @@ def _score(scan_poly_score: ScanPolyScore):
     # logging.info(f"Score for poly finalist: City Distance ({city_distance_score}) * "
     #             f"Nearby Poly Distances({poly_distances_score}) = {score}")
     scan_poly_score.scan_poly.score = score
-    return score, need_to_show, city_distance_score, weighted_poly_distances
+    return score, False, city_distance_score, weighted_poly_distances
 
 
 def score_scan_polys(city_poly, scan_polys: list[ScanPoly]):
