@@ -1,35 +1,67 @@
 import math
 
 from .poly_management import TypedPolygon
-from . import spatial_analysis
 
 
-class Angle:
+class LinePair:
 
-    def __init__(self, obtuse_angle, acute_angle):
-        self.obtuse_angle = obtuse_angle
-        self.acute_angle = acute_angle
+    def __init__(self, line1: TypedPolygon, line2: TypedPolygon, min_angle: float = None, max_angle: float = None,
+                 reflex_angle_range: tuple = None, acute_angle_range: tuple = None):
+        self.line1 = line1
+        self.line2 = line2
+
+        self.min_angle = min_angle
+        self.max_angle = max_angle
+
+        self.reflex_angle_range = reflex_angle_range
+        self.acute_angle_range = acute_angle_range
+
+        self.can_use_reflex = None
+        self.usable_angle_range = None
+        self.usable_angle = None
+
+    def get_reflex_angle_range(self):
+        if self.max_angle - self.min_angle <= 180:
+            reflex_range = (0, self.min_angle), (self.max_angle, 360)
+            return reflex_range
+        else:
+            reflex_range = (self.min_angle, self.max_angle)
+            return reflex_range
+
+    def use_reflex(self, use: bool):
+        if use:
+            self.can_use_reflex = True
+            self.usable_angle_range = self.reflex_angle_range
+            self.usable_angle = convert_range_to_angle(self.usable_angle_range)
+        else:
+            self.can_use_reflex = False
+            self.usable_angle_range = self.acute_angle_range
+            self.usable_angle = convert_range_to_angle(self.usable_angle_range)
 
 
-def calculate_angle_between_points(x1: float, y1: float, x2: float, y2: float, center_coord: tuple):
-    angle1 = math.atan2(y1 - center_coord[1], x1 - center_coord[0])
-    angle1 = math.degrees(angle1)
-    angle2 = math.atan2(y2 - center_coord[1], x2 - center_coord[0])
-    angle2 = math.degrees(angle2)
+def convert_range_to_angle(angle_range):
+    angle = 0
+    for range_ in angle_range:
+        angle += range_[1] - range_[0]
+    return angle
 
-    return angle1 - angle2
 
-def get_angle(angle1: float, angle2: float) -> Angle:
+def get_line_pair(line1: TypedPolygon, line2: TypedPolygon, angle1: float, angle2: float) -> LinePair:
     min_angle, max_angle = min(angle1, angle2), max(angle1, angle2)
     if max_angle - min_angle <= 180:
-        acute_angle = max_angle - min_angle
-        obtuse_angle = (360 - max_angle) + min_angle
+        acute_angle_range = max_angle, min_angle
+        reflex_angle_range = (0, min_angle), (max_angle, 360)
     else:
-        acute_angle = (360 - max_angle) + min_angle
-        obtuse_angle = max_angle - min_angle
+        acute_angle_range = (0, min_angle), (max_angle, 360)
+        reflex_angle_range = max_angle, min_angle
 
-    return Angle(obtuse_angle=obtuse_angle,
-                 acute_angle=acute_angle)
+    return LinePair(line1=line1,
+                    line2=line2,
+                    min_angle=min_angle,
+                    max_angle=max_angle,
+                    reflex_angle_range=reflex_angle_range,
+                    acute_angle_range=acute_angle_range)
+
 
 def calculate_angle_from_positive_x_axis(x1: float, y1: float, center_coord: tuple):
     angle = math.atan2(y1 - center_coord[1], x1 - center_coord[0])
@@ -38,15 +70,6 @@ def calculate_angle_from_positive_x_axis(x1: float, y1: float, center_coord: tup
         angle += 360
     return angle
 
-def get_reflex_angle_range(angle1: float, angle2: float):
-    min_angle, max_angle = min(angle1, angle2), max(angle1, angle2)
-
-    if max_angle - min_angle <= 180:
-        reflex_range = (0, min_angle), (max_angle, 360)
-        return reflex_range
-    else:
-        reflex_range = (min_angle, max_angle)
-        return reflex_range
 
 def angles_in_reflex_range(reflex_range, angles: list[float]) -> bool:
     # There can be 1-2 range tuples, depending on the reflex angle
@@ -57,6 +80,17 @@ def angles_in_reflex_range(reflex_range, angles: list[float]) -> bool:
     return False
 
 
+def determine_line_quadrant(angle):
+    if 0 <= angle < 90:
+        return 'Quadrant 1'
+    elif 90 <= angle < 180:
+        return 'Quadrant 2'
+    elif 180 <= angle < 270:
+        return 'Quadrant 3'
+    else:
+        return 'Quadrant 4'
+
+
 class CityAnglesTracker:
 
     def __init__(self, city_name: str, city_coord: tuple, lines: list[TypedPolygon]):
@@ -64,8 +98,9 @@ class CityAnglesTracker:
         self.city_coord = city_coord
         self.lines = lines
 
+        self.line_pairs = self._create_line_pairs()
+
         self.angles = {}
-        self.most_open_angle = None
 
     def _get_line_angles(self):
         for line_poly in self.lines:
@@ -76,30 +111,37 @@ class CityAnglesTracker:
             self.angles = {key: self.angles[key] for key in sorted(self.angles.keys())}
         return self.angles
 
-    def find_largest_angle(self):
+    def _create_line_pairs(self) -> list[LinePair]:
         if len(self.angles) == 0:
             self._get_line_angles()
 
         angles_list = list(self.angles.keys())
-        largest_angle = -1
-        largest_angle_lines = (None, None)
+
+        if len(angles_list) == 1:
+            opposite_angle = (angles_list[0] + 180) % 360
+            line_pair = LinePair(line1=self.lines[0], line2=self.lines[0], min_angle=opposite_angle,
+                                 max_angle=opposite_angle)
+            return [line_pair]
+
+        line_pairs = []
         for i, (angle, line) in enumerate(self.angles.items()):
             next_i = i + 1 if i < len(self.angles) else 0
             next_angle = angles_list[next_i]
-            angle_obj = get_angle(angle1=angle,
-                                  angle2=next_angle)
-            reflex_range = get_reflex_angle_range(angle1=angle,
-                                                  angle2=next_angle)
+            next_line = self.angles[next_angle]
+
+            line_pair = get_line_pair(line1=line,
+                                      line2=next_line,
+                                      angle1=angle,
+                                      angle2=next_angle)
+            line_pairs.append(line_pair)
+
+            reflex_range = line_pair.get_reflex_angle_range()
             other_angles = [self.angles[idx] for idx in range(len(self.angles)) if idx not in (i, next_i)]
-            if angles_in_reflex_range(reflex_range=reflex_range,
-                                      angles=other_angles):
-                btwn_angle = angle_obj.acute_angle
-            else:
-                btwn_angle = angle_obj.obtuse_angle
+            can_use_reflex = not angles_in_reflex_range(reflex_range=reflex_range,
+                                                        angles=other_angles)
+            line_pair.use_reflex(use=can_use_reflex)
 
-            if btwn_angle > largest_angle:
-                largest_angle = btwn_angle
-                largest_angle_lines = (line, self.angles[btwn_angle])
+        return line_pairs
 
-        return largest_angle, largest_angle_lines
+    def find_best_spot(self, ):
 

@@ -172,8 +172,7 @@ class CityTextBoxSearch:
         city_angles_tracker_ = CityAnglesTracker(city_name=self.city_name,
                                                  city_coord=self.city_coord,
                                                  lines=line_polys)
-        largest_angle, largest_angle_lines = .find_largest_line_angle(line_polys=line_polys,
-                                                                                      city_coord=self.city_coord)
+        largest_angle, largest_angle_lines = city_angles_tracker_.find_largest_angle()
 
 
         scan_poly = poly_creation.create_poly(poly_type='rectangle')
