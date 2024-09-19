@@ -73,14 +73,18 @@ def should_show_algo(poly_data, poly_type, city_name, new_max_score: bool = Fals
                      force_show: bool = False) -> bool:
     display_algo = get_config_value(config, 'algo_display.show_display', bool)
     display_algo_city = get_config_value(config, 'algo_display.show_poly_finalist_city', str)
+    force_show_new_max_scores = get_config_value(config, 'algo_display.force_show_new_max_scores', bool)
     steps_to_show_scan_poly = get_config_value(config, 'algo_display.steps_to_show_scan_poly', int)
     steps_to_show_poly_finalist = get_config_value(config, 'algo_display.steps_to_show_poly_finalist', int)
     force_show_new_max_score = get_config_value(config, 'algo_display.force_show_new_max_score', bool)
 
     if force_show:
+        logging.debug("Force show is true, so showing this poly.")
         return True
 
     if not display_algo or display_algo_city not in (city_name, 'N/A') or not poly_data['show_algo']:
+        logging.debug(f"Display algo: {display_algo} | Display algo city: {display_algo_city} | "
+                      f"Show algo for poly specifically: {poly_data['show_algo']}. Showing poly.")
         return False
     elif force_show_new_max_score and new_max_score:
         return True
@@ -89,11 +93,13 @@ def should_show_algo(poly_data, poly_type, city_name, new_max_score: bool = Fals
         return False
 
     if poly_type in ('finalist', 'nearby_search') and num_iterations % steps_to_show_poly_finalist != 0:
+        logging.debug(f"poly_type: {poly_type} | num_iterations: {num_iterations}. Showing poly.")
         return False
 
     if display_algo_city not in (city_name, 'N/A'):
         return False
 
+    logging.debug("No other conditions met. Displaying poly.")
     return True
 
 
@@ -230,8 +236,7 @@ class AlgorithmHandler:
             logging.info(f"Finding best poly for {city_ele.city_name}")
             text_box_dimensions = city_ele.text_box_element.dimensions
             city_text_box_search = CityTextBoxSearch(text_box_dimensions=text_box_dimensions,
-                                                     city_poly=city_ele.city_poly,
-                                                     city_name=city_ele.city_name)
+                                                     city_poly=city_ele.city_poly)
             best_poly = self._handle_city_text_box_search(city_text_box_search=city_text_box_search)
             logging.info(f"Found best poly for {city_ele.city_name}.")
             city_ele.best_poly = best_poly
