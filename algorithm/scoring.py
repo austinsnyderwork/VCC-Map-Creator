@@ -1,9 +1,8 @@
 import logging
-import numpy as np
 
 from .algo_utils import poly_result
 from .poly_management import ScanPoly
-from algorithm import spatial_analysis
+from . import spatial_analysis
 
 
 def normalize_value(value, old_min, old_max, new_min, new_max):

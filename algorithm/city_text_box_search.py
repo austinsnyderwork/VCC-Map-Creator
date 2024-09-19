@@ -1,7 +1,7 @@
 import configparser
 import logging
-import pyproj
 
+from .city_angles_tracker import CityAnglesTracker
 from utils import get_config_value
 import poly_creation
 from .poly_management import TypedPolygon, ScanPolysManager
@@ -169,7 +169,10 @@ class CityTextBoxSearch:
                                                                polygons=polygons,
                                                                scan_poly=initial_scan_poly)
         line_polys = [poly for poly in nearby_polys if poly.poly_class == 'line']
-        largest_angle, largest_angle_lines = spatial_analysis.find_largest_line_angle(line_polys=line_polys,
+        city_angles_tracker_ = CityAnglesTracker(city_name=self.city_name,
+                                                 city_coord=self.city_coord,
+                                                 lines=line_polys)
+        largest_angle, largest_angle_lines = .find_largest_line_angle(line_polys=line_polys,
                                                                                       city_coord=self.city_coord)
 
 
