@@ -19,6 +19,11 @@ class TypedPolygon:
         for k, v in kwargs.items():
             setattr(self, k, v)
 
+    def has_one_of_attributes(self, attributes: dict):
+        for attribute, value in attributes.items():
+            if getattr(self, attribute, __default=False) == value:
+                return True
+
     @property
     def bounds(self):
         return self.poly.bounds

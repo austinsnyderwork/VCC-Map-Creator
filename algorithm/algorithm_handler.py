@@ -1,14 +1,14 @@
 import configparser
 import logging
-from shapely.geometry import Polygon
 
 from . import algorithm_map_creator, rtree_analyzer
+from .city_scanning import city_angles_tracker
 from interfacing import VisualizationElement
 from utils.helper_functions import get_config_value
-from .city_text_box_search import CityTextBoxSearch
+from algorithm.city_scanning.city_text_box_search import CityTextBoxSearch
 from .algo_utils import helper_functions
 import poly_creation
-from .poly_management import TypedPolygon, ScanPoly
+from .poly_management import TypedPolygon
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -101,6 +101,7 @@ def should_show_algo(poly_data, poly_type, city_name, new_max_score: bool = Fals
 
     logging.debug("No other conditions met. Displaying poly.")
     return True
+
 
 
 class AlgorithmHandler:
@@ -231,7 +232,12 @@ class AlgorithmHandler:
             if result.poly_type == 'best':
                 return result.poly
 
-    def find_best_polys(self, city_elements: list[VisualizationElement]):
+
+    def find_best_polys(self, city_angles_tracker_: city_angles_tracker.CityAnglesTracker):
+        open_quadrants = city_angles_tracker_.find_open_quadrants()
+        if len(open_quadrants) > 0:
+
+
         for city_ele in city_elements:
             logging.info(f"Finding best poly for {city_ele.city_name}")
             text_box_dimensions = city_ele.text_box_element.dimensions

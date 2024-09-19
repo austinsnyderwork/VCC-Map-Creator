@@ -21,6 +21,15 @@ class ScanPoly(TypedPolygon):
 
         return False
 
+    def attributes_present_in_polys(self, poly_attributes: dict):
+        for poly in self.intersecting_polys:
+            for attribute, value in poly_attributes.items():
+                if hasattr(poly, attribute):
+                    if getattr(poly, attribute) == value:
+                        return True
+
+        return False
+
     @property
     def bounds(self):
         return self.poly.bounds

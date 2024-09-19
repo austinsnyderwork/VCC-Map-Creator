@@ -14,14 +14,14 @@ class ScanPolysManager:
             self.scan_poly_intersections[num_intersections] = []
         self.scan_poly_intersections[num_intersections].append(scan_poly)
 
-    def get_least_intersections_poly_groups(self, poly_types_to_omit: list[str]):
+    def get_least_intersections_poly_groups(self, poly_attributes_to_omit: dict, poly_types_to_omit: list[str]):
         met_omit_condition = False
         poly_groups = []
         intersections = sorted(list(self.scan_poly_intersections.keys()))
         for intersection_num in intersections:
-            for poly_group in self.scan_poly_intersections[intersection_num]:
-                if not poly_group.types_present_in_polys(poly_types_to_omit):
-                    poly_groups.append(poly_group)
+            for scan_poly in self.scan_poly_intersections[intersection_num]:
+                if not scan_poly.types_present_in_polys(poly_types_to_omit) and not scan_poly.attributes_present_in_polys(poly_attributes_to_omit):
+                    poly_groups.append(scan_poly)
                     met_omit_condition = True
             if met_omit_condition:
                 return poly_groups
