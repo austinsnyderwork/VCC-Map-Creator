@@ -236,8 +236,7 @@ class AlgorithmHandler:
             logging.info(f"Finding best poly for {city_ele.city_name}")
             text_box_dimensions = city_ele.text_box_element.dimensions
             city_text_box_search = CityTextBoxSearch(text_box_dimensions=text_box_dimensions,
-                                                     city_poly=city_ele.city_poly,
-                                                     city_name=city_ele.city_name)
+                                                     city_poly=city_ele.city_poly)
             best_poly = self._handle_city_text_box_search(city_text_box_search=city_text_box_search)
             logging.info(f"Found best poly for {city_ele.city_name}.")
             city_ele.best_poly = best_poly

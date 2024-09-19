@@ -1,5 +1,6 @@
 import configparser
 import logging
+import pyproj
 
 from utils import get_config_value
 import poly_creation
@@ -38,11 +39,11 @@ def _create_scan_steps(text_box_dimensions: dict, scan_area_poly: TypedPolygon) 
 
 class CityTextBoxSearch:
 
-    def __init__(self, text_box_dimensions: dict, city_poly: TypedPolygon, city_name: str):
+    def __init__(self, text_box_dimensions: dict, city_poly: TypedPolygon):
         self.text_box_dimensions = text_box_dimensions
         self.city_poly = city_poly
         self.city_coord = city_poly.centroid.x, city_poly.centroid.y
-        self.city_name = city_name
+        self.city_name = city_poly.city_name
 
         self.scan_polys_manager = ScanPolysManager()
 
@@ -64,11 +65,11 @@ class CityTextBoxSearch:
                                    poly_class='text')
         return t_scan_poly
 
-    def _create_scan_area_poly(self, max_text_distance_to_city: int):
+    def _create_initial_scan_area_poly(self):
         x_dist, y_dist = self.text_width_height
         center_coord = self.city_poly.centroid.x, self.city_poly.centroid.y
-        search_height = (y_dist + max_text_distance_to_city) * 2
-        search_width = (x_dist + max_text_distance_to_city) * 2
+        search_height = (y_dist + 50) * 2
+        search_width = (x_dist + 50) * 2
         scan_area_poly = poly_creation.create_poly(poly_type='rectangle',
                                                    center_coord=center_coord,
                                                    poly_height=search_height,
@@ -157,8 +158,23 @@ class CityTextBoxSearch:
                 best_scan_poly = scan_poly
         return best_scan_poly
 
+
     def find_best_poly(self, rtree_idx, polygons: dict):
         max_text_distance_to_city = get_config_value(config, 'algorithm.maximum_distance_to_city', int)
+
+        initial_scan_poly = self._create_initial_scan_area_poly()
+        nearby_polys = spatial_analysis.get_intersecting_polys(rtree_idx=rtree_idx,
+                                                               polygons=polygons,
+                                                               scan_poly=initial_scan_poly)
+        line_polys = [poly for poly in nearby_polys if poly.poly_class == 'line']
+        largest_angle, largest_angle_lines = spatial_analysis.find_largest_line_angle(line_polys=line_polys,
+                                                                                      city_coord=self.city_coord)
+
+
+        scan_poly = poly_creation.create_poly(poly_type='rectangle')
+        spatial_analysis.get_intersecting_polys(rtree_idx=rtree_idx,
+                                                polygons=polygons,
+                                                )
 
         scan_area_poly = self._create_scan_area_poly(max_text_distance_to_city=max_text_distance_to_city)
         yield poly_result.PolyResult(poly=scan_area_poly,
