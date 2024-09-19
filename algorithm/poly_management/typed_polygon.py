@@ -21,7 +21,7 @@ class TypedPolygon:
 
     def has_one_of_attributes(self, attributes: dict):
         for attribute, value in attributes.items():
-            if getattr(self, attribute, __default=False) == value:
+            if getattr(self, attribute, False) == value:
                 return True
 
     @property

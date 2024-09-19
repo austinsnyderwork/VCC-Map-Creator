@@ -1,7 +1,6 @@
-@ -1,147 +0,0 @@
 import math
 
-from .poly_management import TypedPolygon
+from algorithm.poly_management import TypedPolygon
 
 
 class LinePair:
@@ -143,5 +142,3 @@ class CityAnglesTracker:
             line_pair.use_reflex(use=can_use_reflex)
 
         return line_pairs
-
-    def find_best_spot(self, ):

@@ -165,7 +165,7 @@ class CityTextBoxSearch:
 
     def _create_text_boxes_surrounding_city_poly(self) -> list[ScanPoly]:
         city_buffer = get_config_value(config, 'algorithm.city_to_text_box_buffer', int)
-        num_steps = get_config_value(config, 'algorithm.num_steps', int)
+        num_steps = get_config_value(config, 'algorithm.search_steps', int)
 
         poly_coords = self.city_poly.bounds
         poly_coords = [poly_coord + city_buffer for poly_coord in poly_coords]
@@ -201,8 +201,6 @@ class CityTextBoxSearch:
     def _get_intersecting_polygons_for_scan_polys(self, scan_polys: list[ScanPoly], rtree_idx, polygons: dict):
         unacceptable_scan_overlap_classes = get_config_value(config, 'algorithm.unacceptable_scan_overlap_classes',
                                                              list)
-        scan_poly_by_intersections = {}
-        self._get_intersecting_polygons_for_scan_polys(scan_polys=scan_polys)
         for num_iterations, scan_poly in enumerate(scan_polys):
             intersecting_polys = spatial_analysis.get_intersecting_polys(rtree_idx=rtree_idx,
                                                                          polygons=polygons,
@@ -214,11 +212,6 @@ class CityTextBoxSearch:
                                  poly.poly_class in unacceptable_scan_overlap_classes]
             if len(non_starter_polys) > 0:
                 continue
-
-            num_intersections = len(intersecting_polys)
-            if num_intersections not in scan_poly_by_intersections:
-                scan_poly_by_intersections[num_intersections] = []
-            scan_poly_by_intersections[num_intersections].append(scan_poly)
 
             scan_result = poly_result.PolyResult(poly=scan_poly,
                                                  poly_type='scan',
@@ -267,4 +260,10 @@ class CityTextBoxSearch:
             if closest_poly_distance not in closest_poly:
                 closest_poly[closest_poly_distance] = []
             closest_poly[closest_poly_distance].append(scan_poly)
+        greatest_distance = max(list(closest_poly.keys()))
+        poly_with_most_space = closest_poly[greatest_distance][0]
+        best_result = poly_result.PolyResult(poly=poly_with_most_space,
+                                             poly_type='best',
+                                             num_iterations=-1)
+        yield best_result
         
