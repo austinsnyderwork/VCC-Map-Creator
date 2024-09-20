@@ -13,55 +13,6 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 
 
-def _create_scan_steps(text_box_dimensions: dict, scan_area_poly: TypedPolygon) -> tuple[list, list]:
-    search_steps = get_config_value(config, 'algorithm.search_steps', int)
-    scan_area_x_min, scan_area_y_min, scan_area_x_max, scan_area_y_max = scan_area_poly.bounds
-
-    scan_poly_x_len = text_box_dimensions['x_max'] - text_box_dimensions['x_min']
-    scan_poly_y_len = text_box_dimensions['y_max'] - text_box_dimensions['y_min']
-
-    # Iterating steps through
-    maximum_x_min = scan_area_x_max - scan_poly_x_len
-    x_min_change = (maximum_x_min - scan_area_x_min) / search_steps
-    x_min_steps = []
-    for step in list(range(search_steps + 1)):
-        step_distance = x_min_change * step
-        x_min_steps.append(scan_area_x_min + step_distance)
-
-    maximum_y_min = scan_area_y_max - scan_poly_y_len
-    y_min_change = (maximum_y_min - scan_area_y_min) / search_steps
-    y_min_steps = []
-    for step in list(range(search_steps + 1)):
-        step_distance = y_min_change * step
-        y_min_steps.append(scan_area_y_min + step_distance)
-    return x_min_steps, y_min_steps
-
-
-def _determine_nearby_polys(scan_polys: list[TypedPolygon], rtree_idx, polygons):
-    nearby_poly_search_width = get_config_value(config, 'algorithm.nearby_poly_search_width', int)
-    nearby_poly_search_height = get_config_value(config, 'algorithm.nearby_poly_search_height', int)
-
-    num_iterations = 0
-    for scan_poly in scan_polys:
-        center_coord = scan_poly.poly.centroid.x, scan_poly.poly.centroid.y
-        nearby_search_poly = poly_creation.create_poly(poly_type='rectangle',
-                                                       center_coord=center_coord,
-                                                       poly_width=nearby_poly_search_width,
-                                                       poly_height=nearby_poly_search_height)
-        nearby_search_poly = TypedPolygon(poly=nearby_search_poly,
-                                          poly_type='nearby_search',
-                                          poly_class='algorithm_misc')
-        scan_poly.nearby_search_poly = nearby_search_poly
-
-        nearby_polys = spatial_analysis.get_intersecting_polys(rtree_idx=rtree_idx,
-                                                               polygons=polygons,
-                                                               scan_poly=nearby_search_poly)
-        scan_poly.nearby_polys = nearby_polys
-
-        num_iterations += 1
-    return scan_polys
-
-
 class CityTextBoxSearch:
 
     def __init__(self, text_box_dimensions: dict, city_poly: TypedPolygon):

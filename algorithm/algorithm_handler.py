@@ -120,6 +120,7 @@ class AlgorithmHandler:
 
         t_polys = []
         for line_ele in line_eles:
+            logging.info(f"Plotting line between {line_ele.origin} and {line_ele.outpatient}")
             new_x_data, new_y_data = spatial_analysis.reduce_line_length(line_ele.x_data, line_ele.y_data, line_reduction_units)
             poly = poly_creation.create_poly(poly_type='line', x_data=new_x_data, y_data=new_y_data,
                                              line_width=line_ele.line_width)

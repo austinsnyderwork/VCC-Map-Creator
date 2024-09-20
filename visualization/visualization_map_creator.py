@@ -72,10 +72,12 @@ class VisualizationMapCreator:
             if origin in cities_plotted:
                 continue
             coord = (self.city_coords[origin]['longitude'], self.city_coords[origin]['latitude'])
+            ooo = 'origin' if origin in excl_origins else 'both'
             origin_data = {
                 'coord': coord,
                 'scatter_size': scatter_size,
-                'scatter_label': 'Origin'
+                'scatter_label': 'Origin',
+                'origin_or_outpatient': ooo
             }
 
             marker = origin_marker if origin in excl_origins else dual_origin_outpatient_marker
@@ -99,10 +101,13 @@ class VisualizationMapCreator:
                     continue
 
                 coord = (self.city_coords[outpatient]['longitude'], self.city_coords[outpatient]['latitude'])
+
+                ooo = 'origin' if origin in excl_origins else 'both'
                 outpatient_data = {
                     'coord': coord,
                     'scatter_size': scatter_size,
-                    'scatter_label': 'Outpatient'
+                    'scatter_label': 'Outpatient',
+                    'origin_or_outpatient': ooo
                 }
                 marker = outpatient_marker if outpatient in excl_outpatients else dual_origin_outpatient_marker
                 color = outpatient_color if outpatient in excl_outpatients else dual_origin_outpatient_color
@@ -188,13 +193,13 @@ class VisualizationMapCreator:
         }
         return text_box, text_box_dimensions
 
-    def plot_text_boxes(self, city_elements: list[visualization_element.VisualizationElement],
-                        zorder: int):
+    def plot_text_boxes(self, city_elements: list[visualization_element.VisualizationElement], zorder: int):
         fontsize = get_config_value(config, 'viz_display.city_font_size', int)
         font_color = get_config_value(config, 'viz_display.city_font_color', str)
         font_weight = get_config_value(config, 'viz_display.city_font_weight', str)
         font = get_config_value(config, 'viz_display.city_font', str)
         for city_ele in city_elements:
+
             text_box_ele = city_ele.text_box_element
             city_text_box = self._plot_text(city_name=city_ele.city_name,
                                             text_box_lon=city_ele.best_poly.centroid.x,
