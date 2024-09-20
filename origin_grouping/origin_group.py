@@ -1,3 +1,4 @@
+import logging
 
 
 class OriginGroup:
@@ -11,4 +12,7 @@ class OriginGroup:
         self.outpatient_coords = {}
 
     def add_outpatient(self, outpatient: str):
+        if outpatient == self.origin:
+            logging.error(f"Attempted to add {outpatient} to {self.origin} group")
+            return
         self.outpatients.add(outpatient)

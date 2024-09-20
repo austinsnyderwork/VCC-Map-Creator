@@ -1,4 +1,5 @@
 import configparser
+import copy
 import heapq
 import logging
 import matplotlib
@@ -67,7 +68,7 @@ class Interface:
                 pickle.dump(city_vis_elements, file)
         return city_vis_elements"""
 
-    def import_data(self, vcc_file_name: str, sheet_name: str = None):
+    def import_data(self, vcc_file_name: str, sheet_name: str = None, origins_to_group_together: dict = None):
         self.df = input_output.get_dataframe(file_name=vcc_file_name,
                                              sheet_name=sheet_name)
 
@@ -75,7 +76,14 @@ class Interface:
         self.df.apply(self._add_city_gpd_coord, base_map=self.vis_map_creator.iowa_map, axis=1)
         logging.info("Added city coords.")
 
-        self.df.apply(self.origin_groups_handler_.group_origins, city_coords=self.vis_map_creator.city_coords, axis=1)
+        if origins_to_group_together:
+            origins_together_expanded = {}
+            for origin, outpatients in origins_to_group_together.items():
+                for outpatient in outpatients:
+                    origins_together_expanded[outpatient] = origin
+
+        self.df.apply(self.origin_groups_handler_.group_origins, city_coords=self.vis_map_creator.city_coords, axis=1,
+                      origins_to_group_together=origins_together_expanded)
         logging.info(f"Grouped origins.")
 
         self.origin_groups_handler_.determine_dual_origin_outpatient()
@@ -85,49 +93,46 @@ class Interface:
 
         self.data_imported = True
 
-    def _filter_dataframe(self, origins: list[str] = None, outpatients: list[str] = None):
-        if origins:
-            self.df = self.df[self.df['point_of_origin'].isin(origins)]
-        if outpatients:
-            self.df = self.df[self.df['community'].isin(outpatients)]
+    def _should_plot_text(self, city_ele: VisualizationElement, plot_origins: bool, plot_outpatients: bool):
+        if city_ele.origin_or_outpatient == 'origin' and not plot_origins:
+            return False
+        elif city_ele.origin_or_outpatient == 'outpatient' and not plot_outpatients:
+            return False
+        elif city_ele.origin_or_outpatient == 'both' and not plot_origins and not plot_outpatients:
+            return False
+        return True
 
-    def _plot_text(self, city_elements: list[VisualizationElement], plot_origins: bool, plot_outpatients: bool):
+    def _plot_text_boxes(self, city_elements: list[VisualizationElement], plot_origins: bool, plot_outpatients: bool):
         valid_city_eles = []
         for city_ele in city_elements:
-            if city_ele.origin_and_outpatient == 'origin' and not plot_origins:
+            if not self._should_plot_text(city_ele=city_ele,
+                                          plot_origins=plot_origins,
+                                          plot_outpatients=plot_outpatients):
                 continue
-            if city_ele.origin_and_outpatient == 'outpatient' and not plot_outpatients:
-                continue
+
             valid_city_eles.append(city_ele)
         self.vis_map_creator.plot_sample_text_boxes(city_elements=valid_city_eles)
         logging.info("Finding best polygons for city vis elements.")
         self.algo_handler.find_best_polys(valid_city_eles)
         self.vis_map_creator.plot_text_boxes(city_elements=valid_city_eles, zorder=2)
 
-    def create_line_map(self, variables: dict = None, origins: list[str] = None, outpatients: list[str] = None,
+    def create_line_map(self, origin_groups_handler_: origin_grouping.OriginGroupsHandler, variables: dict = None,
                         plot_origins_text: bool = True, plot_outpatients_text: bool = True):
         if not self.data_imported:
             raise ValueError(f"Have to import data first before calling {__name__}.")
 
-        self._filter_dataframe(origins=origins,
-                               outpatients=outpatients)
-
         line_width = int(config['dimensions']['line_width'])
         line_vis_elements: list[VisualizationElement] = self.vis_map_creator.plot_lines(
-            origin_groups=self.origin_groups_handler_.origin_groups,
+            origin_groups=origin_groups_handler_.origin_groups,
             line_width=line_width,
             zorder=1)
         self.algo_handler.plot_lines(line_vis_elements)
-        city_vis_elements = self.vis_map_creator.plot_points(origin_groups=self.origin_groups_handler_.origin_groups,
-                                                             scatter_size=float(
-                                                                 config['dimensions']['scatter_size']),
-                                                             dual_origin_outpatient=self.origin_groups_handler_.dual_origin_outpatient,
+        city_vis_elements = self.vis_map_creator.plot_points(origin_groups=origin_groups_handler_.origin_groups,
+                                                             scatter_size=float(config['dimensions']['scatter_size']),
+                                                             dual_origin_outpatients=origin_groups_handler_.dual_origin_outpatient,
                                                              zorder=3)
-        self._plot_text(city_elements=city_vis_elements, plot_origins=plot_origins_text, plot_outpatients=plot_outpatients_text)
-        self.vis_map_creator.plot_sample_text_boxes(city_elements=city_vis_elements)
-        logging.info("Finding best polygons for city vis elements.")
-        self.algo_handler.find_best_polys(city_vis_elements)
-        self.vis_map_creator.plot_text_boxes(city_elements=city_vis_elements, zorder=2)
+        self.algo_handler.plot_points(city_vis_elements)
+        self._plot_text_boxes(city_vis_elements, plot_origins=plot_origins_text, plot_outpatients=plot_outpatients_text)
         show_pause = 360
         self.vis_map_creator.show_map(show_pause=show_pause)
 
@@ -150,7 +155,9 @@ class Interface:
 
     def create_highest_volume_line_map(self, num_results: int):
         top_origins = self._get_top_outreach_volume_cities(num_results=num_results)
-        self.create_line_map(origins=top_origins,
+        origin_groups_handler_ = copy.deepcopy(self.origin_groups_handler_)
+        origin_groups_handler_.filter_origin_groups(filter_origins=top_origins)
+        origin_groups_handler_.dual_origin_outpatient = []
+        self.create_line_map(origin_groups_handler_=origin_groups_handler_,
                              plot_origins_text=True,
                              plot_outpatients_text=False)
-

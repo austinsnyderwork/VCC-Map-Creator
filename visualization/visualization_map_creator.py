@@ -12,6 +12,16 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 
 
+def _group_exclusive_origin_outpatients(origin_groups: dict, dual_origin_outpatient: list):
+    excl_origins = [origin for origin in origin_groups.keys() if origin not in dual_origin_outpatient]
+    excl_outpatients = []
+    for origin_group in origin_groups.values():
+        for outpatient in origin_group.outpatients:
+            if outpatient not in dual_origin_outpatient:
+                excl_outpatients.append(outpatient)
+    return excl_origins, excl_outpatients
+
+
 class VisualizationMapCreator:
 
     def __init__(self):
@@ -40,7 +50,7 @@ class VisualizationMapCreator:
         logging.info("Created base Iowa map.")
 
     def _plot_point(self, marker: str, coord: dict, scatter_size, scatter_label, color: str, edgecolors: str,
-                    zorder: int) -> dict:
+                    zorder: int, **kwargs) -> dict:
         lon, lat = coord[0], coord[1]
 
         scatter_obj = self.ax.scatter(lon, lat, marker=marker, color=color, edgecolors=edgecolors, s=scatter_size,
@@ -48,7 +58,7 @@ class VisualizationMapCreator:
 
         return scatter_obj
 
-    def plot_points(self, scatter_size: float, dual_origin_outpatient: list,
+    def plot_points(self, scatter_size: float, dual_origin_outpatients: list,
                     origin_groups: dict[str, origin_grouping.OriginGroup],
                     zorder: int) -> list[visualization_element.VisualizationElement]:
         origin_marker = get_config_value(config, 'display.origin_marker', cast_type=str)
@@ -59,18 +69,10 @@ class VisualizationMapCreator:
         dual_origin_outpatient_color = get_config_value(config, 'display.dual_origin_outpatient_color', cast_type=str)
         dual_origin_outpatient_outer_color = get_config_value(config, 'display.dual_origin_outpatient_outer_color', str)
 
-        excl_origins = [origin for origin in origin_groups.keys() if origin not in dual_origin_outpatient]
-        excl_outpatients = []
-        for origin_group in origin_groups.values():
-            for outpatient in origin_group.outpatients:
-                if outpatient not in dual_origin_outpatient:
-                    excl_outpatients.append(outpatient)
+        excl_origins, excl_outpatients = _group_exclusive_origin_outpatients(origin_groups, dual_origin_outpatients)
 
-        cities_plotted = []
         point_eles = []
-        for origin, origin_group_ in origin_groups.items():
-            if origin in cities_plotted:
-                continue
+        for origin in excl_origins:
             coord = (self.city_coords[origin]['longitude'], self.city_coords[origin]['latitude'])
             ooo = 'origin' if origin in excl_origins else 'both'
             origin_data = {
@@ -94,15 +96,15 @@ class VisualizationMapCreator:
                                                                     city_name=origin,
                                                                     **origin_data)
             point_eles.append(origin_ele)
-            cities_plotted.append(origin)
 
-            for outpatient in origin_group_.outpatients:
-                if outpatient in cities_plotted:
+            outpatients = origin_groups[origin].outpatients
+            for outpatient in outpatients:
+                if outpatient in origin_groups:
                     continue
 
                 coord = (self.city_coords[outpatient]['longitude'], self.city_coords[outpatient]['latitude'])
 
-                ooo = 'origin' if origin in excl_origins else 'both'
+                ooo = 'outpatient' if origin in excl_origins else 'both'
                 outpatient_data = {
                     'coord': coord,
                     'scatter_size': scatter_size,
@@ -123,8 +125,6 @@ class VisualizationMapCreator:
                                                                             city_name=outpatient,
                                                                             **outpatient_data)
                 point_eles.append(outpatient_ele)
-
-                cities_plotted.append(outpatient)
         return point_eles
 
     def _plot_line(self, origin: str, outpatient: str, color: str, line_width: int, zorder: int) -> plt.Line2D:
@@ -198,7 +198,12 @@ class VisualizationMapCreator:
         font_color = get_config_value(config, 'viz_display.city_font_color', str)
         font_weight = get_config_value(config, 'viz_display.city_font_weight', str)
         font = get_config_value(config, 'viz_display.city_font', str)
+        plotted_cities = {}
         for city_ele in city_elements:
+            if city_ele.city_name in plotted_cities:
+                continue
+
+            logging.info(f"Plotting {city_ele.city_name} text box.")
 
             text_box_ele = city_ele.text_box_element
             city_text_box = self._plot_text(city_name=city_ele.city_name,
@@ -211,6 +216,7 @@ class VisualizationMapCreator:
                                             font=font)
             text_box_ele.add_value(element='text_box',
                                    value=city_text_box)
+            plotted_cities[city_ele.city_name] = city_text_box
 
     def plot_sample_text_boxes(self, city_elements: list[visualization_element.VisualizationElement]):
         for city_ele in city_elements:
