@@ -161,3 +161,45 @@ class Interface:
         self.create_line_map(origin_groups_handler_=origin_groups_handler_,
                              plot_origins_text=True,
                              plot_outpatients_text=False)
+
+    @staticmethod
+    def _count_outpatient_visiting_clinics(row, num_visiting_clinics: dict):
+        origin = row['point of origin']
+        outpatient = row['outpatient']
+
+        if outpatient not in num_visiting_clinics:
+            num_visiting_clinics[outpatient] = {
+                'count': 0,
+                'visiting_clinics': set(origin)
+            }
+
+        if origin not in num_visiting_clinics[outpatient]['visiting_clinics']:
+            num_visiting_clinics[outpatient]['count'] += 1
+            num_visiting_clinics[outpatient]['visiting_clinics'].add(origin)
+
+    def create_outpatient_num_visiting_clinics_map(self):
+        if not self.data_imported:
+            raise ValueError(f"Have to import data first before calling {__name__}.")
+
+        num_visiting_clinics = {}
+        self.df.apply(self._count_outpatient_visiting_clinics, num_visiting_clinics)
+
+        scatter_sizes = {
+            (5, 10): {
+                'color': 'blue',
+                'scatter_size': 25
+            },
+            (11, 15): {
+                'color': 'red',
+                'scatter_size': 50
+            },
+            (16, 20): {
+                'color': 'yellow',
+                'scatter_size': 75
+            },
+            (20, ): {
+                'color': 'yellow',
+                'scatter_size': 100
+            }
+        }
+
