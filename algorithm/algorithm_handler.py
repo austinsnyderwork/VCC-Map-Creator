@@ -9,6 +9,7 @@ from algorithm.city_scanning.city_text_box_search import CityTextBoxSearch
 from .algo_utils import helper_functions
 import poly_creation
 from .poly_management import TypedPolygon
+from . import spatial_analysis
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -102,7 +103,6 @@ def should_show_algo(poly_data, poly_type, city_name, new_max_score: bool = Fals
     return True
 
 
-
 class AlgorithmHandler:
 
     def __init__(self):
@@ -110,15 +110,18 @@ class AlgorithmHandler:
         self.algo_map_creator = algorithm_map_creator.AlgorithmMapCreator(show_display=show_algo_display)
         self.rtree_analyzer = rtree_analyzer.RtreeAnalyzer()
 
+
     def plot_lines(self, line_eles: list[VisualizationElement]):
         line_color = get_config_value(config, 'algo_display.line_color', str)
         show_line = get_config_value(config, 'algo_display.show_line', bool)
         line_transparency = get_config_value(config, 'algo_display.line_transparency', float)
         immediately_remove_line = get_config_value(config, 'algo_display.immediately_remove_line', bool)
+        line_reduction_units = get_config_value(config, 'algorithm.line_reduction_units', int)
 
         t_polys = []
         for line_ele in line_eles:
-            poly = poly_creation.create_poly(poly_type='line', x_data=line_ele.x_data, y_data=line_ele.y_data,
+            new_x_data, new_y_data = spatial_analysis.reduce_line_length(line_ele.x_data, line_ele.y_data, line_reduction_units)
+            poly = poly_creation.create_poly(poly_type='line', x_data=new_x_data, y_data=new_y_data,
                                              line_width=line_ele.line_width)
             helper_functions.verify_poly_validity(poly=poly,
                                                   name='line poly')
@@ -184,8 +187,7 @@ class AlgorithmHandler:
         extra_pause_for_new_max_score = get_config_value(config, 'algo_display.extra_pause_for_new_max_score', int)
         extra_pause_for_force_show = get_config_value(config, 'algo_display.extra_pause_for_force_show', int)
 
-        for result in city_text_box_search.find_best_poly(rtree_idx=self.rtree_analyzer.rtree_idx,
-                                                          polygons=self.rtree_analyzer.polygons):
+        for result in city_text_box_search.find_best_poly(rtree_analyzer_=self.rtree_analyzer):
             poly_data = lookup_poly_characteristics(poly_type=result.poly_type)
             show_algo_for_poly = should_show_algo(poly_data=poly_data,
                                                   poly_type=result.poly_type,

@@ -5,7 +5,7 @@ import numpy as np
 from utils import get_config_value
 import poly_creation
 from algorithm.poly_management import TypedPolygon, ScanPolysManager
-from algorithm import spatial_analysis
+from algorithm import rtree_analyzer, spatial_analysis
 from algorithm.algo_utils import poly_result
 from algorithm.poly_management import ScanPoly
 
@@ -172,31 +172,63 @@ class CityTextBoxSearch:
         city_min_x, city_min_y, city_max_x, city_max_y = poly_coords
 
         text_width, text_height = self.text_width_height
-        max_x = city_max_x + text_width
-        max_y = city_max_y + text_height
 
-        x_steps = np.linspace(city_min_x,
-                              max_x,
-                              num_steps)
-        y_steps = np.linspace(city_min_y,
-                              max_y,
-                              num_steps)
+        x_min_steps = np.linspace(city_min_x - text_width,
+                                  city_max_x,
+                                  num_steps)
+        y_min_steps = np.linspace(city_min_y,
+                                  city_max_y,
+                                  num_steps)
 
-        scan_polys = []
-        x_y_steps = [(x_max, y_max) for x_max in x_steps for y_max in y_steps]
-        for x_max, y_max in x_y_steps:
-            x_min = x_max - text_width
-            y_min = y_max - text_height
-
-            scan_poly = self._create_scan_poly(text_box_dimensions={
+        polys = []
+        # top steps
+        top_y = city_max_y + text_height
+        bottom_y = city_max_y
+        for x_min in x_min_steps:
+            top_poly = self._create_scan_poly({
                 'x_min': x_min,
+                'y_min': bottom_y,
+                'x_max': x_min + text_width,
+                'y_max': top_y
+            })
+            polys.append(top_poly)
+
+        # bottom steps
+        top_y = city_min_y
+        bottom_y = city_min_y - text_height
+        for x_min in x_min_steps:
+            bottom_poly = self._create_scan_poly({
+                'x_min': x_min,
+                'y_min': bottom_y,
+                'x_max': x_min + text_width,
+                'y_max': top_y
+            })
+            polys.append(bottom_poly)
+
+        # left steps
+        left_x = city_min_x - text_width
+        right_x = city_min_x
+        for y_min in y_min_steps:
+            left_poly = self._create_scan_poly({
+                'x_min': left_x,
                 'y_min': y_min,
-                'x_max': x_max,
-                'y_max': y_max
-            }
-            )
-            scan_polys.append(scan_poly)
-        return scan_polys
+                'x_max': right_x,
+                'y_max': y_min + text_height
+            })
+            polys.append(left_poly)
+
+        # right steps
+        left_x = city_max_x
+        right_x = city_max_x + text_width
+        for y_min in y_min_steps:
+            left_poly = self._create_scan_poly({
+                'x_min': left_x,
+                'y_min': y_min,
+                'x_max': right_x,
+                'y_max': y_min + text_height
+            })
+            polys.append(left_poly)
+        return polys
 
     def _get_intersecting_polygons_for_scan_polys(self, scan_polys: list[ScanPoly], rtree_idx, polygons: dict):
         unacceptable_scan_overlap_classes = get_config_value(config, 'algorithm.unacceptable_scan_overlap_classes',
@@ -227,14 +259,19 @@ class CityTextBoxSearch:
 
             self.scan_polys_manager.add_scan_poly(scan_poly)
 
-    def find_best_poly(self, rtree_idx, polygons: dict):
+    def find_best_poly(self, rtree_analyzer_: rtree_analyzer.RtreeAnalyzer):
         unacceptable_scan_overlap_classes = get_config_value(config, 'algorithm.unacceptable_scan_overlap_classes',
                                                              list)
 
         scan_polys = self._create_text_boxes_surrounding_city_poly()
+        for i, scan_poly in enumerate(scan_polys):
+            scan_result = poly_result.PolyResult(poly=scan_poly,
+                                                 poly_type='scan',
+                                                 num_iterations=i)
+            yield scan_result
         for result in self._get_intersecting_polygons_for_scan_polys(scan_polys=scan_polys,
-                                                                     rtree_idx=rtree_idx,
-                                                                     polygons=polygons):
+                                                                     rtree_idx=rtree_analyzer_.rtree_idx,
+                                                                     polygons=rtree_analyzer_.polygons):
             yield result
 
         best_scan_polys = self.scan_polys_manager.get_least_intersections_poly_groups(
@@ -245,23 +282,24 @@ class CityTextBoxSearch:
                 'origin': self.city_name
             })
 
-        _determine_nearby_polys(scan_polys=best_scan_polys,
-                                rtree_idx=rtree_idx,
-                                polygons=polygons)
-        closest_poly = {}
-        for scan_poly in best_scan_polys:
-            closest_poly_distance = -1
-            for nearby_poly in scan_poly.nearby_polys:
-                if nearby_poly.has_one_of_attributes({'city_name': self.city_name}):
-                    continue
-                distance = scan_poly.distance(nearby_poly)
-                if distance > closest_poly_distance:
-                    closest_poly_distance = distance
-            if closest_poly_distance not in closest_poly:
-                closest_poly[closest_poly_distance] = []
-            closest_poly[closest_poly_distance].append(scan_poly)
-        greatest_distance = max(list(closest_poly.keys()))
-        poly_with_most_space = closest_poly[greatest_distance][0]
+        poly_with_most_space = best_scan_polys[0]
+        greatest_distance = -1
+        for i, best_scan_poly in enumerate(best_scan_polys):
+            finalist_result = poly_result.PolyResult(poly=best_scan_poly,
+                                                     poly_type='finalist',
+                                                     num_iterations=i)
+            yield finalist_result
+            closest_distance, closest_polys = rtree_analyzer_.get_closest_polygons(
+                query_poly=best_scan_poly,
+                attributes_to_omit={'city_name': self.city_name})
+            logging.info(f"Closest distance for poly finalist: {closest_distance}")
+            if i == 0:
+                poly_with_most_space = best_scan_poly
+                greatest_distance = closest_distance
+            else:
+                if closest_distance > greatest_distance:
+                    greatest_distance = closest_distance
+                    poly_with_most_space = best_scan_poly
         best_result = poly_result.PolyResult(poly=poly_with_most_space,
                                              poly_type='best',
                                              num_iterations=-1)

@@ -31,3 +31,27 @@ def get_intersecting_polys(rtree_idx, polygons, scan_poly: TypedPolygon,
     intersecting_polygons = [poly for poly in filtered_polys if scan_poly.intersects(poly)]
     return intersecting_polygons
 
+
+def reduce_line_length(x_data, y_data, line_reduction_units) -> tuple[tuple, tuple]:
+    x1 = x_data[0]
+    x2 = x_data[1]
+    y1 = y_data[0]
+    y2 = y_data[1]
+    # Step 1: Calculate the direction vector
+    direction_vector = (x2 - x1, y2 - y1)
+
+    # Step 2: Calculate the magnitude of the vector
+    magnitude = math.sqrt(direction_vector[0] ** 2 + direction_vector[1] ** 2)
+
+    # Step 3: Normalize the direction vector
+    unit_vector = (direction_vector[0] / magnitude, direction_vector[1] / magnitude)
+
+    # Step 4: Move the first point 2 units toward the second point
+    new_x1 = x1 + line_reduction_units * unit_vector[0]
+    new_y1 = y1 + line_reduction_units * unit_vector[1]
+
+    new_x2 = x2 - line_reduction_units * unit_vector[0]
+    new_y2 = y2 - line_reduction_units * unit_vector[1]
+
+    return (new_x1, new_x2), (new_y1, new_y2)
+
