@@ -3,6 +3,7 @@ from shapely import Polygon
 from .typed_polygon import TypedPolygon
 
 
+
 class ScanPoly(TypedPolygon):
 
     def __init__(self, poly: Polygon, poly_class: str, city_name: str, intersecting_polys: list[TypedPolygon] = None):

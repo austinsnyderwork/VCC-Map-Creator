@@ -2,6 +2,8 @@ import configparser
 import logging
 import matplotlib
 from mpl_toolkits.basemap import Basemap
+import os
+import pickle
 
 from .visualization_element import VisualizationElement
 import algorithm
@@ -62,6 +64,8 @@ class Interface:
         df.apply(self.origin_groups_handler_.group_origins, city_coords=self.vis_map_creator.city_coords, axis=1)
         logging.info(f"Grouped origins.")
 
+        self.origin_groups_handler_.determine_dual_origin_outpatient()
+
         all_colors = matplotlib.colors.CSS4_COLORS
         self.colors = [color for color, hex_value in all_colors.items() if visualization.is_dark_color(hex_value)]
 
@@ -82,7 +86,14 @@ class Interface:
                                                              dual_origin_outpatient=self.origin_groups_handler_.dual_origin_outpatient,
                                                              zorder=3)
         self.algo_handler.plot_points(city_vis_elements)
-        self.vis_map_creator.plot_sample_text_boxes(city_elements=city_vis_elements)
+        city_vis_elements_file_path = 'vcc_maps/city_vis_elements.pkl'
+        if os.path.exists(city_vis_elements_file_path):
+            with open(city_vis_elements_file_path, 'rb') as file:
+                city_vis_elements = pickle.load(file)
+        else:
+            self.vis_map_creator.plot_sample_text_boxes(city_elements=city_vis_elements)
+            with open(city_vis_elements_file_path, 'wb') as file:
+                pickle.dump(city_vis_elements, file)
         logging.info("Finding best polygons for city vis elements.")
         self.algo_handler.find_best_polys(city_vis_elements)
         self.vis_map_creator.plot_text_boxes(city_elements=city_vis_elements, zorder=2)

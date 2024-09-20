@@ -22,12 +22,12 @@ class OriginGroupsHandler:
         self.origin_groups[origin].add_outpatient(destination)
 
     def determine_dual_origin_outpatient(self):
-        if len(self.origin_groups):
+        if len(self.origin_groups) == 0:
             raise ValueError(f"{__name__} called when origin_groups is empty.")
 
         for origin_group_ in self.origin_groups.values():
             for outpatient in origin_group_.outpatients:
-                if outpatient in origin_group_.keys():
+                if outpatient in self.origin_groups.keys():
                     self.dual_origin_outpatient.append(outpatient)
         return self.dual_origin_outpatient
 

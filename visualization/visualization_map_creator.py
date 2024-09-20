@@ -39,11 +39,12 @@ class VisualizationMapCreator:
         self.iowa_map.drawcounties(linewidth=county_line_width)
         logging.info("Created base Iowa map.")
 
-    def _plot_point(self, marker: str, coord: dict, scatter_size, scatter_label, color: str, zorder: int) -> dict:
+    def _plot_point(self, marker: str, coord: dict, scatter_size, scatter_label, color: str, edgecolors: str,
+                    zorder: int) -> dict:
         lon, lat = coord[0], coord[1]
 
-        scatter_obj = self.ax.scatter(lon, lat, marker=marker, color=color, s=scatter_size, label=scatter_label,
-                                      zorder=zorder)
+        scatter_obj = self.ax.scatter(lon, lat, marker=marker, color=color, edgecolors=edgecolors, s=scatter_size,
+                                      label=scatter_label, zorder=zorder)
 
         return scatter_obj
 
@@ -56,6 +57,8 @@ class VisualizationMapCreator:
         outpatient_color = get_config_value(config, 'display.outpatient_color', cast_type=str)
         dual_origin_outpatient_marker = get_config_value(config, 'display.dual_origin_outpatient_marker', cast_type=str)
         dual_origin_outpatient_color = get_config_value(config, 'display.dual_origin_outpatient_color', cast_type=str)
+        dual_origin_outpatient_outer_color = get_config_value(config, 'display.dual_origin_outpatient_outer_color', str)
+
         excl_origins = [origin for origin in origin_groups.keys() if origin not in dual_origin_outpatient]
         excl_outpatients = []
         for origin_group in origin_groups.values():
@@ -72,14 +75,16 @@ class VisualizationMapCreator:
             origin_data = {
                 'coord': coord,
                 'scatter_size': scatter_size,
-                'scatter_label': 'Outpatient'
+                'scatter_label': 'Origin'
             }
 
             marker = origin_marker if origin in excl_origins else dual_origin_outpatient_marker
             color = origin_color if origin in excl_origins else dual_origin_outpatient_color
+            edgecolor = origin_color if origin in excl_origins else dual_origin_outpatient_outer_color
 
             origin_point = self._plot_point(marker=marker,
                                             color=color,
+                                            edgecolors=edgecolor,
                                             zorder=zorder,
                                             **origin_data)
             origin_ele = visualization_element.VisualizationElement(element_type='scatter',
@@ -101,9 +106,11 @@ class VisualizationMapCreator:
                 }
                 marker = outpatient_marker if outpatient in excl_outpatients else dual_origin_outpatient_marker
                 color = outpatient_color if outpatient in excl_outpatients else dual_origin_outpatient_color
+                edgecolor = outpatient_color if outpatient in excl_outpatients else dual_origin_outpatient_outer_color
 
                 outpatient_point = self._plot_point(marker=marker,
                                                     color=color,
+                                                    edgecolors=edgecolor,
                                                     zorder=zorder,
                                                     **outpatient_data)
                 outpatient_ele = visualization_element.VisualizationElement(element_type='scatter',
@@ -156,7 +163,8 @@ class VisualizationMapCreator:
                                  va='center',
                                  color=color,
                                  fontweight=fontweight,
-                                 zorder=zorder)
+                                 zorder=zorder,
+                                 bbox=dict(facecolor='white', edgecolor='white', boxstyle='square,pad=0.0'))
         return city_text
 
     def get_text_box_dimensions(self, city_name: str, font: str, font_size: int, font_weight: str) -> tuple:
