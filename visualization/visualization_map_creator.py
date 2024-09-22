@@ -3,6 +3,7 @@ import logging
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 
+from . import scatter_conditions, scatter_plot_configurator
 import origin_grouping
 from interfacing import visualization_element
 from utils.helper_functions import get_config_value
@@ -49,9 +50,9 @@ class VisualizationMapCreator:
         self.iowa_map.drawcounties(linewidth=county_line_width)
         logging.info("Created base Iowa map.")
 
-    def _plot_point(self, marker: str, coord: dict, scatter_size, scatter_label, color: str, edgecolors: str,
+    def _plot_point(self, marker: str, coord: tuple, scatter_size, scatter_label, color: str, edgecolors: str,
                     zorder: int, **kwargs) -> dict:
-        lon, lat = coord[0], coord[1]
+        lon, lat = coord['longitude'], coord['latitude']
 
         scatter_obj = self.ax.scatter(lon, lat, marker=marker, color=color, edgecolors=edgecolors, s=scatter_size,
                                       label=scatter_label, zorder=zorder)
@@ -127,6 +128,102 @@ class VisualizationMapCreator:
                 point_eles.append(outpatient_ele)
         return point_eles
 
+    def plot_num_visiting_clinics_map(self, scatter_data: list[dict]):
+        condition_1 = scatter_conditions.range_1_condition
+        range_1_marker = get_config_value(config, 'num_visiting_clinics.range_1_marker', str)
+        range_1_label = get_config_value(config, 'num_visiting_clinics.range_1_label', str)
+        range_1_color = get_config_value(config, 'num_visiting_clinics.range_1_color', str)
+        range_1_edgecolor = get_config_value(config, 'num_visiting_clinics.range_1_edgecolor', str)
+        range_1_scatter_size = get_config_value(config, 'num_visiting_clinics.range_1_scatter_size', int)
+        scatter_1 = scatter_plot_configurator.Scatter(
+            size=range_1_scatter_size,
+            color=range_1_color,
+            marker=range_1_marker,
+            edgecolor=range_1_edgecolor,
+            label=range_1_label
+        )
+        condition_1_obj = scatter_plot_configurator.ScatterCondition(
+            condition=condition_1,
+            scatter=scatter_1
+        )
+
+        condition_2 = scatter_conditions.range_2_condition
+        range_2_marker = get_config_value(config, 'num_visiting_clinics.range_2_marker', str)
+        range_2_label = get_config_value(config, 'num_visiting_clinics.range_2_label', str)
+        range_2_color = get_config_value(config, 'num_visiting_clinics.range_2_color', str)
+        range_2_edgecolor = get_config_value(config, 'num_visiting_clinics.range_2_edgecolor', str)
+        range_2_scatter_size = get_config_value(config, 'num_visiting_clinics.range_2_scatter_size', int)
+        scatter_2 = scatter_plot_configurator.Scatter(
+            size=range_2_scatter_size,
+            color=range_2_color,
+            marker=range_2_marker,
+            edgecolor=range_2_edgecolor,
+            label=range_2_label
+        )
+        condition_2_obj = scatter_plot_configurator.ScatterCondition(
+            condition=condition_2,
+            scatter=scatter_2
+        )
+
+        condition_3 = scatter_conditions.range_3_condition
+        range_3_marker = get_config_value(config, 'num_visiting_clinics.range_3_marker', str)
+        range_3_label = get_config_value(config, 'num_visiting_clinics.range_3_label', str)
+        range_3_color = get_config_value(config, 'num_visiting_clinics.range_3_color', str)
+        range_3_edgecolor = get_config_value(config, 'num_visiting_clinics.range_3_edgecolor', str)
+        range_3_scatter_size = get_config_value(config, 'num_visiting_clinics.range_3_scatter_size', int)
+        scatter_3 = scatter_plot_configurator.Scatter(
+            size=range_3_scatter_size,
+            color=range_3_color,
+            marker=range_3_marker,
+            edgecolor=range_3_edgecolor,
+            label=range_3_label
+        )
+        condition_3_obj = scatter_plot_configurator.ScatterCondition(
+            condition=condition_3,
+            scatter=scatter_3
+        )
+
+        condition_4 = scatter_conditions.range_4_condition
+        range_4_marker = get_config_value(config, 'num_visiting_clinics.range_4_marker', str)
+        range_4_label = get_config_value(config, 'num_visiting_clinics.range_4_label', str)
+        range_4_color = get_config_value(config, 'num_visiting_clinics.range_4_color', str)
+        range_4_edgecolor = get_config_value(config, 'num_visiting_clinics.range_4_edgecolor', str)
+        range_4_scatter_size = get_config_value(config, 'num_visiting_clinics.range_4_scatter_size', int)
+        scatter_4 = scatter_plot_configurator.Scatter(
+            size=range_4_scatter_size,
+            color=range_4_color,
+            marker=range_4_marker,
+            edgecolor=range_4_edgecolor,
+            label=range_4_label
+        )
+        condition_4_obj = scatter_plot_configurator.ScatterCondition(
+            condition=condition_4,
+            scatter=scatter_4
+        )
+
+        conditions = [condition_1_obj, condition_2_obj, condition_3_obj, condition_4_obj]
+        scatter_config = scatter_plot_configurator.ScatterPlotConfigurator(conditions=conditions)
+
+        city_eles = self._plot_points_by_value(scatter_config=scatter_config,
+                                               scatter_data=scatter_data)
+
+    def _plot_points_by_value(self, scatter_config: scatter_plot_configurator.ScatterPlotConfigurator,
+                              scatter_data: list[dict]):
+        point_eles = []
+        for scatter_datum in scatter_data:
+            scatter = scatter_config.get_scatter(**scatter_datum)
+            if not scatter:
+                continue
+
+            scatter_name = scatter_datum['name']
+            coord = self.city_coords[scatter_name]
+
+            new_ele = self._plot_point(marker=scatter.marker, coord=coord, scatter_size=scatter.size,
+                                       color=scatter.color, edgecolors=scatter.edgecolor, zorder=1,
+                                       scatter_label=scatter.label)
+            point_eles.append(new_ele)
+        return point_eles
+
     def _plot_line(self, origin: str, outpatient: str, color: str, line_width: int, zorder: int) -> plt.Line2D:
         from_lat = self.city_coords[origin]['latitude']
         from_lon = self.city_coords[origin]['longitude']
@@ -140,7 +237,8 @@ class VisualizationMapCreator:
 
         return line
 
-    def plot_lines(self, origin_groups: dict, line_width: int, zorder: int) -> list[visualization_element.VisualizationElement]:
+    def plot_lines(self, origin_groups: dict, line_width: int, zorder: int) -> list[
+        visualization_element.VisualizationElement]:
         line_eles = []
         for i, (origin, origin_group_) in enumerate(origin_groups.items()):
             for outpatient in origin_group_.outpatients:

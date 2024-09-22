@@ -4,14 +4,14 @@ import heapq
 import logging
 import matplotlib
 from mpl_toolkits.basemap import Basemap
-import os
-import pickle
 
 from .visualization_element import VisualizationElement
 import algorithm
 import input_output
 import origin_grouping
+from utils.helper_functions import get_config_value
 import visualization
+from visualization import scatter_conditions
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -121,7 +121,7 @@ class Interface:
         if not self.data_imported:
             raise ValueError(f"Have to import data first before calling {__name__}.")
 
-        line_width = int(config['dimensions']['line_width'])
+        line_width = get_config_value(config, 'dimensions.line_width', int)
         line_vis_elements: list[VisualizationElement] = self.vis_map_creator.plot_lines(
             origin_groups=origin_groups_handler_.origin_groups,
             line_width=line_width,
@@ -164,13 +164,13 @@ class Interface:
 
     @staticmethod
     def _count_outpatient_visiting_clinics(row, num_visiting_clinics: dict):
-        origin = row['point of origin']
-        outpatient = row['outpatient']
+        origin = row['point_of_origin']
+        outpatient = row['community']
 
         if outpatient not in num_visiting_clinics:
             num_visiting_clinics[outpatient] = {
                 'count': 0,
-                'visiting_clinics': set(origin)
+                'visiting_clinics': set()
             }
 
         if origin not in num_visiting_clinics[outpatient]['visiting_clinics']:
@@ -182,24 +182,17 @@ class Interface:
             raise ValueError(f"Have to import data first before calling {__name__}.")
 
         num_visiting_clinics = {}
-        self.df.apply(self._count_outpatient_visiting_clinics, num_visiting_clinics)
+        self.df.apply(self._count_outpatient_visiting_clinics, axis=1, num_visiting_clinics=num_visiting_clinics)
 
-        scatter_sizes = {
-            (5, 10): {
-                'color': 'blue',
-                'scatter_size': 25
-            },
-            (11, 15): {
-                'color': 'red',
-                'scatter_size': 50
-            },
-            (16, 20): {
-                'color': 'yellow',
-                'scatter_size': 75
-            },
-            (20, ): {
-                'color': 'yellow',
-                'scatter_size': 100
-            }
-        }
+        visiting_list = []
+        for outpatient, data in num_visiting_clinics.items():
+            visiting_list.append({
+                'name': outpatient,
+                'num_visiting_clinics': data['count']
+            })
+
+        city_elements = self.vis_map_creator.plot_num_visiting_clinics_map(visiting_list)
+
+        show_pause = 360
+        self.vis_map_creator.show_map(show_pause=show_pause)
 
