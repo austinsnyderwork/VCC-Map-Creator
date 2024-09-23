@@ -7,11 +7,11 @@ from mpl_toolkits.basemap import Basemap
 
 from .visualization_element import VisualizationElement
 import algorithm
+import entities
 import input_output
 import origin_grouping
 from utils.helper_functions import get_config_value
 import visualization
-from visualization import scatter_conditions
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -21,39 +21,26 @@ class Interface:
 
     def __init__(self):
         self.vis_map_creator = visualization.VisualizationMapCreator()
+        self.algo_handler = algorithm.AlgorithmHandler()
+        self.cities_directory = entities.CitiesDirectory()
 
         all_colors = matplotlib.colors.CSS4_COLORS
         colors = [color for color, hex_value in all_colors.items() if visualization.is_dark_color(hex_value)]
         self.origin_groups_handler_ = origin_grouping.OriginGroupsHandler(colors=colors)
 
-        self.algo_handler = algorithm.AlgorithmHandler()
-
-        self.colors = []
-
         self.data_imported = False
         self.df = None
 
     def _add_city_gpd_coord(self, row, base_map: Basemap):
-        coord_dict = self.vis_map_creator.city_coords
         community = row['community']
         origin = row['point_of_origin']
-        if community not in coord_dict:
-            lon = row['to_lon']
-            lat = row['to_lat']
-            lon, lat = base_map(lon, lat)
-            coord_dict[community] = {
-                'latitude': lat,
-                'longitude': lon
-            }
+        comm_lon, comm_lat = base_map(row['to_lon'], row['to_lat'])
+        self.cities_directory.add_city(name=community,
+                                       coord=(comm_lon, comm_lat))
 
-        if origin not in coord_dict:
-            lon = row['origin_lon']
-            lat = row['origin_lat']
-            lon, lat = base_map(lon, lat)
-            coord_dict[origin] = {
-                'latitude': lat,
-                'longitude': lon
-            }
+        origin_lon, origin_lat = base_map(row['origin_lon'], row['origin_lat'])
+        self.cities_directory.add_city(name=origin,
+                                       coord=(origin_lon, origin_lat))
 
     """
     Just for testing, really
@@ -82,7 +69,7 @@ class Interface:
                 for outpatient in outpatients:
                     origins_together_expanded[outpatient] = origin
 
-        self.df.apply(self.origin_groups_handler_.group_origins, city_coords=self.vis_map_creator.city_coords, axis=1,
+        self.df.apply(self.origin_groups_handler_.group_origins, cities_directory=self.cities_directory, axis=1,
                       origins_to_group_together=origins_together_expanded)
         logging.info(f"Grouped origins.")
 
@@ -93,28 +80,28 @@ class Interface:
 
         self.data_imported = True
 
-    def _should_plot_text(self, city_ele: VisualizationElement, plot_origins: bool, plot_outpatients: bool):
-        if city_ele.origin_or_outpatient == 'origin' and not plot_origins:
+    def _should_plot_text(self, city_scatter: entities.CityScatter, plot_origins: bool, plot_outpatients: bool):
+        if city_scatter.site_type == 'origin' and not plot_origins:
             return False
-        elif city_ele.origin_or_outpatient == 'outpatient' and not plot_outpatients:
+        elif city_scatter.site_type == 'outpatient' and not plot_outpatients:
             return False
-        elif city_ele.origin_or_outpatient == 'both' and not plot_origins and not plot_outpatients:
+        elif city_scatter.site_type == 'both' and not plot_origins and not plot_outpatients:
             return False
         return True
 
-    def _plot_text_boxes(self, city_elements: list[VisualizationElement], plot_origins: bool, plot_outpatients: bool):
-        valid_city_eles = []
-        for city_ele in city_elements:
-            if not self._should_plot_text(city_ele=city_ele,
+    def _plot_text_boxes(self, city_scatters: list[entities.CityScatter], plot_origins: bool, plot_outpatients: bool):
+        valid_city_scatters = []
+        for city_scatter in city_scatters:
+            if not self._should_plot_text(city_scatter=city_scatter,
                                           plot_origins=plot_origins,
                                           plot_outpatients=plot_outpatients):
                 continue
 
-            valid_city_eles.append(city_ele)
-        self.vis_map_creator.plot_sample_text_boxes(city_elements=valid_city_eles)
+            valid_city_scatters.append(city_scatter)
+        self.vis_map_creator.plot_sample_text_boxes(valid_city_scatters=valid_city_scatters)
         logging.info("Finding best polygons for city vis elements.")
-        self.algo_handler.find_best_polys(valid_city_eles)
-        self.vis_map_creator.plot_text_boxes(city_elements=valid_city_eles, zorder=2)
+        self.algo_handler.find_best_polys(valid_city_scatters)
+        self.vis_map_creator.plot_text_boxes(city_scatters=valid_city_scatters, zorder=2)
 
     def create_line_map(self, origin_groups_handler_: origin_grouping.OriginGroupsHandler, variables: dict = None,
                         plot_origins_text: bool = True, plot_outpatients_text: bool = True):
@@ -122,11 +109,11 @@ class Interface:
             raise ValueError(f"Have to import data first before calling {__name__}.")
 
         line_width = get_config_value(config, 'dimensions.line_width', int)
-        line_vis_elements: list[VisualizationElement] = self.vis_map_creator.plot_lines(
+        lines = self.vis_map_creator.plot_lines(
             origin_groups=origin_groups_handler_.origin_groups,
             line_width=line_width,
             zorder=1)
-        self.algo_handler.plot_lines(line_vis_elements)
+        self.algo_handler.plot_lines(lines)
         city_vis_elements = self.vis_map_creator.plot_points(origin_groups=origin_groups_handler_.origin_groups,
                                                              scatter_size=float(config['dimensions']['scatter_size']),
                                                              dual_origin_outpatients=origin_groups_handler_.dual_origin_outpatient,

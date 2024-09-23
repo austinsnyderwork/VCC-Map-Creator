@@ -1,4 +1,5 @@
 from . import origin_group
+import entities
 
 
 class OriginGroupsHandler:
@@ -18,6 +19,8 @@ class OriginGroupsHandler:
             origin = origins_to_group_together[origin]
 
         if origin not in self.origin_groups:
+            new_city = entities.City(name=origin,
+                                     coord=city_coords[origin])
             self.origin_groups[origin] = origin_group.OriginGroup(origin=origin,
                                                                   color=self.colors[self.colors_idx],
                                                                   origin_coord=city_coords[origin])

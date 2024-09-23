@@ -1,11 +1,12 @@
 import logging
 
+import entities
+
 
 class OriginGroup:
 
-    def __init__(self, origin: str, origin_coord, color: str):
+    def __init__(self, origin: entities.City, color: str):
         self.origin = origin
-        self.origin_coord = origin_coord
         self.color = color
 
         self.outpatients = set()
