@@ -3,13 +3,13 @@ import copy
 import heapq
 import logging
 import matplotlib
-from mpl_toolkits.basemap import Basemap
 
 from .visualization_element import VisualizationElement
 import algorithm
 import entities
 import environment_management
 import input_output
+from . import application_manager
 from utils.helper_functions import get_config_value
 import visualization
 
@@ -19,16 +19,15 @@ config.read('config.ini')
 
 class Interface:
 
-    def __init__(self):
-        all_colors = matplotlib.colors.CSS4_COLORS
-        colors = [color for color, hex_value in all_colors.items() if visualization.is_dark_color(hex_value)]
-
-        self.environment_factory = environment_management.EnvironmentFactory()
+    def __init__(self, vcc_file_name: str, city_name_changes: dict, sheet_name: str = None):
+        df = input_output.get_dataframe(file_name=vcc_file_name,
+                                        sheet_name=sheet_name)
+        self.application_manager = application_manager.ApplicationManager(df=df)
+        self.application_manager.initialize_applications(city_name_changes=city_name_changes)
         self.vis_map_creator = visualization.VisualizationMapCreator()
         self.algo_handler = algorithm.AlgorithmHandler()
 
         self.data_imported = False
-        self.df = None
 
     """
     Just for testing, really
@@ -42,18 +41,6 @@ class Interface:
             with open(city_vis_elements_file_path, 'wb') as file:
                 pickle.dump(city_vis_elements, file)
         return city_vis_elements"""
-
-    def _convert_to_display_coordinates(self, coord: tuple):
-        lon, lat = self.vis_map_creator.iowa_map(coord)
-        return lon, lat
-
-    def import_data(self, vcc_file_name: str, sheet_name: str = None, origins_to_group_together: dict = None):
-        self.df = input_output.get_dataframe(file_name=vcc_file_name,
-                                             sheet_name=sheet_name)
-        cities_directory =
-        environment = environment_management.Environment()
-        self.environment_factory = environment_management.EnvironmentFactory(environment=environment,
-                                                                             df=self.df)
 
     def _should_plot_text(self, city_scatter: entities.CityScatter, plot_origins: bool, plot_outpatients: bool):
         if city_scatter.site_type == 'origin' and not plot_origins:

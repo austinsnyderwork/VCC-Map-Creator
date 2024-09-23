@@ -1,8 +1,11 @@
 import matplotlib
+from mpl_toolkits.basemap import Basemap
 import pandas as pd
 
+import algorithm
 import entities
 import environment_management
+import visualization
 
 
 def is_dark_color(hex_color):
@@ -14,11 +17,13 @@ def is_dark_color(hex_color):
     return brightness < 0.7
 
 
-class SystemInitializer:
+class ApplicationManager:
 
     def __init__(self, df: pd.DataFrame):
         self.df = df
         self.environment_factory = self._create_environment_factory()
+        self.visualization_map_creator = visualization.VisualizationMapCreator()
+        self.algorithm_handler = algorithm.AlgorithmHandler()
 
     def _create_environment_factory(self):
         cities_directory = entities.CitiesDirectory()
@@ -29,5 +34,13 @@ class SystemInitializer:
         environment = environment_management.Environment(cities_directory=cities_directory,
                                                          city_origin_network_handler=city_origin_network_handler)
         environment_factory = environment_management.EnvironmentFactory(environment=environment,
-                                                                        df=df)
+                                                                        df=self.df)
         return environment_factory
+
+    def _convert_coord_to_display(self, coord: tuple):
+        convert_lon, convert_lat = self.visualization_map_creator.iowa_map(coord)
+        return convert_lon, convert_lat
+
+    def initialize_applications(self, city_name_changes: dict, ):
+        self.environment_factory.fill_environment(coord_converter=self._convert_coord_to_display,
+                                                  city_name_changes=city_name_changes)
