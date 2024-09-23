@@ -8,8 +8,8 @@ from mpl_toolkits.basemap import Basemap
 from .visualization_element import VisualizationElement
 import algorithm
 import entities
+import environment_management
 import input_output
-import origin_grouping
 from utils.helper_functions import get_config_value
 import visualization
 
@@ -20,27 +20,15 @@ config.read('config.ini')
 class Interface:
 
     def __init__(self):
-        self.vis_map_creator = visualization.VisualizationMapCreator()
-        self.algo_handler = algorithm.AlgorithmHandler()
-        self.cities_directory = entities.CitiesDirectory()
-
         all_colors = matplotlib.colors.CSS4_COLORS
         colors = [color for color, hex_value in all_colors.items() if visualization.is_dark_color(hex_value)]
-        self.origin_groups_handler_ = origin_grouping.OriginGroupsHandler(colors=colors)
+
+        self.environment_factory = environment_management.EnvironmentFactory()
+        self.vis_map_creator = visualization.VisualizationMapCreator()
+        self.algo_handler = algorithm.AlgorithmHandler()
 
         self.data_imported = False
         self.df = None
-
-    def _add_city_gpd_coord(self, row, base_map: Basemap):
-        community = row['community']
-        origin = row['point_of_origin']
-        comm_lon, comm_lat = base_map(row['to_lon'], row['to_lat'])
-        self.cities_directory.add_city(name=community,
-                                       coord=(comm_lon, comm_lat))
-
-        origin_lon, origin_lat = base_map(row['origin_lon'], row['origin_lat'])
-        self.cities_directory.add_city(name=origin,
-                                       coord=(origin_lon, origin_lat))
 
     """
     Just for testing, really
@@ -55,30 +43,17 @@ class Interface:
                 pickle.dump(city_vis_elements, file)
         return city_vis_elements"""
 
+    def _convert_to_display_coordinates(self, coord: tuple):
+        lon, lat = self.vis_map_creator.iowa_map(coord)
+        return lon, lat
+
     def import_data(self, vcc_file_name: str, sheet_name: str = None, origins_to_group_together: dict = None):
         self.df = input_output.get_dataframe(file_name=vcc_file_name,
                                              sheet_name=sheet_name)
-
-        # Gather necessary city coordinates
-        self.df.apply(self._add_city_gpd_coord, base_map=self.vis_map_creator.iowa_map, axis=1)
-        logging.info("Added city coords.")
-
-        if origins_to_group_together:
-            origins_together_expanded = {}
-            for origin, outpatients in origins_to_group_together.items():
-                for outpatient in outpatients:
-                    origins_together_expanded[outpatient] = origin
-
-        self.df.apply(self.origin_groups_handler_.group_origins, cities_directory=self.cities_directory, axis=1,
-                      origins_to_group_together=origins_together_expanded)
-        logging.info(f"Grouped origins.")
-
-        self.origin_groups_handler_.determine_dual_origin_outpatient()
-
-        all_colors = matplotlib.colors.CSS4_COLORS
-        self.colors = [color for color, hex_value in all_colors.items() if visualization.is_dark_color(hex_value)]
-
-        self.data_imported = True
+        cities_directory =
+        environment = environment_management.Environment()
+        self.environment_factory = environment_management.EnvironmentFactory(environment=environment,
+                                                                             df=self.df)
 
     def _should_plot_text(self, city_scatter: entities.CityScatter, plot_origins: bool, plot_outpatients: bool):
         if city_scatter.site_type == 'origin' and not plot_origins:

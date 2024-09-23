@@ -1,8 +1,8 @@
-from . import origin_group
+from .city_origin_network import OriginSiteGroup
 import entities
 
 
-class OriginGroupsHandler:
+class CityOriginNetworkHandler:
 
     def __init__(self, colors: list[str]):
         self.colors = colors
@@ -11,7 +11,11 @@ class OriginGroupsHandler:
 
         self.colors_idx = 0
 
-    def group_origins(self, row, city_coords: dict, origins_to_group_together: dict):
+    def add_origin_group(self, origin: entities.VccClinicSite, destination: entities.VccClinicSite):
+        if origin.city_name not in self.origin_groups:
+            self.origin_groups[origin.city_name = origin_group]
+
+    def apply_build_origin_groups(self, row, city_coords: dict, origins_to_group_together: dict):
         origin = row['point_of_origin']
         destination = row['community']
 
@@ -19,9 +23,9 @@ class OriginGroupsHandler:
             origin = origins_to_group_together[origin]
 
         if origin not in self.origin_groups:
-            new_city = entities.City(name=origin,
+            new_site = entities.VccClinicSite(name=origin,
                                      coord=city_coords[origin])
-            self.origin_groups[origin] = origin_group.OriginGroup(origin=origin,
+            self.origin_groups[origin] = OriginSiteGroup(origin=origin,
                                                                   color=self.colors[self.colors_idx],
                                                                   origin_coord=city_coords[origin])
             self.colors_idx += 1
