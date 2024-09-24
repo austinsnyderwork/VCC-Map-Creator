@@ -1,11 +1,11 @@
 import logging
 
-from entities.vcc_clinic_site import VccClinicSite
+import entities
 
 
 class CityOriginNetwork:
 
-    def __init__(self, origin: VccClinicSite, color: str):
+    def __init__(self, origin: entities.City, color: str):
         self.origin = origin
         self.color = color
 

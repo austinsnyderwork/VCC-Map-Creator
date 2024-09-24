@@ -6,14 +6,14 @@ class CityOriginNetworkHandler:
 
     def __init__(self, colors: list[str]):
         self.colors = colors
-        self.origin_groups = {}
+        self.city_origin_networks = {}
         self.dual_origin_outpatient = []
 
         self.colors_idx = 0
 
     def add_city_origin_network(self, city_origin_network: CityOriginNetwork, destination: entities.VccClinicSite):
-        if origin.city_name in self.origin_groups:
-            raise RuntimeError(f"Attempted to add already existing origin city network with origin '{origin.name}'."
+        if city_origin_network.origin.city_name in self.city_origin_networks:
+            raise RuntimeError(f"Attempted to add already existing origin city network with origin '{city_origin_network.origin}'."
                                f"Don't think this should be possible.")
         self.origin_groups[origin.city_name = origin_group]
 

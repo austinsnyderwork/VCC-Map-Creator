@@ -3,7 +3,7 @@ import logging
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 
-from . import entity_conditions, entity_plot_configurator
+from environment_management.plot_configurations import entity_conditions_maps
 import origin_grouping
 from interfacing import visualization_element
 from utils.helper_functions import get_config_value
@@ -237,8 +237,7 @@ class VisualizationMapCreator:
 
         return line
 
-    def plot_lines(self, origin_groups: dict, line_width: int, zorder: int) -> list[
-        visualization_element.VisualizationElement]:
+    def plot_lines(self, origin_groups: dict, line_width: int, zorder: int) -> list[visualization_element.VisualizationElement]:
         line_eles = []
         for i, (origin, origin_group_) in enumerate(origin_groups.items()):
             for outpatient in origin_group_.outpatients:

@@ -50,8 +50,7 @@ class ApplicationManager:
         self.environment_factory.fill_environment(coord_converter=self._convert_coord_to_display,
                                                   city_name_changes=city_name_changes)
 
-    def create_line_map(self, city_origin_network_handler: environment_management.CityOriginNetworkHandler,
-                        variables: dict = None):
+    def create_line_map(self):
         lines = self.visualization_map_creator.plot_lines(
             origin_groups=origin_groups_handler_.origin_groups,
             line_width=get_config_value(config, 'dimensions.line_width', int),
