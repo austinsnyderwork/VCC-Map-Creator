@@ -21,7 +21,7 @@ class LineVisualData:
 
 class Line(Entity):
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.line_algorithm_data = LineAlgorithmData()
         self.line_visual_data = LineVisualData()
 
@@ -44,9 +44,13 @@ class CityScatterVisualData:
 
 class CityScatter(Entity):
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.city_scatter_algorithm_data = CityScatterAlgorithmData()
         self.city_scatter_visual_data = CityScatterVisualData()
+
+        algo_variables = set()
+
+        visual_variables = ('color', 'size')
 
 
 class CityTextBoxAlgorithmData:
@@ -63,7 +67,7 @@ class CityTextBoxVisualData:
 
 class CityTextBox(Entity):
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.city_text_box_algorithm_data = CityTextBoxAlgorithmData()
         self.city_text_box_visual_data = CityTextBoxVisualData()
 

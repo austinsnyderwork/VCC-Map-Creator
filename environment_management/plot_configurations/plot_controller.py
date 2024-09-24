@@ -10,6 +10,14 @@ class PlotConfigurations:
         algo_show_
 
 
+class PlotDecider:
+
+    def __init__(self):
+        x=0
+
+    def should_plot(self, entity: entities.Entity):
+        x=0
+
 class PlotController:
 
     def _should_plot_text(self, city_scatter: entities.Entity, plot_origins: bool, plot_outpatients: bool):
@@ -25,13 +33,29 @@ class PlotController:
         if isinstance()
 
     def should_plot_on_visual(self, entity: entities.Entity, iteration):
+        pass
+
+
+class ShowDecider:
+
+    def __init__(self):
+        x=0
 
 
 
 class ShowController:
 
     def __init__(self):
+        self.show_decider = ShowDecider()
         self.plot_configurer = PlotConfigurations()
+
+    def should_show_on_algorithm(self, entity: entities.Entity, iteration: int = -1):
+        if isinstance(entity, entities.CityScatter):
+            should_show = self._should_show_scatter(entity, iteration)
+        elif isinstance(entity, entities.Line):
+            should_show = self._should_show_line(entity, iteration)
+        elif isinstance(entity, entities.CityTextBox):
+            show_show = self.
 
 
 

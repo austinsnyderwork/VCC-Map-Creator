@@ -26,6 +26,7 @@ class ConditionsMap:
 class NumberOfVisitingClinicsConditions(ConditionsMap):
 
     def __init__(self):
+        self.conditional_entities = [entities.CityScatter]
         condition_funcs = [self.range_1_condition,
                            self.range_2_condition,
                            self.range_3_condition,
@@ -85,6 +86,7 @@ class NumberOfVisitingClinicsConditions(ConditionsMap):
 class NumberOfVisitingProvidersConditions(ConditionsMap):
 
     def __init__(self, highest_volume_cities: list[str]):
+        self.conditional_entities = [entities.CityScatter]
         condition_funcs = [self.condition]
         entities_ = self.create_entities()
         conditions = [Condition(condition=condition_func, entity=entity) for condition_func, entity in
@@ -108,6 +110,7 @@ class NumberOfVisitingProvidersConditions(ConditionsMap):
 class NumberOfVisitingSpecialtiesConditions(ConditionsMap):
 
     def __init__(self):
+        self.conditional_entities = [entities.CityScatter]
         condition_funcs = [self.range_1_condition,
                            self.range_2_condition,
                            self.range_3_condition]

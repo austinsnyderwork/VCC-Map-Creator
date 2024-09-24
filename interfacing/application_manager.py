@@ -15,7 +15,6 @@ class ApplicationManager:
         self.environment_factory = self._create_environment_factory()
         self.visualization_map_creator = visualization.VisualizationMapCreator()
         self.algorithm_handler = algorithm.AlgorithmHandler()
-        self.data_preparer = data_preparer.DataPreparer(df=self.df)
 
     def _create_environment_factory(self):
         cities_directory = entities.CitiesDirectory()
@@ -28,20 +27,22 @@ class ApplicationManager:
                                                                         df=self.df)
         return environment_factory
 
-    def _convert_coord_to_display(self, coord: tuple):
-        convert_lon, convert_lat = self.visualization_map_creator.iowa_map(coord)
-        return convert_lon, convert_lat
-
     def initialize_applications(self, city_name_changes: dict):
-        self.environment_factory.fill_environment(coord_converter=self._convert_coord_to_display,
+        self.environment_factory.fill_environment(coord_converter=self.visualization_map_creator.convert_coord_to_display,
                                                   city_name_changes=city_name_changes)
 
-    def create_line_map(self, plot_config: environment_management.PlotConfigurator):
-        x=0
+    def create_line_map(self):
+        entity_plot_controller = plot_configurations.EntityPlotController()
 
     def create_number_of_visiting_providers_map(self, number_of_results: int):
-        highest_volume_cities = self.data_preparer.get_top_volume_incoming_cities(num_results=number_of_results)
+        highest_volume_cities = data_preparer.get_top_volume_incoming_cities(df=self.df,
+                                                                             num_results=number_of_results)
         conditions_map = plot_configurations.NumberOfVisitingProvidersConditions(highest_volume_cities=highest_volume_cities)
-        plot_controller = plot_configurations.EntityPlotController(entity_conditions_maps=conditions_map)
+        entity_plot_controller = plot_configurations.EntityPlotController(
+            entity_conditions_map=conditions_map,
+            should_plot_origin_lines=False,
+            should_plot_outpatient_lines=False,
+            should_plot_origin_text_box=False
+        )
 
 

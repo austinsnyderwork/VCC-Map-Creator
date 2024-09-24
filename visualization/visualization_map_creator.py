@@ -37,6 +37,10 @@ class VisualizationMapCreator:
         self._create_figure(fig_size=display_fig_size,
                             county_line_width=float(config['display']['county_line_width']))
 
+    def _convert_coord_to_display(self, coord: tuple):
+        convert_lon, convert_lat = self.iowa_map(coord)
+        return convert_lon, convert_lat
+
     def _create_figure(self, fig_size, county_line_width: float):
         # Create visual Iowa map
         self.fig, self.ax = plt.subplots(figsize=fig_size)
