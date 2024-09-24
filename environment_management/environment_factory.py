@@ -19,6 +19,8 @@ class EnvironmentFactory:
         self.environment = environment
         self.df = df
 
+        self.environment_filled = False
+
     def _apply_create_cities(self, row, coord_converter: Callable, city_name_changes: dict):
         origin_city_name = row['point_of_origin']
         origin_city_name = city_name_changes[origin_city_name] if origin_city_name in city_name_changes else origin_city_name
@@ -72,3 +74,5 @@ class EnvironmentFactory:
         self.df.apply(self._apply_create_clinic_sites, axis=1)
 
         self.df.apply(self._apply_create_providers, axis=1)
+
+        self.environment_filled = True

@@ -1,5 +1,5 @@
 import input_output
-from . import application_manager, plot_controller
+from . import application_manager
 
 
 def check_data_imported(func):

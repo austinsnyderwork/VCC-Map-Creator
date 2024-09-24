@@ -2,9 +2,6 @@ import configparser
 
 import poly_creation
 
-config = configparser.ConfigParser()
-config.read('config.ini')
-
 
 def verify_poly_validity(poly, name):
     if not poly.is_valid:

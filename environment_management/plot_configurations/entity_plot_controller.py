@@ -3,7 +3,7 @@
 from entity_conditions_maps import ConditionsMap
 
 
-class PlotConfigurator:
+class EntityPlotController:
 
     def __init__(self,
                  entity_conditions_maps: ConditionsMap,
@@ -23,11 +23,12 @@ class PlotConfigurator:
         self.entity_conditions_map = entity_conditions_maps
 
 
-class ScatterPlotConfigurator(PlotConfigurator):
+class ScatterPlotController(EntityPlotController):
 
     def __init__(self, conditions_map: ConditionsMap, should_plot_origin_lines: bool = False,
                  should_plot_outpatient_lines: bool = False):
         super().__init__(
+            entity_conditions_maps=conditions_map,
             should_plot_origin_lines=should_plot_origin_lines,
             should_plot_outpatient_lines=should_plot_outpatient_lines
         )
@@ -36,3 +37,15 @@ class ScatterPlotConfigurator(PlotConfigurator):
     def get_entity(self, **kwargs):
         entity = self.conditions_map.get_entity_for_condition(**kwargs)
         return entity
+
+
+class LinePlotController(EntityPlotController):
+
+    def __init__(self, conditions_map: ConditionsMap, entity_conditions_maps: ConditionsMap):
+        super().__init__(entity_conditions_maps)
+        self.conditions_map = conditions_map
+
+    def get_entity(self, **kwargs):
+        entity = self.conditions_map.get_entity_for_condition(**kwargs)
+        return entity
+

@@ -202,12 +202,12 @@ class VisualizationMapCreator:
         )
 
         conditions = [condition_1_obj, condition_2_obj, condition_3_obj, condition_4_obj]
-        scatter_config = scatter_plot_configurator.ScatterPlotConfigurator(conditions=conditions)
+        scatter_config = scatter_plot_configurator.ScatterPlotController(conditions=conditions)
 
         city_eles = self._plot_points_by_value(scatter_config=scatter_config,
                                                scatter_data=scatter_data)
 
-    def _plot_points_by_value(self, scatter_config: scatter_plot_configurator.ScatterPlotConfigurator,
+    def _plot_points_by_value(self, scatter_config: scatter_plot_configurator.ScatterPlotController,
                               scatter_data: list[dict]):
         point_eles = []
         for scatter_datum in scatter_data:

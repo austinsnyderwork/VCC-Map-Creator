@@ -1,25 +1,11 @@
-import matplotlib
 import pandas as pd
 
+from . import data_preparer, helper_functions
 import algorithm
-import configparser
 import entities
 import environment_management
-from utils.helper_functions import get_config_value
+from environment_management import plot_configurations
 import visualization
-
-
-config = configparser.ConfigParser()
-config.read('config.ini')
-
-
-def is_dark_color(hex_color):
-    # Convert hex to RGB values
-    rgb = matplotlib.colors.hex2color(hex_color)
-    # Calculate perceived brightness using a common formula
-    brightness = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2])
-    # A threshold to determine what counts as a "light" color
-    return brightness < 0.7
 
 
 class ApplicationManager:
@@ -29,12 +15,12 @@ class ApplicationManager:
         self.environment_factory = self._create_environment_factory()
         self.visualization_map_creator = visualization.VisualizationMapCreator()
         self.algorithm_handler = algorithm.AlgorithmHandler()
+        self.data_preparer = data_preparer.DataPreparer(df=self.df)
 
     def _create_environment_factory(self):
         cities_directory = entities.CitiesDirectory()
 
-        all_colors = matplotlib.colors.CSS4_COLORS
-        colors = [color for color, hex_value in all_colors.items() if is_dark_color(hex_value)]
+        colors = helper_functions.get_colors()
         city_origin_network_handler = environment_management.CityOriginNetworkHandler(colors=colors)
         environment = environment_management.Environment(cities_directory=cities_directory,
                                                          city_origin_network_handler=city_origin_network_handler)
@@ -50,36 +36,12 @@ class ApplicationManager:
         self.environment_factory.fill_environment(coord_converter=self._convert_coord_to_display,
                                                   city_name_changes=city_name_changes)
 
-    def create_line_map(self):
-        lines = self.visualization_map_creator.plot_lines(
-            origin_groups=origin_groups_handler_.origin_groups,
-            line_width=get_config_value(config, 'dimensions.line_width', int),
-            zorder=1)
-        self.algorithm_handler.plot_lines(lines)
-        city_vis_elements = self.visualization_map_creator.plot_points(
-            origin_groups=origin_groups_handler_.origin_groups,
-            scatter_size=float(config['dimensions']['scatter_size']),
-            dual_origin_outpatients=origin_groups_handler_.dual_origin_outpatient,
-            zorder=3)
-        self.algorithm_handler.plot_points(city_vis_elements)
-        self._plot_text_boxes(city_vis_elements)
-        show_pause = 360
-        self.visualization_map_creator.show_map(show_pause=show_pause)
-
-    def create_number_of_visiting_providers_map(self):
+    def create_line_map(self, plot_config: environment_management.PlotConfigurator):
         x=0
 
-    def _plot_text_boxes(self, city_scatters: list[entities.CityScatter]):
-        valid_city_scatters = []
-        for city_scatter in city_scatters:
-            if not self.plot_controller.should_plot(city_scatter=city_scatter):
-                continue
-
-            valid_city_scatters.append(city_scatter)
-        self.vis_map_creator.plot_sample_text_boxes(valid_city_scatters=valid_city_scatters)
-        logging.info("Finding best polygons for city vis elements.")
-        self.algo_handler.find_best_polys(valid_city_scatters)
-        self.vis_map_creator.plot_text_boxes(city_scatters=valid_city_scatters, zorder=2)
-
+    def create_number_of_visiting_providers_map(self, number_of_results: int):
+        highest_volume_cities = self.data_preparer.get_top_volume_incoming_cities(num_results=number_of_results)
+        conditions_map = plot_configurations.NumberOfVisitingProvidersConditions(highest_volume_cities=highest_volume_cities)
+        plot_controller = plot_configurations.EntityPlotController(entity_conditions_maps=conditions_map)
 
 
