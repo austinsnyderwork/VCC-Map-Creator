@@ -1,4 +1,4 @@
-from .city_origin_network import OriginSiteGroup
+from .city_origin_network import CityOriginNetwork
 import entities
 
 
@@ -11,16 +11,20 @@ class CityOriginNetworkHandler:
 
         self.colors_idx = 0
 
-    def add_origin_group(self, origin: entities.VccClinicSite, destination: entities.VccClinicSite):
-        if origin.city_name not in self.origin_groups:
-            self.origin_groups[origin.city_name = origin_group]
+    def add_city_origin_network(self, city_origin_network: CityOriginNetwork, destination: entities.VccClinicSite):
+        if origin.city_name in self.origin_groups:
+            raise RuntimeError(f"Attempted to add already existing origin city network with origin '{origin.name}'."
+                               f"Don't think this should be possible.")
+        self.origin_groups[origin.city_name = origin_group]
 
-    def apply_build_origin_groups(self, row, city_coords: dict, origins_to_group_together: dict):
+    def add_site(self, clinic_site: entities.VccClinicSite)
+
+    def apply_build_origin_networks(self, row, city_coords: dict, city_name_changes: dict):
         origin = row['point_of_origin']
         destination = row['community']
 
-        if origin in origins_to_group_together:
-            origin = origins_to_group_together[origin]
+        if origin in city_name_changes:
+            origin = city_name_changes[origin]
 
         if origin not in self.origin_groups:
             new_site = entities.VccClinicSite(name=origin,

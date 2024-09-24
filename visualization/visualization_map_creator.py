@@ -3,7 +3,7 @@ import logging
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 
-from . import scatter_conditions, scatter_plot_configurator
+from . import entity_conditions, entity_plot_configurator
 import origin_grouping
 from interfacing import visualization_element
 from utils.helper_functions import get_config_value
@@ -129,7 +129,7 @@ class VisualizationMapCreator:
         return point_eles
 
     def plot_num_visiting_clinics_map(self, scatter_data: list[dict]):
-        condition_1 = scatter_conditions.range_1_condition
+        condition_1 = entity_conditions.range_1_condition
         range_1_marker = get_config_value(config, 'num_visiting_clinics.range_1_marker', str)
         range_1_label = get_config_value(config, 'num_visiting_clinics.range_1_label', str)
         range_1_color = get_config_value(config, 'num_visiting_clinics.range_1_color', str)
@@ -147,7 +147,7 @@ class VisualizationMapCreator:
             scatter=scatter_1
         )
 
-        condition_2 = scatter_conditions.range_2_condition
+        condition_2 = entity_conditions.range_2_condition
         range_2_marker = get_config_value(config, 'num_visiting_clinics.range_2_marker', str)
         range_2_label = get_config_value(config, 'num_visiting_clinics.range_2_label', str)
         range_2_color = get_config_value(config, 'num_visiting_clinics.range_2_color', str)
@@ -165,7 +165,7 @@ class VisualizationMapCreator:
             scatter=scatter_2
         )
 
-        condition_3 = scatter_conditions.range_3_condition
+        condition_3 = entity_conditions.range_3_condition
         range_3_marker = get_config_value(config, 'num_visiting_clinics.range_3_marker', str)
         range_3_label = get_config_value(config, 'num_visiting_clinics.range_3_label', str)
         range_3_color = get_config_value(config, 'num_visiting_clinics.range_3_color', str)
@@ -183,7 +183,7 @@ class VisualizationMapCreator:
             scatter=scatter_3
         )
 
-        condition_4 = scatter_conditions.range_4_condition
+        condition_4 = entity_conditions.range_4_condition
         range_4_marker = get_config_value(config, 'num_visiting_clinics.range_4_marker', str)
         range_4_label = get_config_value(config, 'num_visiting_clinics.range_4_label', str)
         range_4_color = get_config_value(config, 'num_visiting_clinics.range_4_color', str)

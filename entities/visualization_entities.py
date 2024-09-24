@@ -1,20 +1,24 @@
 
 
-class Line:
+class Entity:
+    pass
+
+
+class Line(Entity):
 
     def __init__(self, x_data, y_data):
         self.x_data = x_data
         self.y_data = y_data
 
 
-class CityScatter:
+class CityScatter(Entity):
 
-    def __init__(self, city_name: str, site_type: str):
+    def __init__(self, city_name: str, origin_or_outpatient: str):
         self.city_name = city_name
-        self.site_type = site_type
+        self.origin_or_outpatient = origin_or_outpatient
 
 
-class CityTextBox:
+class CityTextBox(Entity):
 
     def __init__(self, city_name: str):
         self.city_name = city_name
