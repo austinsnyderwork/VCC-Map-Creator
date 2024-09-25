@@ -1,4 +1,4 @@
-from .entity_conditions_maps import (NumberOfVisitingClinicsConditions, NumberOfVisitingSpecialtiesConditions,
-                                     NumberOfVisitingProvidersConditions)
-from .entity_plot_controller import EntityDisplayController
+from .visualization_element_conditions_map import (ConditionsMap, NumberOfVisitingClinicsConditions, NumberOfVisitingSpecialtiesConditions,
+                                                   NumberOfVisitingProvidersConditions)
+from .visualization_element_plot_controller import VisualizationElementPlotController
 

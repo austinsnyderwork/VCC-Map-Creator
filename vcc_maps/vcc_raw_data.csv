@@ -1,4 +1,4 @@
-﻿specialty,community,clinic_site,frequency,group,point_of_origin,consultant
+﻿specialty,visiting_city,visiting_site,frequency,origin_site,origin_city,consultant
 General Surgery,Albia,Monroe County Hospital,1/WK,Iowa Specialty Surgeons,West Des Moines,"Paul A Conte, MD"
 General Surgery,Albia,Monroe County Hospital,1/WK,Iowa Specialty Surgeons,West Des Moines,"Timothy Paul Mayfield, MD"
 Hand Surgery,Albia,Monroe County Hospital,2/MO,Iowa Orthopaedic Center - Des Moines,Des Moines,"Michael A Gainer, MD"

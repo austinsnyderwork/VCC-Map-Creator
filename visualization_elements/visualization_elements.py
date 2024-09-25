@@ -1,6 +1,6 @@
 
 
-class Entity:
+class VisualizationElement:
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
@@ -22,7 +22,7 @@ class LineVisualData:
         self.edgecolor = None
 
 
-class Line(Entity):
+class Line(VisualizationElement):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -46,7 +46,7 @@ class CityScatterVisualData:
         self.label = None
 
 
-class CityScatter(Entity):
+class CityScatter(VisualizationElement):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -70,7 +70,7 @@ class CityTextBoxVisualData:
         self.edgecolor = None
 
 
-class CityTextBox(Entity):
+class CityTextBox(VisualizationElement):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -78,31 +78,31 @@ class CityTextBox(Entity):
         self.city_text_box_visual_data = CityTextBoxVisualData()
 
 
-class TextBoxScan(Entity):
+class TextBoxScan(VisualizationElement):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 
-class TextBoxScanArea(Entity):
+class TextBoxScanArea(VisualizationElement):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 
-class TextBoxNearbySearchArea(Entity):
+class TextBoxNearbySearchArea(VisualizationElement):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 
-class TextBoxFinalist(Entity):
+class TextBoxFinalist(VisualizationElement):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 
-class Intersection(Entity):
+class Intersection(VisualizationElement):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

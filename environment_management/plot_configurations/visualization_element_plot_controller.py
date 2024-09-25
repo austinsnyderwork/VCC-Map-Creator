@@ -2,8 +2,8 @@ import logging
 from typing import Union
 
 import config_manager
-import entities
-from entity_conditions_maps import ConditionsMap
+import visualization_elements
+from visualization_element_conditions_map import ConditionsMap
 
 
 class MapDisplayController:
@@ -13,13 +13,13 @@ class MapDisplayController:
         self.plot_settings = plot_settings
 
         self.entity_type_display = {
-            entities.Line: self.retrieve_setting('viz_display_show_line', True),
-            entities.TextBoxScan: self.retrieve_setting('viz_display_show_scan_poly', True),
-            entities.TextBoxScanArea: self.retrieve_setting('viz_display_show_scan_area_poly', True),
-            entities.CityScatter: self.retrieve_setting('viz_display_show_scatter', True),
-            entities.Intersection: self.retrieve_setting('viz_display_show_intersecting_poly', True),
-            entities.TextBoxFinalist: self.retrieve_setting('viz_display_show_finalist_poly', True),
-            entities.TextBoxNearbySearchArea: self.retrieve_setting('viz_display_show_nearby_search_poly', True),
+            visualization_elements.Line: self.retrieve_setting('viz_display_show_line', True),
+            visualization_elements.TextBoxScan: self.retrieve_setting('viz_display_show_scan_poly', True),
+            visualization_elements.TextBoxScanArea: self.retrieve_setting('viz_display_show_scan_area_poly', True),
+            visualization_elements.CityScatter: self.retrieve_setting('viz_display_show_scatter', True),
+            visualization_elements.Intersection: self.retrieve_setting('viz_display_show_intersecting_poly', True),
+            visualization_elements.TextBoxFinalist: self.retrieve_setting('viz_display_show_finalist_poly', True),
+            visualization_elements.TextBoxNearbySearchArea: self.retrieve_setting('viz_display_show_nearby_search_poly', True),
         }
 
     def should_display(self, entity_type, *args, **kwargs) -> bool:
@@ -43,30 +43,30 @@ class AlgorithmDisplayController:
         self.plot_settings = plot_settings
 
         self.entity_type_display_origin_outpatient = {
-            entities.CityScatter: {
+            visualization_elements.CityScatter: {
                 'origin': self.retrieve_setting('algo_display_show_origin_scatters', True),
                 'outpatient': self.retrieve_setting('algo_display_show_origin_outpatients', True)
             },
-            entities.CityTextBox: {
+            visualization_elements.CityTextBox: {
                 'origin': self.retrieve_setting('algo_display_show_origin_text_box', True),
                 'outpatient': self.retrieve_setting('algo_display_show_outpatient_text_box', True)
             }
         }
 
         self.entities_display = {
-            entities.Line: self.retrieve_setting('algo_display_show_line', True),
-            entities.TextBoxScan: self.retrieve_setting('algo_display_show_scan_poly', True),
-            entities.TextBoxScanArea: self.retrieve_setting('algo_display_show_search_area_poly', True),
-            entities.TextBoxFinalist: self.retrieve_setting('algo_display_show_poly_finalist', True),
-            entities.TextBoxNearbySearchArea: self.retrieve_setting('algo_display_show_nearby_search_poly', True),
-            entities.Intersection: self.retrieve_setting('algo_display_show_intersecting_poly', True)
+            visualization_elements.Line: self.retrieve_setting('algo_display_show_line', True),
+            visualization_elements.TextBoxScan: self.retrieve_setting('algo_display_show_scan_poly', True),
+            visualization_elements.TextBoxScanArea: self.retrieve_setting('algo_display_show_search_area_poly', True),
+            visualization_elements.TextBoxFinalist: self.retrieve_setting('algo_display_show_poly_finalist', True),
+            visualization_elements.TextBoxNearbySearchArea: self.retrieve_setting('algo_display_show_nearby_search_poly', True),
+            visualization_elements.Intersection: self.retrieve_setting('algo_display_show_intersecting_poly', True)
         }
 
         self.entity_type_iterations_display = {
-            entities.TextBoxScan: self.retrieve_setting('algo_display_steps_to_show_scan_poly', True),
-            entities.TextBoxScanArea: self.retrieve_setting('algo_display_steps_to_show_scan_poly', True),
-            entities.TextBoxFinalist: self.retrieve_setting('algo_display_steps_to_show_poly_finalist', True),
-            entities.TextBoxNearbySearchArea: self.retrieve_setting('algo_display_steps_to_show_poly_finalist', True)
+            visualization_elements.TextBoxScan: self.retrieve_setting('algo_display_steps_to_show_scan_poly', True),
+            visualization_elements.TextBoxScanArea: self.retrieve_setting('algo_display_steps_to_show_scan_poly', True),
+            visualization_elements.TextBoxFinalist: self.retrieve_setting('algo_display_steps_to_show_poly_finalist', True),
+            visualization_elements.TextBoxNearbySearchArea: self.retrieve_setting('algo_display_steps_to_show_poly_finalist', True)
         }
 
     def should_display(self, entity_type, iterations: int) -> bool:
@@ -100,7 +100,7 @@ class AlgorithmDisplayController:
             return default_value
 
 
-class EntityDisplayController:
+class VisualizationElementPlotController:
 
     def __init__(self,
                  config: config_manager.ConfigManager = None,
@@ -111,23 +111,23 @@ class EntityDisplayController:
         self.plot_settings = plot_settings
 
         self.master_display_origin_outpatient_settings = {
-            entities.CityScatter: {
+            visualization_elements.CityScatter: {
                 'origin': self.retrieve_setting('show_origin_scatters', True),
                 'outpatient': self.retrieve_setting('show_origin_outpatients', True)
             },
-            entities.CityTextBox: {
+            visualization_elements.CityTextBox: {
                 'origin': self.retrieve_setting('show_origin_text_box', True),
                 'outpatient': self.retrieve_setting('show_outpatient_text_box', True)
             }
         }
 
         self.master_display_settings = {
-            entities.Line: self.retrieve_setting('show_line', True),
-            entities.TextBoxScan: self.retrieve_setting('show_scan_poly', True),
-            entities.TextBoxScanArea: self.retrieve_setting('show_search_area_poly', True),
-            entities.TextBoxFinalist: self.retrieve_setting('show_poly_finalist', True),
-            entities.TextBoxNearbySearchArea: self.retrieve_setting('show_nearby_search_poly', True),
-            entities.Intersection: self.retrieve_setting('show_intersecting_poly', True)
+            visualization_elements.Line: self.retrieve_setting('show_line', True),
+            visualization_elements.TextBoxScan: self.retrieve_setting('show_scan_poly', True),
+            visualization_elements.TextBoxScanArea: self.retrieve_setting('show_search_area_poly', True),
+            visualization_elements.TextBoxFinalist: self.retrieve_setting('show_poly_finalist', True),
+            visualization_elements.TextBoxNearbySearchArea: self.retrieve_setting('show_nearby_search_poly', True),
+            visualization_elements.Intersection: self.retrieve_setting('show_intersecting_poly', True)
         }
 
     def retrieve_setting(self, key, default_value):
@@ -141,7 +141,7 @@ class EntityDisplayController:
                 f"Defaulted to '{default_value}' because could not find '{key}' in plot_settings or config.")
             return default_value
 
-    def should_display(self, entity_type, iterations: int, display_type: str, origin_or_outpatient: str = None, **kwargs) -> bool:
+    def should_display(self, entity_type, iterations: int, display_type: str, **kwargs) -> bool:
         # If a master setting says don't display for this entity type, then immediately return False
         if entity_type in self.master_display_origin_outpatient_settings:
             if not self.master_display_origin_outpatient_settings[entity_type][origin_or_outpatient]:

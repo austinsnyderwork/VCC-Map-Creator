@@ -1,5 +1,6 @@
+from .cities_directory import CitiesDirectory
 from .environment import Environment
 from .environment_factory import EnvironmentFactory
 from .worksite_grouping import CityOriginNetworkHandler
-from .plot_configurations.entity_plot_controller import EntityDisplayController
+from .plot_configurations.visualization_element_plot_controller import VisualizationElementPlotController
 

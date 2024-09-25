@@ -3,8 +3,8 @@ import logging
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 
-import entities
-from environment_management.plot_configurations import entity_conditions_maps
+import visualization_elements
+from environment_management.plot_configurations import visualization_element_conditions_map
 import origin_grouping
 from interfacing import visualization_element
 from utils.helper_functions import get_config_value
@@ -64,7 +64,7 @@ class VisualizationPlotter:
 
         return scatter_obj
 
-    def plot_point(self, scatter: entities.CityScatter, zorder: int) -> list[visualization_element.VisualizationElement]:
+    def plot_point(self, scatter: visualization_elements.CityScatter, zorder: int) -> list[visualization_element.VisualizationElement]:
         origin_marker = get_config_value(config, 'display.origin_marker', cast_type=str)
         origin_color = get_config_value(config, 'display.origin_color', cast_type=str)
         outpatient_marker = get_config_value(config, 'display.outpatient_marker', cast_type=str)
