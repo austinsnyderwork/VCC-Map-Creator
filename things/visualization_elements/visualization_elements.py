@@ -10,16 +10,16 @@ class VisualizationElement:
 class LineAlgorithmData:
 
     def __init__(self, **kwargs):
-        self.x_data = None
-        self.y_data = None
+        self.x_data = kwargs['x_data']
+        self.y_data = kwargs['y_data']
 
 
 class LineVisualData:
 
     def __init__(self, **kwargs):
-        self.linewidth = None
-        self.color = None
-        self.edgecolor = None
+        self.linewidth = kwargs['linewidth']
+        self.color = kwargs['color']
+        self.edgecolor = kwargs['edgecolor']
 
 
 class Line(VisualizationElement):
@@ -72,6 +72,13 @@ class CityTextBox(VisualizationElement):
         super().__init__(**kwargs)
         self.city_text_box_algorithm_data = CityTextBoxAlgorithmData()
         self.city_text_box_visual_data = CityTextBoxVisualData()
+
+
+class CityScatterAndText:
+
+    def __init__(self, city_scatter: CityScatter, city_text_box: CityTextBox):
+        self.city_scatter = city_scatter
+        self.city_text_box = city_text_box
 
 
 class TextBoxScan(VisualizationElement):

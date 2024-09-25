@@ -1,3 +1,5 @@
+from typing import Callable
+
 from things.entities import entities
 import config_manager
 import environment_management
@@ -6,9 +8,13 @@ from visualization_elements import visualization_elements
 
 class EntityToVisualizationElementConverter:
 
-    def __init__(self, config: config_manager.ConfigManager, city_origin_network_handler: environment_management.CityOriginNetworkHandler):
+    def __init__(self, config: config_manager.ConfigManager,
+                 city_origin_network_handler: environment_management.CityOriginNetworkHandler,
+                 get_text_display_dimensions: Callable):
         self.config = config
         self.city_origin_network_handler = city_origin_network_handler
+
+        self.get_text_display_dimensions_func = get_text_display_dimensions
 
         self.entity_to_vis_element_map = {
             entities.City: [visualization_elements.CityScatter, visualization_elements.CityTextBox],
@@ -21,26 +27,52 @@ class EntityToVisualizationElementConverter:
             'visiting': self.config.get_config_value('viz_display.visiting_marker', str)
         }
 
-    def _get_city_visualization_element_data(self, city_entity: entities.City):
+    def _get_city_scatter_data(self, city_entity: entities.City):
+        color = self.city_origin_network_handler.get_entity_color(entity=city_entity)
         scatter_data = {
-            'color': self.city_origin_network_handler.get_entity_color(entity=city_entity),
-            'edgecolor': self.city_origin_network_handler.get_entity_color(entity=city_entity),
+            'color': color,
+            'edgecolor': color,
             'marker': self.scatter_marker_map[city_entity.site_type],
             'size': self.config.get_config_value(key='viz_display.scatter_size', cast_type=int),
             'label': city_entity.site_type
         }
         return scatter_data
 
-    def _get_provider_assignment_visualization_element_data(self, assignment_entity: entities.ProviderAssignment):
-        line_data = {
-
+    def _get_city_text_box_data(self, city_entity: entities.City):
+        text_box_data = {
+            'text_box_dimensions': self.get_text_display_dimensions_func(city_entity)
         }
+        return text_box_data
+
+    def _get_provider_assignment_line_data(self, assignment_entity: entities.ProviderAssignment):
+        origin_coord = assignment_entity.origin_site.city_coord
+        visiting_coord = assignment_entity.visiting_site.city_coord
+
+        x_data = origin_coord[0], visiting_coord[0]
+        y_data = origin_coord[1], visiting_coord[1]
+
+        color = self.city_origin_network_handler.get_entity_color(entity=assignment_entity)
+        line_data = {
+            'x_data': x_data,
+            'y_data': y_data,
+            'linewidth': self.config.get_config_value(key='viz_display.linewidth', cast_type=int),
+            'color': color,
+            'edgecolor': color
+        }
+        return line_data
 
     def convert_entity(self, entity: entities.Entity):
         if type(entity) is entities.ProviderAssignment:
-            line_data = {
-
-            }
+            line_data = self._get_provider_assignment_line_data(entity)
+            return visualization_elements.Line(line_data)
         elif type(entity) is entities.City:
-            scatter_data = self._get_city_visualization_element_data(entity)
-            return visualization_elements.CityScatter(**scatter_data)
+            scatter_data = self._get_city_scatter_data(entity)
+            city_scatter = visualization_elements.CityScatter(**scatter_data)
+
+            text_box_data = self._get_city_text_box_data(entity)
+            text_box = visualization_elements.CityTextBox(**text_box_data)
+
+            city_scatter_and_text = visualization_elements.CityScatterAndText(city_scatter=city_scatter,
+                                                                              city_text_box=text_box)
+
+            return city_scatter_and_text

@@ -3,6 +3,8 @@ import logging
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 
+import config_manager
+from things import entities
 import visualization_elements
 from interfacing import visualization_element
 from utils.helper_functions import get_config_value
@@ -24,7 +26,8 @@ def _group_exclusive_origin_outpatients(origin_groups: dict, dual_origin_outpati
 
 class VisualizationPlotter:
 
-    def __init__(self):
+    def __init__(self, config: config_manager.ConfigManager):
+        self.config = config
         self.poly_types = {}
 
         self.iowa_map = None
@@ -315,26 +318,6 @@ class VisualizationPlotter:
             text_box_ele.add_value(element='text_box',
                                    value=city_text_box)
             plotted_cities[city_ele.city_name] = city_text_box
-
-    def plot_sample_text_boxes(self, city_elements: list[visualization_element.VisualizationElement]):
-        for city_ele in city_elements:
-            logging.info(f"Determining text box dimensions for {city_ele.city_name}.")
-            # Have to input the text into the map to see its dimensions on our view
-            text_box, text_box_dimensions = self.get_text_box_dimensions(
-                city_name=city_ele.city_name,
-                font=config['viz_display'][
-                    'city_font'],
-                font_size=int(
-                    config['viz_display'][
-                        'city_font_size']),
-                font_weight=
-                config['viz_display'][
-                    'city_font_weight'])
-            logging.info(f"\tDetermined text box dimensions for {city_ele.city_name}.")
-            text_ele = visualization_element.VisualizationElement(element_type='text_box',
-                                                                  dimensions=text_box_dimensions)
-            city_ele.add_value(element='text_box_element',
-                               value=text_ele)
 
     def show_map(self, show_pause):
         plt.show(block=False)
