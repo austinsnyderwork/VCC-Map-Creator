@@ -8,10 +8,13 @@ class Environment:
 
     def __init__(self, cities_directory: entities.CitiesDirectory,
                  city_origin_network_handler: CityOriginNetworkHandler):
-        self.entities_manager = entities.EntitiesManager()
+        self.cities_directory = cities_directory
+        self.clinic_sites = {}
+        self.origin_groups_handler = city_origin_network_handler
+        self.vcc_clinic_sites = {}
 
     def add_city(self, city: entities.City):
-        self.entities_manager.add_entity(city)
+        self.cities_directory.add_city(city)
 
     def add_clinic(self, clinic: entities.VccClinicSite, direction: str):
         if clinic.name in self.clinic_sites:
