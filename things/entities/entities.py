@@ -84,10 +84,6 @@ class City(Entity):
         self.data_is_static = False
 
     @property
-    def origin_and_outpatient(self):
-        return len(self.visiting_clinics) > 0 and len(self.leaving_clinics) > 0
-
-    @property
     def visiting_specialties(self):
         if self.data_is_static and self.visiting_specialties:
             return self._visiting_specialties

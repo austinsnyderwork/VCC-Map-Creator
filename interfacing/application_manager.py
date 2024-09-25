@@ -44,10 +44,10 @@ class ApplicationManager:
             show_visiting_text_boxes=False
         )
         conditions_map = plot_configurations.HighestCityVisitingVolumeConditions(highest_volume_cities=highest_volume_cities)
-        plt = plotting.Plotter(entities=list(self.environment.entities.values()),
+        plot = plotting.Plotter(entities=list(self.environment.entities.values()),
                                plot_controller=vis_element_plot_controller,
                                conditions_map=conditions_map)
-        plt.plot()
+        plot.plot()
 
     def create_number_of_visiting_providers_map(self):
         conditions_map = plot_configurations.NumberOfVisitingProvidersConditions()

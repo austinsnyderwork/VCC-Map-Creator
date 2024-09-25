@@ -1,4 +1,4 @@
-from . import entities
+from things.entities import entities
 import environment_management
 from .worksite_grouping import CityOriginNetworkHandler
 

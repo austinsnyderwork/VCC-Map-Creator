@@ -9,14 +9,14 @@ class VisualizationElement:
 
 class LineAlgorithmData:
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.x_data = None
         self.y_data = None
 
 
 class LineVisualData:
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.linewidth = None
         self.color = None
         self.edgecolor = None

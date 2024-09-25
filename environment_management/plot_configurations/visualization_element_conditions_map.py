@@ -4,7 +4,7 @@ from functools import wraps
 import visualization_elements
 
 import config_manager
-from environment_management import entities
+from things.entities import entities
 
 
 def apply_to_type(expected_type):
@@ -127,7 +127,7 @@ class HighestCityVisitingVolumeConditions(ConditionsMap):
         return entity.name in self.highest_volume_cities
 
     @apply_to_type(entities.ProviderAssignment)
-    def line_condition(self, entity:entities.Entity):
+    def line_condition(self, entity: entities.Entity):
         return entity.origin_site.city_name in self.highest_volume_cities or entity.visiting_site.city_name in self.highest_volume_cities
 
 

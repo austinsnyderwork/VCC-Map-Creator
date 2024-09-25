@@ -1,7 +1,7 @@
 import pandas as pd
 from typing import Callable
 
-from . import entities
+from things.entities import entities
 from .environment import Environment
 
 

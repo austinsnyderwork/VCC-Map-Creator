@@ -1,6 +1,4 @@
-
-from visualization_elements import visualization_elements
-from environment_management import entities
+from things.entities import entities
 
 
 class CityOriginNetwork:

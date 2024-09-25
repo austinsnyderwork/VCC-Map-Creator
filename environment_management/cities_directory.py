@@ -1,4 +1,4 @@
-import entities
+from things.entities import entities
 
 
 class CitiesDirectory:
