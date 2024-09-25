@@ -1,4 +1,4 @@
 from .visualization_element_conditions_map import (ConditionsMap, NumberOfVisitingClinicsConditions, NumberOfVisitingSpecialtiesConditions,
-                                                   NumberOfVisitingProvidersConditions)
+                                                   NumberOfVisitingProvidersConditions, HighestCityVisitingVolumeConditions)
 from .visualization_element_plot_controller import VisualizationElementPlotController
 

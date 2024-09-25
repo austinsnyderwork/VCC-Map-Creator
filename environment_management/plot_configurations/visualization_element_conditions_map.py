@@ -75,37 +75,38 @@ class NumberOfVisitingClinicsConditions(ConditionsMap):
 
     @apply_to_type(entities.City)
     def range_1_condition(self, entity: entities.Entity, **kwargs):
-        num_visiting_clinics =
         range_1_min = self.config.get_config_value('num_visiting_clinics.range_1_min', int)
         range_1_max = self.config.get_config_value('num_visiting_clinics.range_1_max', int)
 
-        return range_1_min < num_visiting_clinics < range_1_max
+        return range_1_min < len(entity.visiting_clinics) < range_1_max
 
     @apply_to_type(entities.City)
-    def range_2_condition(self, num_visiting_clinics: int, **kwargs):
+    def range_2_condition(self, entity: entities.Entity, **kwargs):
         range_2_min = self.config.get_config_value('num_visiting_clinics.range_2_min', int)
         range_2_max = self.config.get_config_value('num_visiting_clinics.range_2_max', int)
 
-        return range_2_min < num_visiting_clinics < range_2_max
+        return range_2_min < len(entity.visiting_clinics) < range_2_max
 
-    def range_3_condition(self, num_visiting_clinics: int, **kwargs):
+    @apply_to_type(entities.City)
+    def range_3_condition(self, entity: entities.Entity, **kwargs):
         range_3_min = self.config.get_config_value('num_visiting_clinics.range_3_min', int)
         range_3_max = self.config.get_config_value('num_visiting_clinics.range_3_max', int)
 
-        return range_3_min < num_visiting_clinics < range_3_max
+        return range_3_min < len(entity.visiting_clinics) < range_3_max
 
-    def range_4_condition(self, num_visiting_clinics: int, **kwargs):
+    @apply_to_type(entities.City)
+    def range_4_condition(self, entity: entities.Entity, **kwargs):
         range_4_min = self.config.get_config_value('num_visiting_clinics.range_4_min', int)
         range_4_max = 1e5
 
-        return range_4_min < num_visiting_clinics < range_4_max
+        return range_4_min < len(entity.visiting_clinics) < range_4_max
 
 
 class HighestCityVisitingVolumeConditions(ConditionsMap):
 
     def __init__(self, highest_volume_cities: list[str]):
         self.conditional_visualization_elements = [visualization_elements.CityScatter]
-        condition_funcs = [self.condition]
+        condition_funcs = [self.city_condition, self.line_condition]
         visualization_elements_ = self._create_visualization_elements()
         conditions = [Condition(condition=condition_func, visualization_element=visualization_element) for condition_func, visualization_element in
                       zip(condition_funcs, visualization_elements_)]
@@ -121,8 +122,13 @@ class HighestCityVisitingVolumeConditions(ConditionsMap):
         visualization_elements_ = [visualization_element_1]
         return visualization_elements_
 
-    def condition(self, city_name):
-        return city_name in self.highest_volume_cities
+    @apply_to_type(entities.City)
+    def city_condition(self, entity: entities.Entity):
+        return entity.name in self.highest_volume_cities
+
+    @apply_to_type(entities.ProviderAssignment)
+    def line_condition(self, entity:entities.Entity):
+        return entity.origin_site.city_name in self.highest_volume_cities or entity.visiting_site.city_name in self.highest_volume_cities
 
 
 class NumberOfVisitingProvidersConditions(ConditionsMap):
@@ -160,29 +166,34 @@ class NumberOfVisitingProvidersConditions(ConditionsMap):
         visualization_elements_ = [visualization_element_1, visualization_element_2, visualization_element_3, visualization_element_4]
         return visualization_elements_
 
-    def range_1_condition(self, num_visiting_providers: int, **kwargs):
+    @apply_to_type(entities.City)
+    def range_1_condition(self, entity: entities.Entity, **kwargs):
         range_1_min = self.config.get_config_value('num_visiting_providers.range_1_min', int)
         range_1_max = self.config.get_config_value('num_visiting_providers.range_1_max', int)
 
-        return range_1_min < num_visiting_providers < range_1_max
+        return range_1_min < len(entity.visiting_providers) < range_1_max
 
-    def range_2_condition(self, num_visiting_providers: int, **kwargs):
+    @apply_to_type(entities.City)
+    def range_2_condition(self, entity: entities.Entity, **kwargs):
         range_2_min = self.config.get_config_value('num_visiting_providers.range_2_min', int)
         range_2_max = self.config.get_config_value('num_visiting_providers.range_2_max', int)
 
-        return range_2_min < num_visiting_providers < range_2_max
+        return range_2_min < len(entity.visiting_providers) < range_2_max
 
-    def range_3_condition(self, num_visiting_providers: int, **kwargs):
+    @apply_to_type(entities.City)
+    def range_3_condition(self, entity: entities.Entity, **kwargs):
         range_3_min = self.config.get_config_value('num_visiting_providers.range_3_min', int)
         range_3_max = self.config.get_config_value('num_visiting_providers.range_3_max', int)
 
-        return range_3_min < num_visiting_providers < range_3_max
+        return range_3_min < len(entity.visiting_providers) < range_3_max
 
-    def range_4_condition(self, num_visiting_providers: int, **kwargs):
+    @apply_to_type(entities.City)
+    def range_4_condition(self, entity: entities.Entity, **kwargs):
         range_4_min = self.config.get_config_value('num_visiting_providers.range_4_min', int)
         range_4_max = 1e5
 
-        return range_4_min < num_visiting_providers < range_4_max
+        return range_4_min < len(entity.visiting_providers) < range_4_max
+
 
 class NumberOfVisitingSpecialtiesConditions(ConditionsMap):
 
@@ -213,20 +224,20 @@ class NumberOfVisitingSpecialtiesConditions(ConditionsMap):
         visualization_elements_ = [visualization_element_1, visualization_element_2, visualization_element_3]
         return visualization_elements_
 
-    def range_1_condition(self, num_visiting_specialties: int, **kwargs):
+    def range_1_condition(self, entity: entities.Entity, **kwargs):
         range_1_min = self.config.get_config_value('num_visiting_specialties.range_1_min', int)
         range_1_max = self.config.get_config_value('num_visiting_specialties.range_1_max', int)
 
-        return range_1_min < num_visiting_specialties < range_1_max
+        return range_1_min < len(entity.visiting_specialties) < range_1_max
 
-    def range_2_condition(self, num_visiting_specialties: int, **kwargs):
+    def range_2_condition(self, entity: entities.Entity, **kwargs):
         range_2_min = self.config.get_config_value('num_visiting_specialties.range_2_min', int)
         range_2_max = self.config.get_config_value('num_visiting_specialties.range_2_max', int)
 
-        return range_2_min < num_visiting_specialties < range_2_max
+        return range_2_min < len(entity.visiting_specialties) < range_2_max
 
-    def range_3_condition(self, num_visiting_specialties: int, **kwargs):
+    def range_3_condition(self, entity: entities.Entity, **kwargs):
         range_3_min = self.config.get_config_value('num_visiting_specialties.range_3_min', int)
         range_3_max = self.config.get_config_value('num_visiting_specialties.range_3_max', int)
 
-        return range_3_min < num_visiting_specialties < range_3_max
+        return range_3_min < len(entity.visiting_specialties) < range_3_max

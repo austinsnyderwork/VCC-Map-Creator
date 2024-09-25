@@ -1,4 +1,4 @@
-from environment_management.vcc_clinic_site import VccClinicSite
+import entities
 
 
 class CitiesDirectory:
@@ -6,7 +6,7 @@ class CitiesDirectory:
     def __init__(self):
         self._cities = {}
 
-    def add_city(self, city: City):
+    def add_city(self, city: entities.City):
         if city.name not in self._cities:
             self._cities[city.name] = city
 

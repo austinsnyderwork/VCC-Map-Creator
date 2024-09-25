@@ -2,10 +2,12 @@ import pandas as pd
 
 from . import data_functions, helper_functions
 import algorithm
+import config_manager
 import visualization_elements
 import entities
 import environment_management
 from environment_management import VisualizationElementPlotController, plot_configurations
+import plotting
 import startup_factory
 import visualization
 
@@ -24,6 +26,7 @@ class ApplicationManager:
         self.entities_manager = visualization_elements.VisualizationElementsManager()
 
         self.algorithm_handler = algorithm_handler or algorithm.AlgorithmHandler()
+        self.config = config_manager.ConfigManager()
 
     def create_line_map(self):
         entity_plot_controller = environment_management.VisualizationElementPlotController()
@@ -36,7 +39,15 @@ class ApplicationManager:
     def create_highest_volume_line_map(self, number_of_results: int):
         highest_volume_cities = data_functions.get_top_volume_incoming_cities(df=self.df,
                                                                               num_results=number_of_results)
-
+        vis_element_plot_controller = plot_configurations.VisualizationElementPlotController(
+            config=self.config,
+            show_visiting_text_boxes=False
+        )
+        conditions_map = plot_configurations.HighestCityVisitingVolumeConditions(highest_volume_cities=highest_volume_cities)
+        plt = plotting.Plotter(entities=list(self.environment.entities.values()),
+                               plot_controller=vis_element_plot_controller,
+                               conditions_map=conditions_map)
+        plt.plot()
 
     def create_number_of_visiting_providers_map(self):
         conditions_map = plot_configurations.NumberOfVisitingProvidersConditions()

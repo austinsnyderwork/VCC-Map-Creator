@@ -53,10 +53,6 @@ class CityScatter(VisualizationElement):
         self.city_scatter_algorithm_data = CityScatterAlgorithmData()
         self.city_scatter_visual_data = CityScatterVisualData()
 
-        algo_variables = set()
-
-        visual_variables = ('color', 'size')
-
 
 class CityTextBoxAlgorithmData:
 

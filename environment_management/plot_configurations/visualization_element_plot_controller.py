@@ -42,14 +42,14 @@ class AlgorithmDisplayController:
         self.config = config_manager.ConfigManager()
         self.plot_settings = plot_settings
 
-        self.entity_type_display_origin_outpatient = {
+        self.entity_type_display_origin_visiting = {
             visualization_elements.CityScatter: {
                 'origin': self.retrieve_setting('algo_display_show_origin_scatters', True),
-                'outpatient': self.retrieve_setting('algo_display_show_origin_outpatients', True)
+                'visiting': self.retrieve_setting('algo_display_show_origin_visitings', True)
             },
             visualization_elements.CityTextBox: {
                 'origin': self.retrieve_setting('algo_display_show_origin_text_box', True),
-                'outpatient': self.retrieve_setting('algo_display_show_outpatient_text_box', True)
+                'visiting': self.retrieve_setting('algo_display_show_visiting_text_box', True)
             }
         }
 
@@ -74,12 +74,12 @@ class AlgorithmDisplayController:
         if not show_algo:
             return False
 
-        if entity_type in self.entity_type_display_origin_outpatient:
-            if not self.entity_type_display_origin_outpatient[entity_type][entity_type.origin_or_outpatient]:
+        if entity_type in self.entity_type_display_origin_visiting:
+            if not self.entity_type_display_origin_visiting[entity_type][entity_type.origin_or_visiting]:
                 return False
 
         if entity_type in self.entities_display:
-            if not self.entities_display[entity_type][entity_type.origin_or_outpatient]:
+            if not self.entities_display[entity_type][entity_type.origin_or_visiting]:
                 return False
 
         if entity_type in self.entity_type_iterations_display:
@@ -110,14 +110,14 @@ class VisualizationElementPlotController:
         self.config = config if config else config_manager.ConfigManager()
         self.plot_settings = plot_settings
 
-        self.master_display_origin_outpatient_settings = {
+        self.master_display_origin_visiting_settings = {
             visualization_elements.CityScatter: {
                 'origin': self.retrieve_setting('show_origin_scatters', True),
-                'outpatient': self.retrieve_setting('show_origin_outpatients', True)
+                'visiting': self.retrieve_setting('show_origin_visitings', True)
             },
             visualization_elements.CityTextBox: {
                 'origin': self.retrieve_setting('show_origin_text_box', True),
-                'outpatient': self.retrieve_setting('show_outpatient_text_box', True)
+                'visiting': self.retrieve_setting('show_visiting_text_box', True)
             }
         }
 
@@ -143,8 +143,8 @@ class VisualizationElementPlotController:
 
     def should_display(self, entity_type, iterations: int, display_type: str, **kwargs) -> bool:
         # If a master setting says don't display for this entity type, then immediately return False
-        if entity_type in self.master_display_origin_outpatient_settings:
-            if not self.master_display_origin_outpatient_settings[entity_type][origin_or_outpatient]:
+        if entity_type in self.master_display_origin_visiting_settings:
+            if not self.master_display_origin_visiting_settings[entity_type][origin_or_visiting]:
                 return False
 
         if entity_type in self.master_display_settings:

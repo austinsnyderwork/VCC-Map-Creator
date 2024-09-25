@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 
 import visualization_elements
-from environment_management.plot_configurations import visualization_element_conditions_map
-import origin_grouping
 from interfacing import visualization_element
 from utils.helper_functions import get_config_value
 
