@@ -20,7 +20,7 @@ class ApplicationManager:
         self.visualization_plotter = visualization_plotter or visualization.VisualizationPlotter()
         self.environment = startup_factory_.create_filled_environment(
             coord_converter_func=self.visualization_plotter.convert_coord_to_display)
-        self.polygons = startup_factory_.create_polygons(environment=self.environment)
+        self.entities_manager = entities.EntitiesManager()
 
         self.algorithm_handler = algorithm_handler or algorithm.AlgorithmHandler()
 
