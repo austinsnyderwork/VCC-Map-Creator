@@ -1,3 +1,4 @@
+from abc import ABC
 from collections.abc import Callable
 import entities
 
@@ -11,9 +12,10 @@ class Condition:
         self.entity = entity
 
 
-class ConditionsMap:
+class ConditionsMap(ABC):
 
     def __init__(self, conditions: list[Condition]):
+        self.conditional_entities = []
         self.conditions = conditions
         self.config = config_manager.ConfigManager()
 

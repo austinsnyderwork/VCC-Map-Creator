@@ -3,6 +3,7 @@ import logging
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 
+import entities
 from environment_management.plot_configurations import entity_conditions_maps
 import origin_grouping
 from interfacing import visualization_element
@@ -23,7 +24,7 @@ def _group_exclusive_origin_outpatients(origin_groups: dict, dual_origin_outpati
     return excl_origins, excl_outpatients
 
 
-class VisualizationMapCreator:
+class VisualizationPlotter:
 
     def __init__(self):
         self.poly_types = {}
@@ -63,9 +64,7 @@ class VisualizationMapCreator:
 
         return scatter_obj
 
-    def plot_points(self, scatter_size: float, dual_origin_outpatients: list,
-                    origin_groups: dict[str, origin_grouping.OriginGroup],
-                    zorder: int) -> list[visualization_element.VisualizationElement]:
+    def plot_point(self, scatter: entities.CityScatter, zorder: int) -> list[visualization_element.VisualizationElement]:
         origin_marker = get_config_value(config, 'display.origin_marker', cast_type=str)
         origin_color = get_config_value(config, 'display.origin_color', cast_type=str)
         outpatient_marker = get_config_value(config, 'display.outpatient_marker', cast_type=str)

@@ -1,7 +1,10 @@
 
 
 class Entity:
-    pass
+
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            self.__setattr__(k, v)
 
 
 class LineAlgorithmData:
@@ -22,6 +25,7 @@ class LineVisualData:
 class Line(Entity):
 
     def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.line_algorithm_data = LineAlgorithmData()
         self.line_visual_data = LineVisualData()
 
@@ -45,6 +49,7 @@ class CityScatterVisualData:
 class CityScatter(Entity):
 
     def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.city_scatter_algorithm_data = CityScatterAlgorithmData()
         self.city_scatter_visual_data = CityScatterVisualData()
 
@@ -68,12 +73,31 @@ class CityTextBoxVisualData:
 class CityTextBox(Entity):
 
     def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.city_text_box_algorithm_data = CityTextBoxAlgorithmData()
         self.city_text_box_visual_data = CityTextBoxVisualData()
 
 
-class CityEntity:
+class TextBoxScan(Entity):
 
-    def __init__(self, city_scatter: CityScatter, city_text_box: CityTextBox):
-        self.city_scatter = city_scatter
-        self.city_text_box = city_text_box
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class TextBoxSearchArea(Entity):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class TextBoxNearbyScanArea(Entity):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class TextBoxFinalist(Entity):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
