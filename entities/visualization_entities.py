@@ -84,19 +84,25 @@ class TextBoxScan(Entity):
         super().__init__(**kwargs)
 
 
-class TextBoxSearchArea(Entity):
+class TextBoxScanArea(Entity):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 
-class TextBoxNearbyScanArea(Entity):
+class TextBoxNearbySearchArea(Entity):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 
 class TextBoxFinalist(Entity):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class Intersection(Entity):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

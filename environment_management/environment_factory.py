@@ -5,26 +5,14 @@ import entities
 from .environment import Environment
 
 
-def _flatten_dict(dict_: dict):
-    new_dict = {}
-    for key, value_list in dict_:
-        for value in value_list:
-            new_dict[value] = key
-    return new_dict
-
-
-def _apply_create_cities(row, environment: Environment, coord_converter: Callable, city_name_changes: dict):
+def _apply_create_cities(row, environment: Environment, coord_converter: Callable):
     origin_city_name = row['point_of_origin']
-    origin_city_name = city_name_changes[
-        origin_city_name] if origin_city_name in city_name_changes else origin_city_name
     origin_lon, origin_lat = coord_converter(row['origin_lon'], row['origin_lat'])
     origin_city = entities.City(name=origin_city_name,
                                 coord=(origin_lon, origin_lat))
     environment.add_city(origin_city)
 
     outpatient_city_name = row['community']
-    outpatient_city_name = city_name_changes[
-        outpatient_city_name] if outpatient_city_name in city_name_changes else outpatient_city_name
     outpatient_lon, outpatient_lat = coord_converter(row['outpatient_lon'], row['outpatient_lat'])
     outpatient_city = entities.City(name=outpatient_city_name,
                                     coord=(outpatient_lon, outpatient_lat))
@@ -68,11 +56,8 @@ class EnvironmentFactory:
 
         self.environment_filled = False
 
-    def fill_environment(self, environment: Environment, df: pd.DataFrame, coord_converter: Callable,
-                         city_name_changes: dict):
-        city_name_changes = _flatten_dict(city_name_changes)
-        df.apply(_apply_create_cities, environment=environment, coord_converter=coord_converter,
-                 city_name_changes=city_name_changes, axis=1)
+    def fill_environment(self, environment: Environment, df: pd.DataFrame, coord_converter: Callable):
+        df.apply(_apply_create_cities, environment=environment, coord_converter=coord_converter, axis=1)
 
         df.apply(_apply_create_clinic_sites, environment=environment, axis=1)
 

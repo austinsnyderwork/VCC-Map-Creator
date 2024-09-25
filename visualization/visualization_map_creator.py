@@ -38,7 +38,7 @@ class VisualizationPlotter:
         self._create_figure(fig_size=display_fig_size,
                             county_line_width=float(config['display']['county_line_width']))
 
-    def _convert_coord_to_display(self, coord: tuple):
+    def convert_coord_to_display(self, coord: tuple):
         convert_lon, convert_lat = self.iowa_map(coord)
         return convert_lon, convert_lat
 

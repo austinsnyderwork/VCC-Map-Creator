@@ -1,3 +1,4 @@
+import logging
 from typing import Union
 
 import config_manager
@@ -11,13 +12,28 @@ class MapDisplayController:
         self.config = config_manager.ConfigManager()
         self.plot_settings = plot_settings
 
-    def should_display(self, entity: entities.Entity, iteration: int) -> bool:
+        self.entity_type_display = {
+            entities.Line: self.retrieve_setting('viz_display_show_line', True),
+            entities.TextBoxScan: self.retrieve_setting('viz_display_show_scan_poly', True),
+            entities.TextBoxScanArea: self.retrieve_setting('viz_display_show_scan_area_poly', True),
+            entities.CityScatter: self.retrieve_setting('viz_display_show_scatter', True),
+            entities.Intersection: self.retrieve_setting('viz_display_show_intersecting_poly', True),
+            entities.TextBoxFinalist: self.retrieve_setting('viz_display_show_finalist_poly', True),
+            entities.TextBoxNearbySearchArea: self.retrieve_setting('viz_display_show_nearby_search_poly', True),
+        }
 
-    def get_config_value(self, key, default_type):
-        if self.plot_settings[key]:
+    def should_display(self, entity_type, *args, **kwargs) -> bool:
+        return self.entity_type_display[entity_type]
+
+    def retrieve_setting(self, key, default_value):
+        if key in self.plot_settings:
             return self.plot_settings[key]
 
-        return self.config.get_config_value(key, default_type)
+        try:
+            return self.config.get_config_value(key, type(default_value))
+        except ValueError:
+            logging.warning(f"Defaulted to '{default_value}' because could not find '{key}' in plot_settings or config.")
+            return default_value
 
 
 class AlgorithmDisplayController:
@@ -26,75 +42,124 @@ class AlgorithmDisplayController:
         self.config = config_manager.ConfigManager()
         self.plot_settings = plot_settings
 
-        self.entity_display_origin_outpatient = {
+        self.entity_type_display_origin_outpatient = {
             entities.CityScatter: {
-                'origin': self.get_config_value('algo_display.show_origin_scatters', bool),
-                'outpatient': self.get_config_value('algo_display.show_origin_outpatients', bool)
+                'origin': self.retrieve_setting('algo_display_show_origin_scatters', True),
+                'outpatient': self.retrieve_setting('algo_display_show_origin_outpatients', True)
             },
             entities.CityTextBox: {
-                'origin': self.get_config_value('algo_display.show_origin_text_box', bool),
-                'outpatient': self.get_config_value('algo_display.show_outpatient_text_box', bool)
+                'origin': self.retrieve_setting('algo_display_show_origin_text_box', True),
+                'outpatient': self.retrieve_setting('algo_display_show_outpatient_text_box', True)
             }
         }
 
         self.entities_display = {
-            entities.TextBoxScan: self.get_config_value('algo_display.show_scan_poly', bool),
-            entities.TextBoxSearchArea: self.get_config_value('algo_display.show_search_area_poly', bool),
-            entities.TextBoxFinalist: self.get_config_value('algo_display.show_poly_finalist', bool),
-            entities.TextBoxNearbyScanArea: self.get_config_value('algo_display.show_nearby_search_poly', bool)
+            entities.Line: self.retrieve_setting('algo_display_show_line', True),
+            entities.TextBoxScan: self.retrieve_setting('algo_display_show_scan_poly', True),
+            entities.TextBoxScanArea: self.retrieve_setting('algo_display_show_search_area_poly', True),
+            entities.TextBoxFinalist: self.retrieve_setting('algo_display_show_poly_finalist', True),
+            entities.TextBoxNearbySearchArea: self.retrieve_setting('algo_display_show_nearby_search_poly', True),
+            entities.Intersection: self.retrieve_setting('algo_display_show_intersecting_poly', True)
         }
 
-        self.entity_iterations_display = {
-            entities.TextBoxScan: self.get_config_value('algo_display.steps_to_show_scan_poly', int),
-            entities.TextBoxSearchArea: self.get_config_value('algo_display.steps_to_show_scan_poly', int),
-            entities.TextBoxFinalist: self.get_config_value('algo_display.steps_to_show_poly_finalist', int),
-            entities.TextBoxNearbyScanArea: self.get_config_value('algo_display.steps_to_show_poly_finalist', int)
+        self.entity_type_iterations_display = {
+            entities.TextBoxScan: self.retrieve_setting('algo_display_steps_to_show_scan_poly', True),
+            entities.TextBoxScanArea: self.retrieve_setting('algo_display_steps_to_show_scan_poly', True),
+            entities.TextBoxFinalist: self.retrieve_setting('algo_display_steps_to_show_poly_finalist', True),
+            entities.TextBoxNearbySearchArea: self.retrieve_setting('algo_display_steps_to_show_poly_finalist', True)
         }
 
-    def should_display(self, entity: entities.Entity, iterations: int) -> bool:
-        # Initial general pass
-        if type(entity) in self.entity_display_origin_outpatient:
-            if not self.entity_display_origin_outpatient[type(entity)][entity.origin_or_outpatient]:
+    def should_display(self, entity_type, iterations: int) -> bool:
+        show_algo = self.retrieve_setting('algo_display_show_algo', bool)
+        if not show_algo:
+            return False
+
+        if entity_type in self.entity_type_display_origin_outpatient:
+            if not self.entity_type_display_origin_outpatient[entity_type][entity_type.origin_or_outpatient]:
                 return False
 
-        if type(entity) in self.entities_display:
-            if not self.entities_display[type(entity)][entity.origin_or_outpatient]:
+        if entity_type in self.entities_display:
+            if not self.entities_display[entity_type][entity_type.origin_or_outpatient]:
                 return False
 
-        if type(entity) in self.entity_iterations_display:
-            if iterations != self.entity_iterations_display[type(entity)]:
+        if entity_type in self.entity_type_iterations_display:
+            if iterations != self.entity_type_iterations_display[entity_type]:
                 return False
 
         return True
 
-    def get_config_value(self, key, default_type):
-        if self.plot_settings[key]:
+    def retrieve_setting(self, key, default_value):
+        if key in self.plot_settings:
             return self.plot_settings[key]
 
-        return self.config.get_config_value(key, default_type)
+        try:
+            return self.config.get_config_value(key, type(default_value))
+        except ValueError:
+            logging.warning(
+                f"Defaulted to '{default_value}' because could not find '{key}' in plot_settings or config.")
+            return default_value
+
 
 class EntityDisplayController:
 
     def __init__(self,
-                 entity_conditions_map: ConditionsMap = None,
                  config: config_manager.ConfigManager = None,
                  **plot_settings):
-        self.map_display_controller = MapDisplayController()
-        self.algorithm_display_controller = AlgorithmDisplayController()
+        self.map_display_controller = MapDisplayController(**plot_settings)
+        self.algorithm_display_controller = AlgorithmDisplayController(**plot_settings)
         self.config = config if config else config_manager.ConfigManager()
-        self.entity_conditions_map = entity_conditions_map
         self.plot_settings = plot_settings
 
+        self.master_display_origin_outpatient_settings = {
+            entities.CityScatter: {
+                'origin': self.retrieve_setting('show_origin_scatters', True),
+                'outpatient': self.retrieve_setting('show_origin_outpatients', True)
+            },
+            entities.CityTextBox: {
+                'origin': self.retrieve_setting('show_origin_text_box', True),
+                'outpatient': self.retrieve_setting('show_outpatient_text_box', True)
+            }
+        }
 
-    def determine_display(self, entity: entities.Entity, iterations: int, display_type: str, **kwargs) -> Union[entities.Entity, None]:
-        display_funcs = {
+        self.master_display_settings = {
+            entities.Line: self.retrieve_setting('show_line', True),
+            entities.TextBoxScan: self.retrieve_setting('show_scan_poly', True),
+            entities.TextBoxScanArea: self.retrieve_setting('show_search_area_poly', True),
+            entities.TextBoxFinalist: self.retrieve_setting('show_poly_finalist', True),
+            entities.TextBoxNearbySearchArea: self.retrieve_setting('show_nearby_search_poly', True),
+            entities.Intersection: self.retrieve_setting('show_intersecting_poly', True)
+        }
+
+    def retrieve_setting(self, key, default_value):
+        if key in self.plot_settings:
+            return self.plot_settings[key]
+
+        try:
+            return self.config.get_config_value(key, type(default_value))
+        except ValueError:
+            logging.warning(
+                f"Defaulted to '{default_value}' because could not find '{key}' in plot_settings or config.")
+            return default_value
+
+    def should_display(self, entity_type, iterations: int, display_type: str, origin_or_outpatient: str = None, **kwargs) -> bool:
+        # If a master setting says don't display for this entity type, then immediately return False
+        if entity_type in self.master_display_origin_outpatient_settings:
+            if not self.master_display_origin_outpatient_settings[entity_type][origin_or_outpatient]:
+                return False
+
+        if entity_type in self.master_display_settings:
+            if not self.master_display_settings[entity_type]:
+                return False
+
+        should_display_funcs = {
             'map': self.map_display_controller.should_display,
             'algorithm': self.algorithm_display_controller.should_display
         }
-        if not display_funcs[display_type](entity, iterations):
-            return None
+        if not should_display_funcs[display_type](entity_type, iterations):
+            return False
 
-        if not 
+        return True
+
 
 
 
