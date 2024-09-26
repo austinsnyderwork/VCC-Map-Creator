@@ -1,29 +1,22 @@
 import itertools
 import logging
-import math
 import numpy as np
 from shapely.geometry import Polygon
 
-
-def move_coordinate(x, y, slope, distance) -> tuple:
-    angle = math.atan(slope)  # arctan gives the angle from the slope
-
-    # Calculate the change in x and y using the angle and distance
-    delta_x = distance * math.cos(angle)  # Adjacent side of the right triangle
-    delta_y = distance * math.sin(angle)  # Opposite side of the right triangle
-
-    # Calculate new coordinates
-    new_x = x + delta_x
-    new_y = y + delta_y
-
-    return new_x, new_y
+from polygons import helper_functions
+from . import typed_polygon
+from things.visualization_elements import visualization_elements
+from things import box_geometry
 
 
-def create_poly(poly_type: str, **kwargs) -> Polygon:
+def create_poly(poly_type: typed_polygon.TypedPolygon, **kwargs) -> Polygon:
     poly_create_functions = {
-        'line': _create_line_polygon,
-        'scatter': _create_circle_polygon,
-        'rectangle': _create_rectangle_polygon
+        typed_polygon.LinePolygon: _create_line_polygon,
+        typed_polygon.ScatterPolygon: _create_scatter_polygon,
+        typed_polygon.ScanPolygon: _create_rectangle_polygon,
+        typed_polygon.FinalistPolygon: _create_rectangle_polygon,
+        typed_polygon.NearbySearchPolygon: _create_rectangle_polygon,
+        typed_polygon.ScanAreaPolygon: _create_rectangle_polygon
     }
     func = poly_create_functions[poly_type]
     try:
@@ -34,31 +27,45 @@ def create_poly(poly_type: str, **kwargs) -> Polygon:
     return poly
 
 
-def _create_line_polygon(line_width: float, x_data, y_data) -> Polygon:
-    line_coord_0 = (x_data[0], y_data[0])
-    line_coord_1 = (x_data[1], y_data[1])
+def _create_line_polygon(line_entity: visualization_elements.Line) -> typed_polygon.LinePolygon:
+    x_data = line_entity.algorithm_x_data
+    y_data = line_entity.algorithm_y_data
 
     slope = (y_data[1] - y_data[0]) / (x_data[1] - x_data[0])
     perpendicular_slope = -1 / slope
 
     poly_coords = []
-    for coord in [line_coord_0, line_coord_1]:
-        new_coord_0 = move_coordinate(coord[0], coord[1], slope=perpendicular_slope, distance=line_width / 2)
-        new_coord_1 = move_coordinate(coord[0], coord[1], slope=-perpendicular_slope, distance=line_width / 2)
+    for coord in [x_data, y_data]:
+        new_coord_0 = helper_functions.move_coordinate(coord[0], coord[1], slope=perpendicular_slope,
+                                                       distance=line_entity.algorithm_line_width / 2)
+        new_coord_1 = helper_functions.move_coordinate(coord[0], coord[1], slope=-perpendicular_slope,
+                                                       distance=line_entity.algorithm_line_width / 2)
         poly_coords.append(new_coord_0)
         poly_coords.append(new_coord_1)
 
-    poly = _create_polygon_from_coords(coords=poly_coords)
-    return poly
+    poly = None
+    for permutation in itertools.permutations(poly_coords):
+        polygon = Polygon(permutation)
+        if polygon.is_valid:
+            poly = polygon
+            break
+
+    if poly.is_valid:
+        line_polygon = typed_polygon.LinePolygon(poly=poly)
+        return line_polygon
+    else:
+        raise ValueError("Could not form a valid line polygon.")
 
 
-def _create_circle_polygon(center, radius, num_points=100) -> Polygon:
+def _create_scatter_polygon(center, radius, num_points=100) -> typed_polygon.ScatterPolygon:
     angles = np.linspace(0, 2 * np.pi, num_points)
     points = [(center[0] + radius * np.cos(angle), center[1] + radius * np.sin(angle)) for angle in angles]
-    return Polygon(points)
+    poly = Polygon(points)
+    scatter_poly = typed_polygon.ScatterPolygon(poly=poly)
+    return scatter_poly
 
 
-def _create_rectangle_polygon(**kwargs) -> Polygon:
+def _create_rectangle_polygon(box_geometry_: box_geometry.BoxGeometry) -> Polygon:
     if 'lon' in kwargs and 'lat' in kwargs and 'width' in kwargs and 'height' in kwargs:
         lon = kwargs['lon']
         lat = kwargs['lat']
@@ -90,17 +97,3 @@ def _create_rectangle_polygon(**kwargs) -> Polygon:
 
     # Create and return the Polygon
     return Polygon(coordinates)
-
-
-def _create_polygon_from_coords(**kwargs) -> Polygon:
-    poly = None
-    for permutation in itertools.permutations(kwargs['coords']):
-        polygon = Polygon(permutation)
-        if polygon.is_valid:
-            poly = polygon
-            break
-
-    if not poly.is_valid:
-        raise ValueError("Could not form a valid polygon.")
-    else:
-        return poly

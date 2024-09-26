@@ -38,6 +38,9 @@ class CityOriginNetworkHandler:
         self.city_origin_networks[origin_city.name] = CityOriginNetwork(origin_city=origin_city,
                                                                         color=self._get_color())
 
+    def add_visiting_city(self, origin_city: entities.City, visiting_city: entities.City):
+        self.city_origin_networks[origin_city.name].add_city(visiting_city)
+
     def get_entity_color(self, entity: entities.ProviderAssignment):
         if type(entity) is entities.ProviderAssignment:
             origin_city_name = entity.origin_site.city_name

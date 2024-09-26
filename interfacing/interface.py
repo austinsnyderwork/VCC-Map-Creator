@@ -32,6 +32,7 @@ class Interface:
     def create_number_of_visiting_providers_map(self, **kwargs):
         self.application_manager.create_number_of_visiting_providers_map(**kwargs)
 
+    @check_data_imported
     def create_highest_volume_line_map(self):
         self.application_manager.create_highest_volume_line_map(number_of_results=4)
 

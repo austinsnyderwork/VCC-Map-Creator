@@ -1,5 +1,5 @@
 from abc import ABC
-
+from things import text_box_di
 
 class VisualizationElement:
     

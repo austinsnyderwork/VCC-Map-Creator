@@ -1,6 +1,4 @@
-import configparser
-
-import poly_creation
+from polygons import polygon_factory
 
 
 def verify_poly_validity(poly, name):

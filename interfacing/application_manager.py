@@ -17,18 +17,28 @@ class ApplicationManager:
 
     def __init__(self, df: pd.DataFrame,
                  startup_factory_: startup_factory.StartupFactory = None,
-                 visualization_plotter: map.MapPlotter = None,
+                 map_plotter: map.MapPlotter = None,
                  algorithm_handler: algorithm.AlgorithmHandler = None):
         self.df = df
         self.config = config_manager.ConfigManager()
         self.entities_manager = entities.EntitiesManager()
+        self.city_origin_network_handler = city_origin_network
         startup_factory_ = startup_factory_ or startup_factory.StartupFactory(df=self.df,
-                                                                              entities_manager=self.entities_manager)
-        self.visualization_plotter = visualization_plotter or map.MapPlotter(config=self.config)
-        startup_factory_.fill_entities_manager(coord_converter_func=self.visualization_plotter.convert_coord_to_display)
+                                                                              entities_manager=self.entities_manager,
+                                                                              city_origin_network_handler=)
+        startup_factory_.fill_entities_manager(coord_converter_func=map_plotter.convert_coord_to_display)
+        startup_factory_.fill_city_origin_networks()
+
+        self.map_plotter = map_plotter or map.MapPlotter(
+            config_=self.config,
+            display_fig_size=(self.config.get_config_value('display.fig_size_x', int), self.config.get_config_value('display.fig_size_y', int)),
+            county_line_width=self.config.get_config_value('display.county_line_width', float)
+        )
         self.vis_elements_manager = visualization_elements.VisualizationElementsManager()
 
         self.algorithm_handler = algorithm_handler or algorithm.AlgorithmHandler()
+        self.thing_converter = things.thing_converter.ThingConverter(config=self.config,
+                                                                     city_origin_network_handler=)
 
     def create_line_map(self):
         entity_plot_controller = environment_management.VisualizationElementPlotController()
@@ -44,7 +54,7 @@ class ApplicationManager:
         plot = plotting.Plotter(entities_manager=self.entities_manager,
                                 plot_controller=vis_element_plot_controller,
                                 conditions_map=conditions_map,
-                                entity_converter=things.thing_converter.convert_thing)
+                                entity_converter=self.thing_converter.convert_thing)
         plot.plot()
 
     def create_number_of_visiting_providers_map(self):
@@ -55,7 +65,7 @@ class ApplicationManager:
             should_plot_outpatient_lines=False,
             should_plot_origin_text_box=False
         )
-        city_objs = list(self.environment.cities_directory.values())
+        city_objs = list(self.entitites_manager.get.cities_directory.values())
         for iteration, city_obj in enumerate(city_objs):
             conditions_map.get_visualization_element_for_condition(num_visiting_providers=len(city_obj.visiting_providers))
             if vis_element_plot_controller.should_display(entity_type=entities.City,
