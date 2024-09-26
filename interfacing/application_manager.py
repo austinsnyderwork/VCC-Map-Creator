@@ -32,11 +32,6 @@ class ApplicationManager:
 
     def create_line_map(self):
         entity_plot_controller = environment_management.VisualizationElementPlotController()
-        for entity in self.environment.things.values():
-            if entity_plot_controller.should_display(type(entity))
-        for polygon in self.polygons.values():
-            if entity_plot_controller.should_display(type(polygon), )
-        self.visualization_plotter.plot_line()
 
     def create_highest_volume_line_map(self, number_of_results: int):
         highest_volume_cities = data_functions.get_top_volume_incoming_cities(df=self.df,
@@ -46,7 +41,7 @@ class ApplicationManager:
             show_visiting_text_boxes=False
         )
         conditions_map = plot_configurations.HighestCityVisitingVolumeConditions(highest_volume_cities=highest_volume_cities)
-        plot = plotting.Plotter(entities_manager_=self.entities_manager,
+        plot = plotting.Plotter(entities_manager=self.entities_manager,
                                 plot_controller=vis_element_plot_controller,
                                 conditions_map=conditions_map,
                                 entity_converter=things.thing_converter.convert_thing)

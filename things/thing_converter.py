@@ -28,7 +28,7 @@ class ThingConverter:
         }
 
     def _get_city_scatter_data(self, city_entity: entities.City):
-        color = self.city_origin_network_handler.get_entity_color(entity=city_entity)
+        color = self.config.get_config_value(key='viz_display.scatter_color', cast_type='str')
         scatter_data = {
             'color': color,
             'edgecolor': color,
@@ -39,9 +39,7 @@ class ThingConverter:
         return scatter_data
 
     def _get_city_text_box_data(self, city_entity: entities.City):
-        text_box_data = {
-            'text_box_dimensions': self.get_text_display_dimensions_func(city_entity)
-        }
+        text_box_data = self.get_text_display_dimensions_func(city_entity)
         return text_box_data
 
     def _get_provider_assignment_line_data(self, assignment_entity: entities.ProviderAssignment):

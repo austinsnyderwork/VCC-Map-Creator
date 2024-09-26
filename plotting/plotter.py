@@ -47,6 +47,7 @@ class Plotter:
             'map': []
         }
         for city in self.entities_manager.get_all_entities(entities.City):
+            # !!!!Make this into a function to be reused for each entity type
             vis_element_output_algo = self._produce_visualization_element(city,
                                                                           display_type='algorithm')
             if vis_element_output_algo:
@@ -56,6 +57,9 @@ class Plotter:
                                                                          display_type='map')
             if vis_element_output_map:
                 self._plot_visualization_element(vis_element_output_map)
+
+        for provider_assignment in self.entities_manager.get_all_entities(entities.ProviderAssignment):
+            vis_element_output_algo = self._produce
 
         for vis_element in vis_elements:
             self._plot_visualization_element(vis_element)
