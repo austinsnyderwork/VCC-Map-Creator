@@ -25,21 +25,26 @@ class EntitiesManager:
             entities.Provider: ThingContainer(generate_key_func=_generate_key)
         }
 
+    def get_all_entities(self, entities_type):
+        container = self.entities_containers[entities_type]
+        entities_ = container.get_all_things()
+        return entities_
+
     def add_entity(self, entity: entities.Entity):
         entities_container = self.entities_containers[type(entity)]
         entities_container.add_thing(thing=entity)
 
     def get_city(self, name: str):
         container = self.entities_containers[entities.City]
-        return entity_dict.get_thing(entities.City, name=name)
+        return container.get_thing(entities.City, name=name)
 
     def get_vcc_clinic_site(self, name: str, city_name: str):
-        entity_dict = self.entities_containers[entities.VccClinicSite]
-        return entity_dict.get_thing(entities.VccClinicSite, name=name, city_name=city_name)
+        container = self.entities_containers[entities.VccClinicSite]
+        return container.get_thing(entities.VccClinicSite, name=name, city_name=city_name)
 
     def get_provider(self, name: str):
-        entity_dict = self.entities_containers[entities.Provider]
-        return entity_dict.get_thing(entities.VccClinicSite, name=name)
+        container = self.entities_containers[entities.Provider]
+        return container.get_thing(entities.VccClinicSite, name=name)
 
     def contains_entity(self, entity_type, **kwargs):
         key = _generate_key(entity_type=entity_type, **kwargs)

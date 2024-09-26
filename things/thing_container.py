@@ -15,3 +15,6 @@ class ThingContainer:
         key = self.generate_key_func(entity_type=thing_type,
                                      **kwargs)
         return self.things[key]
+
+    def get_all_things(self):
+        return list(self.things.values())

@@ -9,7 +9,7 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 
 
-class AlgorithmMapCreator:
+class AlgorithmPlotter:
 
     def __init__(self, show_display: bool):
         self.show_display = show_display

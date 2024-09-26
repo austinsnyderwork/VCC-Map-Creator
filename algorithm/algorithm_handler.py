@@ -1,7 +1,7 @@
 import configparser
 import logging
 
-from . import algorithm_map_creator, rtree_analyzer
+from . import algorithm_plotter, rtree_analyzer
 from .city_scanning import city_angles_tracker
 from interfacing import VisualizationElement
 from utils.helper_functions import get_config_value
