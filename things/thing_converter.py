@@ -3,7 +3,7 @@ from typing import Callable
 from things.entities import entities
 import config_manager
 import environment_management
-from visualization_elements import visualization_elements
+from .visualization_elements import visualization_elements
 
 
 class ThingConverter:
@@ -39,7 +39,13 @@ class ThingConverter:
         return scatter_data
 
     def _get_city_text_box_data(self, city_entity: entities.City):
-        text_box_data = self.get_text_display_dimensions_func(city_entity)
+        font_size = self.config.get_config_value('viz_display.city_font_size', int)
+        font_weight = self.config.get_config_value('viz_display.city_font_weight', str)
+        font = self.config.get_config_value('viz_display.font', str)
+        text_box_data = self.get_text_display_dimensions_func(city_entity,
+                                                              font_size=font_size,
+                                                              font_weight=font_weight,
+                                                              font=font)
         return text_box_data
 
     def _get_provider_assignment_line_data(self, assignment_entity: entities.ProviderAssignment):
@@ -68,7 +74,7 @@ class ThingConverter:
             scatter_data = self._get_city_scatter_data(entity)
             city_scatter = visualization_elements.CityScatter(**scatter_data)
 
-            text_box_data = self._get_city_text_box_data(entity)
+            text_box_data = self._get_city_text_box_data(city_entity=entity)
             text_box = visualization_elements.CityTextBox(**text_box_data)
 
             city_scatter_and_text = visualization_elements.CityScatterAndText(city_scatter=city_scatter,

@@ -1,11 +1,10 @@
 from abc import ABC
 from collections.abc import Callable
 from functools import wraps
-import visualization_elements
 
 import config_manager
 from things.entities import entities
-
+from things.visualization_elements import visualization_elements
 
 def apply_to_type(expected_type):
     def decorator(func):

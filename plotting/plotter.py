@@ -7,26 +7,31 @@ from environment_management import plot_configurations, VisualizationElementPlot
 import things
 from things.entities import entities
 from things.visualization_elements import visualization_elements
-import visualization
+import map
 
 
 class Plotter:
 
     def __init__(self, entities_manager: things.EntitiesManager, entity_converter: environment_management.EntityToVisualizationElementConverter,
                  conditions_map: plot_configurations.ConditionsMap, plot_controller: VisualizationElementPlotController,
-                 algorithm_plotter: algorithm.AlgorithmPlotter, visualization_plotter: visualization.VisualizationPlotter):
+                 algorithm_plotter: algorithm.AlgorithmPlotter, visualization_plotter: map.MapPlotter):
         self.entities_manager = entities_manager
         self.entity_converter = entity_converter
         self.conditions_map = conditions_map
         self.plot_controller = plot_controller
+        self.algorithm_plotter = algorithm_plotter
+        self.visualization_plotter = visualization_plotter
 
         self.display_plotters = {
             'algorithm': algorithm_plotter,
             'map': visualization_plotter
         }
 
-    def _produce_visualization_element(self, entity: entities.Entity, display_type: str, iterations: int = -1) -> Union[list, None]:
-        if not self.plot_controller.should_display(entity, iterations=iterations, display_type=display_type):
+    def _produce_visualization_element(self, entity: entities.Entity, display_type: str, iterations: int = -1) \
+            -> Union[visualization_elements.VisualizationElement, None]:
+        site_type = entity.site_type if type(entity) is entities.City else None
+        if not self.plot_controller.should_display(entity, iterations=iterations, display_type=display_type,
+                                                   site_type=site_type):
             return
 
         # Function returns None if there's no corresponding condition for this entity type
@@ -37,9 +42,10 @@ class Plotter:
         return self.entity_converter.convert_entity(entity)
 
     def _plot_visualization_element(self, vis_element: visualization_elements.VisualizationElement, display_type: str):
-
-
-
+        if display_type == 'algorithm':
+            self.algorithm_plotter.plot_element(vis_element)
+        elif display_type == 'map':
+            self.algorithm_plotter.plot_element(vis_element)
 
     def plot(self):
         vis_elements = {
@@ -51,12 +57,12 @@ class Plotter:
             vis_element_output_algo = self._produce_visualization_element(city,
                                                                           display_type='algorithm')
             if vis_element_output_algo:
-                self._plot_visualization_element(vis_element_output_algo)
+                self._plot_visualization_element(vis_element=vis_element_output_algo, display_type='algorithm')
 
             vis_element_output_map = self._produce_visualization_element(city,
                                                                          display_type='map')
             if vis_element_output_map:
-                self._plot_visualization_element(vis_element_output_map)
+                self._plot_visualization_element(vis_element=vis_element_output_map, display_type='map')
 
         for provider_assignment in self.entities_manager.get_all_entities(entities.ProviderAssignment):
             vis_element_output_algo = self._produce

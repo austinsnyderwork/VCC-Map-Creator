@@ -10,21 +10,21 @@ import startup_factory
 import things
 from things import visualization_elements
 from things import entities
-import visualization
+import map
 
 
 class ApplicationManager:
 
     def __init__(self, df: pd.DataFrame,
                  startup_factory_: startup_factory.StartupFactory = None,
-                 visualization_plotter: visualization.VisualizationPlotter = None,
+                 visualization_plotter: map.MapPlotter = None,
                  algorithm_handler: algorithm.AlgorithmHandler = None):
         self.df = df
         self.config = config_manager.ConfigManager()
         self.entities_manager = entities.EntitiesManager()
         startup_factory_ = startup_factory_ or startup_factory.StartupFactory(df=self.df,
                                                                               entities_manager=self.entities_manager)
-        self.visualization_plotter = visualization_plotter or visualization.VisualizationPlotter(config=self.config)
+        self.visualization_plotter = visualization_plotter or map.MapPlotter(config=self.config)
         startup_factory_.fill_entities_manager(coord_converter_func=self.visualization_plotter.convert_coord_to_display)
         self.vis_elements_manager = visualization_elements.VisualizationElementsManager()
 

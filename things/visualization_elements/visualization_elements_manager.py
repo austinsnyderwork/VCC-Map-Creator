@@ -1,7 +1,7 @@
 
 
 from things.thing_container import ThingContainer
-import visualization_elements
+from . import visualization_elements
 
 
 def _generate_key(element_type, **kwargs):

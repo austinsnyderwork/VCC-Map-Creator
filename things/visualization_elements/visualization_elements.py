@@ -1,7 +1,48 @@
 from abc import ABC
 
-class VisualizationElement(ABC):
-    pass
+
+class VisualizationElement:
+    
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            self.__setattr__(k, v)
+
+
+def which_class(s):
+    # Find the position of the first period
+    period_index = s.find('_')
+
+    # If no period is found, return the original string
+    if period_index == -1:
+        return s, ""
+
+    # Extract the word before the period
+    first_word = s[:period_index]
+
+    # Remove the first word and the period
+    remaining_string = s[period_index + 1:]
+
+    return first_word, remaining_string
+
+
+class DualVisualizationElement(VisualizationElement):
+
+    def __init__(self, algorithm_data_class, map_data_class, **kwargs):
+        super().__init__()
+        algorithm_kwargs = kwargs['algorithm']
+        self.algorithm_data = algorithm_data_class(**algorithm_kwargs)
+
+        map_kwargs = kwargs['map']
+        self.map_data = map_data_class(**map_kwargs)
+
+    def __getattr__(self, item):
+        type_, item = which_class(item)
+        if type_ == 'algorithm' and hasattr(self.algorithm_data, item):
+            return getattr(self.algorithm_data, item)
+        elif type_ == 'map' and hasattr(self.map_data, item):
+            return getattr(self.map_data, item)
+        else:
+            raise ValueError(f"Failed to get value for '{item}' in the {type_} of {self.__class__.__name__}")
 
 
 class LineAlgorithmData:
@@ -10,8 +51,10 @@ class LineAlgorithmData:
         self.x_data = kwargs['x_data']
         self.y_data = kwargs['y_data']
 
+        self.color = kwargs['color']
 
-class LineVisualData:
+
+class LineMapData:
 
     def __init__(self, **kwargs):
         self.linewidth = kwargs['linewidth']
@@ -19,18 +62,12 @@ class LineVisualData:
         self.edgecolor = kwargs['edgecolor']
 
 
-class Line(VisualizationElement):
+class Line(DualVisualizationElement):
 
     def __init__(self, **kwargs):
-        super().__init__()
-        self.line_algorithm_data = LineAlgorithmData(**kwargs)
-        self.line_visual_data = LineVisualData(**kwargs)
-
-    def __getattr__(self, item):
-        if hasattr(self.line_algorithm_data, item):
-            return getattr(self.line_algorithm_data, item)
-        elif hasattr(self.line_visual_data, item):
-            return getattr(self.line_visual_data, item)
+        super().__init__(algorithm_data_class=LineAlgorithmData,
+                         map_data_class=LineMapData,
+                         **kwargs)
 
 
 class CityScatterAlgorithmData:
@@ -39,7 +76,7 @@ class CityScatterAlgorithmData:
         self.coordinate = None
 
 
-class CityScatterVisualData:
+class CityScatterMapData:
 
     def __init__(self):
         self.size = None
@@ -49,18 +86,12 @@ class CityScatterVisualData:
         self.label = None
 
 
-class CityScatter(VisualizationElement):
+class CityScatter(DualVisualizationElement):
 
     def __init__(self, **kwargs):
-        super().__init__()
-        self.city_scatter_algorithm_data = CityScatterAlgorithmData()
-        self.city_scatter_visual_data = CityScatterVisualData()
-
-    def __getattr__(self, item):
-        if hasattr(self.city_scatter_algorithm_data, item):
-            return getattr(self.city_scatter_algorithm_data, item)
-        elif hasattr(self.city_scatter_visual_data, item):
-            return getattr(self.city_scatter_visual_data, item)
+        super().__init__(algorithm_data_class=CityScatterAlgorithmData,
+                         map_data_class=CityScatterMapData,
+                         **kwargs)
 
 
 class CityTextBoxAlgorithmData:
@@ -79,7 +110,7 @@ class CityTextBoxAlgorithmData:
         return lon, lat
 
 
-class CityTextBoxVisualData:
+class CityTextBoxMapData:
 
     def __init__(self, **kwargs):
         self.city_name = kwargs['city_name']
@@ -89,18 +120,12 @@ class CityTextBoxVisualData:
         self.fontweight = kwargs['fontweight']
 
 
-class CityTextBox(VisualizationElement):
+class CityTextBox(DualVisualizationElement):
 
     def __init__(self, **kwargs):
-        super().__init__()
-        self.city_text_box_algorithm_data = CityTextBoxAlgorithmData(**kwargs)
-        self.city_text_box_visual_data = CityTextBoxVisualData(**kwargs)
-
-    def __getattr__(self, item):
-        if hasattr(self.city_text_box_algorithm_data, item):
-            return getattr(self.city_text_box_algorithm_data, item)
-        elif hasattr(self.city_text_box_visual_data, item):
-            return getattr(self.city_text_box_visual_data, item)
+        super().__init__(algorithm_data_class=CityTextBoxAlgorithmData,
+                         map_data_class=CityTextBoxMapData,
+                         **kwargs)
 
 
 class CityScatterAndText:
@@ -113,29 +138,29 @@ class CityScatterAndText:
 class TextBoxScan(VisualizationElement):
 
     def __init__(self, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
 
 
 class TextBoxScanArea(VisualizationElement):
 
     def __init__(self, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
 
 
 class TextBoxNearbySearchArea(VisualizationElement):
 
     def __init__(self, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
 
 
 class TextBoxFinalist(VisualizationElement):
 
     def __init__(self, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
 
 
 class Intersection(VisualizationElement):
 
     def __init__(self, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
 

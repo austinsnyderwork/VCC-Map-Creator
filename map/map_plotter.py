@@ -1,14 +1,10 @@
-import configparser
 import logging
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 
 import config_manager
+from things.entities import entities
 from things.visualization_elements import visualization_elements
-
-logging.basicConfig(level=logging.INFO)
-config = configparser.ConfigParser()
-config.read('config.ini')
 
 
 def _group_exclusive_origin_outpatients(origin_groups: dict, dual_origin_outpatient: list):
@@ -41,18 +37,22 @@ def convert_bbox_to_data_coordinates(ax, bbox):
     return text_box_dimensions
 
 
-class VisualizationPlotter:
+class MapPlotter:
 
-    def __init__(self, config_: config_manager.ConfigManager):
+    def __init__(self, config_: config_manager.ConfigManager, display_fig_size: tuple, county_line_width: float):
         self.config_ = config_
 
         self.iowa_map = None
         self.fig, self.ax = None, None
 
-        display_fig_size = self.config_.get_config_value('display.fig_size_x', int), self.config_.get_config_value(
-            'display.fig_size_y', int)
         self._create_figure(fig_size=display_fig_size,
-                            county_line_width=float(config['display']['county_line_width']))
+                            county_line_width=county_line_width)
+
+        self.element_plot_funcs = {
+            visualization_elements.Line: self._plot_line,
+            visualization_elements.CityScatter: self._plot_point,
+            visualization_elements.CityTextBox: self._plot_text
+        }
 
     def convert_coord_to_display(self, coord: tuple):
         convert_lon, convert_lat = self.iowa_map(coord)
@@ -71,20 +71,25 @@ class VisualizationPlotter:
         self.iowa_map.drawcounties(linewidth=county_line_width)
         logging.info("Created base Iowa map.")
 
-    def plot_point(self, scatter: visualization_elements.CityScatter, zorder: int, **kwargs):
+    def plot_element(self, vis_element: visualization_elements.VisualizationElement, zorder: int):
+        func = self.element_plot_funcs[type(vis_element)]
+        obj = func(vis_element, zorder)
+        return obj
+
+    def _plot_point(self, scatter: visualization_elements.CityScatter, zorder: int, **kwargs):
         scatter_obj = self.ax.scatter(scatter.coord[0], scatter.coord[1], marker=scatter.marker, color=scatter.color,
                                       edgecolor=scatter.edgecolor, s=scatter.size, label=scatter.label, zorder=zorder,
                                       **kwargs)
 
         return scatter_obj
 
-    def plot_line(self, line: visualization_elements.Line, zorder: int) -> plt.Line2D:
+    def _plot_line(self, line: visualization_elements.Line, zorder: int) -> plt.Line2D:
         line = self.ax.plot(line.x_data, line.y_data, color=line.color, linestyle='-', linewidth=line.linewidth,
                             zorder=zorder)
 
         return line
 
-    def plot_text(self, text_box: visualization_elements.CityTextBox, zorder: int):
+    def _plot_text(self, text_box: visualization_elements.CityTextBox, zorder: int):
         # We don't want Iowa cities to have the state abbreviation
         city_name = text_box.city_name.replace(', IA', '')
         lon, lat = text_box.centroid
@@ -99,9 +104,9 @@ class VisualizationPlotter:
                                  bbox=dict(facecolor='white', edgecolor='white', boxstyle='square,pad=0.0'))
         return city_text
 
-    def get_text_box_dimensions(self, city_name: str, font: str, font_size: int, font_weight: str) -> dict:
+    def get_text_box_dimensions(self, city: entities.City, font_size: int, font: str, font_weight: str) -> dict:
         # We don't want Iowa cities to have the state abbreviation
-        city_name = city_name.replace(', IA', '')
+        city_name = city.name.replace(', IA', '')
         city_text = plt.text(0, 0, city_name, fontsize=font_size, font=font, ha='center', va='center',
                              color='black', fontweight=font_weight)
         self.fig.canvas.draw()

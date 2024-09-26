@@ -1,25 +1,22 @@
-import configparser
 import logging
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 
-
-config = configparser.ConfigParser()
-config.read('config.ini')
+from things.visualization_elements import visualization_elements
 
 
 class AlgorithmPlotter:
 
-    def __init__(self, show_display: bool):
+    def __init__(self, show_display: bool, show_pause: int, display_figure_size: tuple, county_line_width: float):
         self.show_display = show_display
+        self.show_pause = show_pause
         self.poly_types = {}
         self.fig, self.ax = None, None
         self.iowa_map = None
 
-        display_fig_size = (int(config['display']['fig_size_x']), int(config['display']['fig_size_y']))
-        self._create_figure(fig_size=display_fig_size,
-                            county_line_width=float(config['display']['county_line_width']))
+        self._create_figure(fig_size=display_figure_size,
+                            county_line_width=county_line_width)
 
         self.enabled = True
 
@@ -39,26 +36,24 @@ class AlgorithmPlotter:
 
         plt.figure(self.fig)
 
-    def add_poly_to_map(self, poly, show_algo, center_view=False, color='blue', transparency: float = 1.0,
-                        immediately_remove=False, show_pause: float = 1.0, **kwargs):
-        if not self.show_display or not self.enabled:
-            return
-
-        # Get polygon coordinates
-        polygon_coords = list(poly.exterior.coords)
+    def plot_element(self, vis_element: visualization_elements.VisualizationElement):
+        polygon_coords = list(vis_element.algorithm_poly.exterior.coords)
 
         # Create a Polygon patch
-        polygon_patch = patches.Polygon(polygon_coords, closed=True, fill=True, edgecolor=color, facecolor=color,
-                                        alpha=transparency)
+        polygon_patch = patches.Polygon(polygon_coords, closed=True, fill=True, edgecolor=vis_element.algorithm_color,
+                                        facecolor=vis_element.algorithm_color, alpha=vis_element.algorithm_transparency)
+        self._configure_visual(vis_element=vis_element, patch=polygon_patch, polygon_coords=polygon_coords)
+        return polygon_patch
 
+    def _configure_visual(self, vis_element: visualization_elements.VisualizationElement, patch, polygon_coords):
         # Add the polygon patch to the axis
-        patch = self.ax.add_patch(polygon_patch)
+        patch = self.ax.add_patch(patch)
 
         # Ensure the correct figure is active
         plt.figure(self.fig.number)
 
         # Set axis limits
-        if center_view:
+        if vis_element.algorithm_center_view:
             x_coords, y_coords = zip(*polygon_coords)
             self.ax.set_xlim(min(x_coords) - 200000, max(x_coords) + 200000)
             self.ax.set_ylim(min(y_coords) - 200000, max(y_coords) + 200000)
@@ -66,13 +61,13 @@ class AlgorithmPlotter:
         # Redraw the figure to update the display
         self.fig.canvas.draw()
 
-        if show_algo:
+        if vis_element.algorithm_show:
             # Show only the rtree figure
             plt.show(block=False)
 
-            plt.pause(show_pause)
+            plt.pause(self.show_pause)
 
-        if immediately_remove:
+        if vis_element.algorithm_immediately_remove:
             patch.remove()
 
         plt.figure(self.fig.number)

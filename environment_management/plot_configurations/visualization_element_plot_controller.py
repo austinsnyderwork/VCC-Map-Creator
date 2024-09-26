@@ -2,8 +2,8 @@ import logging
 from typing import Union
 
 import config_manager
-import visualization_elements
-from visualization_element_conditions_map import ConditionsMap
+from things.visualization_elements import visualization_elements
+from environment_management.plot_configurations import visualization_element_conditions_map
 
 
 class MapDisplayController:
@@ -83,7 +83,7 @@ class AlgorithmDisplayController:
                 return False
 
         if entity_type in self.entity_type_iterations_display:
-            if iterations and iterations != self.entity_type_iterations_display[entity_type]
+            if iterations and iterations != self.entity_type_iterations_display[entity_type]:
                 return False
 
         return True
@@ -113,11 +113,13 @@ class VisualizationElementPlotController:
         self.master_display_origin_visiting_settings = {
             visualization_elements.CityScatter: {
                 'origin': self.retrieve_setting('show_origin_scatters', True),
-                'visiting': self.retrieve_setting('show_origin_visitings', True)
+                'visiting': self.retrieve_setting('show_visiting_scatters', True),
+                'dual': self.retrieve_setting('show_dual_scatters', True)
             },
             visualization_elements.CityTextBox: {
                 'origin': self.retrieve_setting('show_origin_text_box', True),
-                'visiting': self.retrieve_setting('show_visiting_text_box', True)
+                'visiting': self.retrieve_setting('show_visiting_text_box', True),
+                'dual': self.retrieve_setting('show_dual_text_box', True)
             }
         }
 
@@ -141,10 +143,10 @@ class VisualizationElementPlotController:
                 f"Defaulted to '{default_value}' because could not find '{key}' in plot_settings or config.")
             return default_value
 
-    def should_display(self, entity_type, display_type: str, iterations: int = None, **kwargs) -> bool:
+    def should_display(self, entity_type, display_type: str, site_type: str = None, iterations: int = None, **kwargs) -> bool:
         # If a master setting says don't display for this entity type, then immediately return False
         if entity_type in self.master_display_origin_visiting_settings:
-            if not self.master_display_origin_visiting_settings[entity_type][origin_or_visiting]:
+            if not self.master_display_origin_visiting_settings[entity_type][site_type]:
                 return False
 
         if entity_type in self.master_display_settings:

@@ -1,15 +1,13 @@
 import configparser
 import logging
 
-from . import algorithm_plotter, rtree_analyzer
-from .city_scanning import city_angles_tracker
-from interfacing import VisualizationElement
+from . import rtree_analyzer
 from utils.helper_functions import get_config_value
 from algorithm.city_scanning.city_text_box_search import CityTextBoxSearch
 from .algo_utils import helper_functions
-import poly_creation
 from .poly_management import TypedPolygon
 from . import spatial_analysis
+from things.visualization_elements import visualization_elements
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -110,38 +108,33 @@ class AlgorithmHandler:
         self.algo_map_creator = algorithm_map_creator.AlgorithmMapCreator(show_display=show_algo_display)
         self.rtree_analyzer = rtree_analyzer.RtreeAnalyzer()
 
+        self.plot_functions = {
+            visualization_elements.Line: 
+        }
 
-    def plot_lines(self, line_eles: list[VisualizationElement]):
-        line_color = get_config_value(config, 'algo_display.line_color', str)
-        show_line = get_config_value(config, 'algo_display.show_line', bool)
-        line_transparency = get_config_value(config, 'algo_display.line_transparency', float)
-        immediately_remove_line = get_config_value(config, 'algo_display.immediately_remove_line', bool)
-        line_reduction_units = get_config_value(config, 'algorithm.line_reduction_units', int)
 
-        t_polys = []
-        for line_ele in line_eles:
-            logging.info(f"Plotting line between {line_ele.origin} and {line_ele.outpatient}")
-            new_x_data, new_y_data = spatial_analysis.reduce_line_length(line_ele.x_data, line_ele.y_data, line_reduction_units)
-            poly = poly_creation.create_poly(poly_type='line', x_data=new_x_data, y_data=new_y_data,
-                                             line_width=line_ele.line_width)
-            helper_functions.verify_poly_validity(poly=poly,
-                                                  name='line poly')
-            t_poly = TypedPolygon(poly=poly,
-                                  poly_class='line',
-                                  poly_type='line',
-                                  origin=line_ele.origin,
-                                  outpatient=line_ele.outpatient)
-            t_polys.append(t_poly)
-            self.rtree_analyzer.add_poly(poly_class='line',
-                                         poly=t_poly)
-            self.algo_map_creator.add_poly_to_map(poly=poly,
-                                                  show_algo=show_line,
-                                                  color=line_color,
-                                                  transparency=line_transparency,
-                                                  immediately_remove=immediately_remove_line)
-        return t_polys
+    def plot_line(self, line_eles: list[visualization_elements.VisualizationElement]):
+        logging.info(f"Plotting line between {line_ele.origin} and {line_ele.outpatient}")
+        new_x_data, new_y_data = spatial_analysis.reduce_line_length(line_ele.x_data, line_ele.y_data, line_reduction_units)
+        poly = poly_creation.create_poly(poly_type='line', x_data=new_x_data, y_data=new_y_data,
+                                         line_width=line_ele.line_width)
+        helper_functions.verify_poly_validity(poly=poly,
+                                              name='line poly')
+        t_poly = TypedPolygon(poly=poly,
+                              poly_class='line',
+                              poly_type='line',
+                              origin=line_ele.origin,
+                              outpatient=line_ele.outpatient)
+        t_polys.append(t_poly)
+        self.rtree_analyzer.add_poly(poly_class='line',
+                                     poly=t_poly)
+        self.algo_map_creator.add_poly_to_map(poly=poly,
+                                              show_algo=show_line,
+                                              color=line_color,
+                                              transparency=line_transparency,
+                                              immediately_remove=immediately_remove_line)
 
-    def plot_points(self, scatter_eles: list[VisualizationElement]):
+    def plot_points(self, scatter_eles: list[visualization_elements.VisualizationElement]):
         scatter_size = get_config_value(config, 'dimensions.scatter_size', float)
         units_radius_per_1_scatter_size = get_config_value(config, 'dimensions.units_radius_per_1_scatter_size', float)
 
