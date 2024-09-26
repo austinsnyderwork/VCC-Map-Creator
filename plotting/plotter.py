@@ -3,20 +3,19 @@ from typing import Union
 
 import environment_management
 from environment_management import plot_configurations, VisualizationElementPlotController
-from things.entities import entities
-from things.visualization_elements import visualization_elements
+import things
 
 
 class Plotter:
 
-    def __init__(self, entities_: list[entities.Entity], entity_converter: environment_management.EntityToVisualizationElementConverter,
+    def __init__(self, entities_manager: things.EntitiesManager, entity_converter: environment_management.EntityToVisualizationElementConverter,
                  conditions_map: plot_configurations.ConditionsMap, plot_controller: VisualizationElementPlotController):
-        self.entities_ = entities_
+        self.entities_manager = entities_manager
         self.entity_converter = entity_converter
         self.conditions_map = conditions_map
         self.plot_controller = plot_controller
 
-    def _get_visualization_element(self, entity: entities.Entity, iterations: int, display_type: str) -> Union[list, None]:
+    def _get_visualization_element(self, entity: entities.Entity, display_type: str, iterations: int = -1) -> Union[list, None]:
         if not self.plot_controller.should_display(entity, iterations=iterations, display_type=display_type):
             return None
 
@@ -36,7 +35,10 @@ class Plotter:
             'map': []
         }
         for entity in self.entities_:
-            vis_element_output_algo = self._get_visualization_element(entity)
+            vis_element_output_algo = self._get_visualization_element(entity,
+                                                                      display_type='algorithm')
+            vis_element_output_map = self._get_visualization_element(entity,
+                                                                     display_type='map')
             for vis_ele in vis_element_output:
                 vis_elements.append(vis_ele)
 

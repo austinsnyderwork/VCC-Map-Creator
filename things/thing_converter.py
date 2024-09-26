@@ -6,7 +6,7 @@ import environment_management
 from visualization_elements import visualization_elements
 
 
-class EntityToVisualizationElementConverter:
+class ThingConverter:
 
     def __init__(self, config: config_manager.ConfigManager,
                  city_origin_network_handler: environment_management.CityOriginNetworkHandler,
@@ -61,10 +61,11 @@ class EntityToVisualizationElementConverter:
         }
         return line_data
 
-    def convert_entity(self, entity: entities.Entity):
+    def convert_thing(self, entity: entities.Entity):
         if type(entity) is entities.ProviderAssignment:
             line_data = self._get_provider_assignment_line_data(entity)
-            return visualization_elements.Line(line_data)
+            line = visualization_elements.Line(line_data)
+            return line
         elif type(entity) is entities.City:
             scatter_data = self._get_city_scatter_data(entity)
             city_scatter = visualization_elements.CityScatter(**scatter_data)

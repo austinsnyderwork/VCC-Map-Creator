@@ -3,12 +3,13 @@ import pandas as pd
 from . import data_functions, helper_functions
 import algorithm
 import config_manager
-import visualization_elements
-import entities
 import environment_management
 from environment_management import VisualizationElementPlotController, plot_configurations
 import plotting
 import startup_factory
+import things
+from things import visualization_elements
+from things import entities
 import visualization
 
 
@@ -19,18 +20,19 @@ class ApplicationManager:
                  visualization_plotter: visualization.VisualizationPlotter = None,
                  algorithm_handler: algorithm.AlgorithmHandler = None):
         self.df = df
-        startup_factory_ = startup_factory_ or startup_factory.StartupFactory(df=self.df)
-        self.visualization_plotter = visualization_plotter or visualization.VisualizationPlotter()
-        self.environment = startup_factory_.create_filled_environment(
-            coord_converter_func=self.visualization_plotter.convert_coord_to_display)
-        self.entities_manager = visualization_elements.VisualizationElementsManager()
+        self.config = config_manager.ConfigManager()
+        self.entities_manager = entities.EntitiesManager()
+        startup_factory_ = startup_factory_ or startup_factory.StartupFactory(df=self.df,
+                                                                              entities_manager=self.entities_manager)
+        self.visualization_plotter = visualization_plotter or visualization.VisualizationPlotter(config=self.config)
+        startup_factory_.fill_entities_manager(coord_converter_func=self.visualization_plotter.convert_coord_to_display)
+        self.vis_elements_manager = visualization_elements.VisualizationElementsManager()
 
         self.algorithm_handler = algorithm_handler or algorithm.AlgorithmHandler()
-        self.config = config_manager.ConfigManager()
 
     def create_line_map(self):
         entity_plot_controller = environment_management.VisualizationElementPlotController()
-        for entity in self.environment.entities.values():
+        for entity in self.environment.things.values():
             if entity_plot_controller.should_display(type(entity))
         for polygon in self.polygons.values():
             if entity_plot_controller.should_display(type(polygon), )
@@ -44,9 +46,10 @@ class ApplicationManager:
             show_visiting_text_boxes=False
         )
         conditions_map = plot_configurations.HighestCityVisitingVolumeConditions(highest_volume_cities=highest_volume_cities)
-        plot = plotting.Plotter(entities=list(self.environment.entities.values()),
-                               plot_controller=vis_element_plot_controller,
-                               conditions_map=conditions_map)
+        plot = plotting.Plotter(entities_manager_=self.entities_manager,
+                                plot_controller=vis_element_plot_controller,
+                                conditions_map=conditions_map,
+                                entity_converter=things.thing_converter.convert_thing)
         plot.plot()
 
     def create_number_of_visiting_providers_map(self):

@@ -69,7 +69,7 @@ class AlgorithmDisplayController:
             visualization_elements.TextBoxNearbySearchArea: self.retrieve_setting('algo_display_steps_to_show_poly_finalist', True)
         }
 
-    def should_display(self, entity_type, iterations: int) -> bool:
+    def should_display(self, entity_type, iterations: int = None) -> bool:
         show_algo = self.retrieve_setting('algo_display_show_algo', bool)
         if not show_algo:
             return False
@@ -83,7 +83,7 @@ class AlgorithmDisplayController:
                 return False
 
         if entity_type in self.entity_type_iterations_display:
-            if iterations != self.entity_type_iterations_display[entity_type]:
+            if iterations and iterations != self.entity_type_iterations_display[entity_type]
                 return False
 
         return True
@@ -141,7 +141,7 @@ class VisualizationElementPlotController:
                 f"Defaulted to '{default_value}' because could not find '{key}' in plot_settings or config.")
             return default_value
 
-    def should_display(self, entity_type, iterations: int, display_type: str, **kwargs) -> bool:
+    def should_display(self, entity_type, display_type: str, iterations: int = None, **kwargs) -> bool:
         # If a master setting says don't display for this entity type, then immediately return False
         if entity_type in self.master_display_origin_visiting_settings:
             if not self.master_display_origin_visiting_settings[entity_type][origin_or_visiting]:

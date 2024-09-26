@@ -1,5 +1,7 @@
+from abc import ABC
 
-class Entity:
+
+class Entity(ABC):
     pass
 
 
