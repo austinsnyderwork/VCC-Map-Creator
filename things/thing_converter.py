@@ -22,33 +22,33 @@ class ThingConverter:
         }
 
         self.scatter_marker_map = {
-            'dual_origin_visiting': self.config.get_config_value('viz_display.dual_origin_outpatient_marker', str),
-            'origin': self.config.get_config_value('viz_display.origin_marker', str),
-            'visiting': self.config.get_config_value('viz_display.visiting_marker', str)
+            'dual_origin_visiting': self.config.get_config_value('map_display.dual_origin_visiting_marker', str),
+            'origin': self.config.get_config_value('map_display.origin_marker', str),
+            'visiting': self.config.get_config_value('map_display.visiting_marker', str)
         }
 
-    def _get_city_scatter_data(self, city_entity: entities.City):
-        color = self.config.get_config_value(key='viz_display.scatter_color', cast_type='str')
+    def _produce_city_scatter_data(self, city_entity: entities.City):
+        color = self.config.get_config_value(key='map_display.scatter_color', cast_type='str')
         scatter_data = {
             'color': color,
             'edgecolor': color,
             'marker': self.scatter_marker_map[city_entity.site_type],
-            'size': self.config.get_config_value(key='viz_display.scatter_size', cast_type=int),
+            'size': self.config.get_config_value(key='map_display.scatter_size', cast_type=int),
             'label': city_entity.site_type
         }
         return scatter_data
 
-    def _get_city_text_box_data(self, city_entity: entities.City):
-        font_size = self.config.get_config_value('viz_display.city_font_size', int)
-        font_weight = self.config.get_config_value('viz_display.city_font_weight', str)
-        font = self.config.get_config_value('viz_display.font', str)
+    def _produce_city_text_box_data(self, city_entity: entities.City):
+        font_size = self.config.get_config_value('map_display.city_font_size', int)
+        font_weight = self.config.get_config_value('map_display.city_font_weight', str)
+        font = self.config.get_config_value('map_display.font', str)
         text_box_data = self.get_text_display_dimensions_func(city_entity,
                                                               font_size=font_size,
                                                               font_weight=font_weight,
                                                               font=font)
         return text_box_data
 
-    def _get_provider_assignment_line_data(self, assignment_entity: entities.ProviderAssignment):
+    def _produce_provider_assignment_line_data(self, assignment_entity: entities.ProviderAssignment):
         origin_coord = assignment_entity.origin_site.city_coord
         visiting_coord = assignment_entity.visiting_site.city_coord
 
@@ -59,7 +59,7 @@ class ThingConverter:
         line_data = {
             'x_data': x_data,
             'y_data': y_data,
-            'linewidth': self.config.get_config_value(key='viz_display.linewidth', cast_type=int),
+            'linewidth': self.config.get_config_value(key='map_display.linewidth', cast_type=int),
             'color': color,
             'edgecolor': color
         }
@@ -67,14 +67,14 @@ class ThingConverter:
 
     def convert_thing(self, entity: entities.Entity):
         if type(entity) is entities.ProviderAssignment:
-            line_data = self._get_provider_assignment_line_data(entity)
+            line_data = self._produce_provider_assignment_line_data(entity)
             line = visualization_elements.Line(line_data)
             return line
         elif type(entity) is entities.City:
-            scatter_data = self._get_city_scatter_data(entity)
+            scatter_data = self._produce_city_scatter_data(entity)
             city_scatter = visualization_elements.CityScatter(**scatter_data)
 
-            text_box_data = self._get_city_text_box_data(city_entity=entity)
+            text_box_data = self._produce_city_text_box_data(city_entity=entity)
             text_box = visualization_elements.CityTextBox(**text_box_data)
 
             city_scatter_and_text = visualization_elements.CityScatterAndText(city_scatter=city_scatter,

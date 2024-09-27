@@ -1,9 +1,11 @@
-from ..poly_management import TypedPolygon
+
+
+from things.visualization_elements import visualization_elements
 
 
 class PolyResult:
 
-    def __init__(self, poly: TypedPolygon, poly_type, num_iterations, new_max_score: bool = False,
+    def __init__(self, poly: visualization_elements.TextBoxScan, poly_type, num_iterations, new_max_score: bool = False,
                  force_show: bool = False):
         self.poly = poly
         self.poly_type = poly_type

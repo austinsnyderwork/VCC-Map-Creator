@@ -6,19 +6,19 @@ from things.entities.entities_manager import EntitiesManager
 
 
 def _apply_create_cities(row, entities_manager, coord_converter):
-    origin_city_name = row['point_of_origin']
-    origin_lon, origin_lat = coord_converter(row['origin_lon'], row['origin_lat'])
+    origin_city_name = row['origin_city']
+    origin_lon, origin_lat = coord_converter(coord=(row['origin_lon'], row['origin_lat']))
     if not entities_manager.contains_entity(entities.City, name=origin_city_name):
         origin_city = entities.City(name=origin_city_name,
                                     coord=(origin_lon, origin_lat))
         entities_manager.add_entity(origin_city)
 
-    outpatient_city_name = row['community']
-    outpatient_lon, outpatient_lat = coord_converter(row['outpatient_lon'], row['outpatient_lat'])
-    if not entities_manager.contains_entity(entities.City, name=outpatient_city_name):
-        outpatient_city = entities.City(name=outpatient_city_name,
-                                        coord=(outpatient_lon, outpatient_lat))
-        entities_manager.add_entity(outpatient_city)
+    visiting_city_name = row['visiting_city']
+    visiting_lon, visiting_lat = coord_converter(coord=(row['visiting_lon'], row['visiting_lat']))
+    if not entities_manager.contains_entity(entities.City, name=visiting_city_name):
+        visiting_city = entities.City(name=visiting_city_name,
+                                      coord=(visiting_lon, visiting_lat))
+        entities_manager.add_entity(visiting_city)
 
 
 def _apply_create_clinic_sites(row, entities_manager: EntitiesManager):
@@ -27,21 +27,21 @@ def _apply_create_clinic_sites(row, entities_manager: EntitiesManager):
 
     if not entities_manager.contains_entity(entities.VccClinicSite, name=origin_clinic_name):
         origin_clinic = entities.VccClinicSite(name=origin_clinic_name,
-                                               city_name=row['point_of_origin'],
+                                               city_name=row['origin_city'],
                                                city_coord=origin_city_coord)
         city = entities_manager.get_city(name=origin_clinic.city_name)
         city.add_clinic_site(origin_clinic)
         entities_manager.add_entity(entity=origin_clinic)
 
-    outpatient_clinic_name = row['group']
-    outpatient_city_coord = row['to_lon'], row['to_lat']
-    if not entities_manager.contains_entity(entities.VccClinicSite, name=outpatient_clinic_name):
-        outpatient_clinic = entities.VccClinicSite(name=outpatient_clinic_name,
-                                                   city_name=row['point_of_outpatient'],
-                                                   city_coord=outpatient_city_coord)
-        city = entities_manager.get_city(name=outpatient_clinic.city_name)
-        city.add_clinic_site(outpatient_clinic)
-        entities_manager.add_entity(outpatient_clinic)
+    visiting_clinic_name = row['group']
+    visiting_city_coord = row['to_lon'], row['to_lat']
+    if not entities_manager.contains_entity(entities.VccClinicSite, name=visiting_clinic_name):
+        visiting_clinic = entities.VccClinicSite(name=visiting_clinic_name,
+                                                   city_name=row['visiting_city'],
+                                                   city_coord=visiting_city_coord)
+        city = entities_manager.get_city(name=visiting_clinic.city_name)
+        city.add_clinic_site(visiting_clinic)
+        entities_manager.add_entity(visiting_clinic)
 
 
 def _apply_create_providers(row, entities_manager: EntitiesManager):

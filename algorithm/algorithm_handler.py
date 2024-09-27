@@ -4,7 +4,6 @@ from . import rtree_analyzer
 import config_manager
 from algorithm.city_scanning.city_scanner import CityScanner
 from .algo_utils import helper_functions
-from .poly_management import TypedPolygon
 from . import spatial_analysis
 from .algorithm_plotter import AlgorithmPlotter
 from things.visualization_elements import visualization_elements
@@ -14,14 +13,11 @@ class AlgorithmHandler:
 
     def __init__(self, config: config_manager.ConfigManager):
         self.config = config
-        show_algo_display = False if config['algo_display']['show_display'] == 'False' else True
-        self.algo_map_plotter = AlgorithmPlotter(show_display=show_algo_display)
+        self.algo_map_plotter = AlgorithmPlotter(
+            display_fig_size=(self.config.get_config_value('display.fig_size_x', int), self.config.get_config_value('display.fig_size_y', int)),
+            county_line_width=self.config.get_config_value('display.county_line_width', float),
+            show_display=self.config.get_config_value('algo_display.show_display', bool))
         self.rtree_analyzer = rtree_analyzer.RtreeAnalyzer()
-
-        self.plot_functions = {
-            visualization_elements.Line: 
-        }
-
 
     def plot_element(self, element: visualization_elements.VisualizationElement):
         element_poly_classes = {
@@ -33,7 +29,7 @@ class AlgorithmHandler:
         self.rtree_analyzer.add_poly(poly_class=element_poly_classes[type(element)],
                                      poly=element.algorithm_poly)
 
-    def _handle_city_text_box_search(self, city_text_box_search: CityScanner) -> TypedPolygon:
+    def _handle_city_text_box_search(self, city_text_box_search: CityScanner) -> visualization_elements.TextBoxScan:
 
         for result in city_text_box_search.find_best_poly(rtree_analyzer_=self.rtree_analyzer):
             poly_data = lookup_poly_characteristics(poly_type=result.poly_type)

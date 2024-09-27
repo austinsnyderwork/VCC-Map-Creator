@@ -8,7 +8,7 @@ class ThingContainer:
         self.things = {}
 
     def add_thing(self, thing, **kwargs):
-        key = self.generate_key_func(type(thing), **kwargs)
+        key = self.generate_key_func(type(thing), **thing.__dict__)
         self.things[key] = thing
 
     def get_thing(self, thing_type, **kwargs):

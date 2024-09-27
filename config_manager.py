@@ -21,7 +21,7 @@ class ConfigManager:
 
         value = self.config
         for part in key.split('.'):
-            value = self.config[part]  # Navigate through the nested keys
+            value = value[part]  # Navigate through the nested keys
 
         if cast_type is bool:
             return True if value == 'True' else False

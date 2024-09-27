@@ -1,5 +1,3 @@
-from abc import ABC
-from things import text_box_di
 
 class VisualizationElement:
     
@@ -139,6 +137,10 @@ class TextBoxScan(VisualizationElement):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+    @property
+    def bounds(self):
+        return self.poly.bounds
 
 
 class TextBoxScanArea(VisualizationElement):

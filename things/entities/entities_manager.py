@@ -25,9 +25,14 @@ class EntitiesManager:
             entities.Provider: ThingContainer(generate_key_func=_generate_key)
         }
 
-    def get_all_entities(self, entities_type):
-        container = self.entities_containers[entities_type]
-        entities_ = container.get_all_things()
+    def get_all_entities(self, entities_type: entities.Entity = None, entities_types: list[entities.Entity] = None):
+        if entities_type:
+            container = self.entities_containers[entities_type]
+            entities_ = container.get_all_things()
+        elif entities_types:
+            entities_ = []
+            for entity_type in entities_types:
+                entities_.extend(self.get_all_entities(entities_type=entity_type))
         return entities_
 
     def add_entity(self, entity: entities.Entity):

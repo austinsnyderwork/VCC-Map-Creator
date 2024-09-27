@@ -8,14 +8,12 @@ from things.visualization_elements import visualization_elements
 
 class AlgorithmPlotter:
 
-    def __init__(self, show_display: bool, show_pause: int, display_figure_size: tuple, county_line_width: float):
+    def __init__(self, display_fig_size: tuple, county_line_width: float, show_display: bool):
         self.show_display = show_display
-        self.show_pause = show_pause
-        self.poly_types = {}
         self.fig, self.ax = None, None
         self.iowa_map = None
 
-        self._create_figure(fig_size=display_figure_size,
+        self._create_figure(fig_size=display_fig_size,
                             county_line_width=county_line_width)
 
         self.enabled = True

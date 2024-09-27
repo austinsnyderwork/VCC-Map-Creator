@@ -4,6 +4,7 @@ from typing import Callable
 import environment_management
 from environment_management import CityOriginNetworkHandler
 from things import entities
+from things import visualization_elements
 
 
 class StartupFactory:
@@ -27,7 +28,4 @@ class StartupFactory:
         for provider_assignment in self.entities_manager.get_all_entities(entities.ProviderAssignment):
             self.city_origin_network_handler.add_visiting_city(origin_city=provider_assignment.origin_city,
                                                                visiting_city=provider_assignment.visiting_city)
-
-    def create_polygon(self, entity: visualization_elements.Entity, environment: environment_management.Environment) -> dict:
-        pass
 

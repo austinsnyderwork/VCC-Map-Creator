@@ -6,11 +6,20 @@ import config_manager
 import environment_management
 from environment_management import CityOriginNetworkHandler, plot_configurations
 import plotting
-import startup_factory
+from . import startup_factory
 import things
 from things import visualization_elements
 from things import entities
 import map
+
+
+def check_data_imported(func):
+    def wrapper(self, *args, **kwargs):
+        if not self.data_imported:
+            raise RuntimeError(f"Have to import data first before calling {__name__}.")
+        return func(self, *args, **kwargs)
+
+    return wrapper
 
 
 class ApplicationManager:
@@ -23,43 +32,64 @@ class ApplicationManager:
         self.config = config_manager.ConfigManager()
         self.entities_manager = entities.EntitiesManager()
         self.city_origin_network_handler = CityOriginNetworkHandler(colors=helper_functions.get_colors())
-        self.startup_factory_ = startup_factory_
+        self.startup_factory_ = startup_factory_ if startup_factory_ else startup_factory.StartupFactory(
+            df=self.df,
+            entities_manager=self.entities_manager,
+            city_origin_network_handler=self.city_origin_network_handler)
 
         self.map_plotter = map_plotter or map.MapPlotter(
             config_=self.config,
             display_fig_size=(self.config.get_config_value('display.fig_size_x', int), self.config.get_config_value('display.fig_size_y', int)),
-            county_line_width=self.config.get_config_value('display.county_line_width', float)
+            county_line_width=self.config.get_config_value('display.county_line_width', float),
+            show_display=self.config.get_config_value('map_display.show_display', bool)
         )
         self.vis_elements_manager = visualization_elements.VisualizationElementsManager()
 
-        self.algorithm_handler = algorithm_handler or algorithm.AlgorithmHandler()
-        self.thing_converter = things.thing_converter.ThingConverter(config=self.config,
-                                                                     city_origin_network_handler=)
+        self.algorithm_handler = algorithm_handler or algorithm.AlgorithmHandler(config=self.config)
+        self.thing_converter = things.thing_converter.ThingConverter(
+            config=self.config,
+            city_origin_network_handler=self.city_origin_network_handler,
+            get_text_display_dimensions=self.map_plotter.get_text_box_dimensions)
 
-    def startup(self):
-        startup_factory_ = self.startup_factory_ or startup_factory.StartupFactory(df=self.df,
-                                                                                   entities_manager=self.entities_manager,
-                                                                                   city_origin_network_handler=self.city_origin_network_handler)
+        self.startup(self.startup_factory_)
+        self.data_imported = False
+
+    def startup(self, startup_factory_: startup_factory.StartupFactory):
         startup_factory_.fill_entities_manager(coord_converter_func=self.map_plotter.convert_coord_to_display)
         startup_factory_.fill_city_origin_networks()
+        self.data_imported = True
 
+    @check_data_imported
     def create_line_map(self):
         entity_plot_controller = environment_management.VisualizationElementPlotController()
 
+    @check_data_imported
     def create_highest_volume_line_map(self, number_of_results: int):
         highest_volume_cities = data_functions.get_top_volume_incoming_cities(df=self.df,
                                                                               num_results=number_of_results)
+        conditions_map = plot_configurations.HighestCityVisitingVolumeConditions(
+            highest_volume_cities=highest_volume_cities)
         vis_element_plot_controller = plot_configurations.VisualizationElementPlotController(
             config=self.config,
             show_visiting_text_boxes=False
         )
-        conditions_map = plot_configurations.HighestCityVisitingVolumeConditions(highest_volume_cities=highest_volume_cities)
+        intial_entities = self.entities_manager.get_all_entities([entities.City, entities.ProviderAssignment])
+        vis_elements = []
+        for entity in intial_entities:
+            if type(entity) in conditions_map.visualization_elements_types:
+                vis_element = conditions_map.get_visualization_element_for_condition(entity)
+            else:
+                vis_element = self.thing_converter.convert_thing(entity)
+            vis_elements.append(vis_element)
         plot = plotting.Plotter(entities_manager=self.entities_manager,
                                 plot_controller=vis_element_plot_controller,
                                 conditions_map=conditions_map,
-                                entity_converter=self.thing_converter.convert_thing)
+                                entity_converter=self.thing_converter.convert_thing,
+                                algorithm_plotter=self.algorithm_handler.algo_map_plotter,
+                                map_plotter=self.map_plotter)
         plot.plot()
 
+    @check_data_imported
     def create_number_of_visiting_providers_map(self):
         conditions_map = plot_configurations.NumberOfVisitingProvidersConditions()
         vis_element_plot_controller = plot_configurations.VisualizationElementPlotController(

@@ -1,7 +1,7 @@
 import math
 from shapely import Point
 
-from .poly_management import TypedPolygon
+from things.visualization_elements import visualization_elements
 
 
 def get_distance_between_elements(item1, item2):
@@ -13,9 +13,9 @@ def get_distance_between_elements(item1, item2):
     return distance
 
 
-def get_intersecting_polygons(rtree_idx, polygons, scan_poly: TypedPolygon,
+def get_intersecting_polygons(rtree_idx, polygons, scan_element: visualization_elements.TextBoxScan,
                               attributes_of_polys_to_ignore: dict = None) -> list:
-    intersection_indices = list(rtree_idx.intersection(scan_poly.bounds))
+    intersection_indices = list(rtree_idx.intersection(scan_element.bounds))
     intersecting_polygons = [polygons[idx] for idx in intersection_indices]
     filtered_polys = []
     for poly in intersecting_polygons:

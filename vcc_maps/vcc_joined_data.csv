@@ -1,4 +1,4 @@
-specialty,community,to_lat,to_lon,point_of_origin,origin_lat,origin_lon
+specialty,visiting_city,visiting_lat,visiting_lon,origin_city,origin_lat,origin_lon
 General Surgery,Albia,41.02622,-92.80711,West Des Moines,41.5755,-93.71303
 General Surgery,Albia,41.02622,-92.80711,West Des Moines,41.5755,-93.71303
 Hand Surgery,Albia,41.02622,-92.80711,Des Moines,41.58882,-93.62031

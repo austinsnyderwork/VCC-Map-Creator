@@ -7,24 +7,25 @@ from environment_management import plot_configurations, VisualizationElementPlot
 import things
 from things.entities import entities
 from things.visualization_elements import visualization_elements
+from things import thing_converter
 import map
 
 
 class Plotter:
 
-    def __init__(self, entities_manager: things.EntitiesManager, entity_converter: environment_management.EntityToVisualizationElementConverter,
+    def __init__(self, entities_manager: things.EntitiesManager, thing_converter: thing_converter.ThingConverter,
                  conditions_map: plot_configurations.ConditionsMap, plot_controller: VisualizationElementPlotController,
-                 algorithm_plotter: algorithm.AlgorithmPlotter, visualization_plotter: map.MapPlotter):
+                 algorithm_plotter: algorithm.AlgorithmPlotter, map_plotter: map.MapPlotter):
         self.entities_manager = entities_manager
-        self.entity_converter = entity_converter
+        self.thing_converter = thing_converter
         self.conditions_map = conditions_map
         self.plot_controller = plot_controller
         self.algorithm_plotter = algorithm_plotter
-        self.visualization_plotter = visualization_plotter
+        self.visualization_plotter = map_plotter
 
         self.display_plotters = {
             'algorithm': algorithm_plotter,
-            'map': visualization_plotter
+            'map': map_plotter
         }
 
     def _produce_visualization_element(self, entity: entities.Entity, display_type: str, iterations: int = -1) \
@@ -39,7 +40,7 @@ class Plotter:
         if vis_element:
             return vis_element
 
-        return self.entity_converter.convert_entity(entity)
+        return self.thing_converter.convert_thing(entity)
 
     def _plot_visualization_element(self, vis_element: visualization_elements.VisualizationElement, display_type: str):
         if display_type == 'algorithm':

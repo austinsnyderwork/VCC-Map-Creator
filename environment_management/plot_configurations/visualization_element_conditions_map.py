@@ -27,7 +27,7 @@ class Condition:
 class ConditionsMap(ABC):
 
     def __init__(self, conditions: list[Condition]):
-        self.conditional_visualization_elements = []
+        self.visualization_elements_types = []
         self.conditions = conditions
         self.config = config_manager.ConfigManager()
 
@@ -36,11 +36,11 @@ class ConditionsMap(ABC):
             if condition.condition(**kwargs):
                 return condition.visualization_element
 
-
+1
 class NumberOfVisitingClinicsConditions(ConditionsMap):
 
     def __init__(self):
-        self.conditional_visualization_elements = [visualization_elements.CityScatter]
+        self.visualization_elements_types = [visualization_elements.CityScatter]
         condition_funcs = [self.range_1_condition,
                            self.range_2_condition,
                            self.range_3_condition,
@@ -104,7 +104,7 @@ class NumberOfVisitingClinicsConditions(ConditionsMap):
 class HighestCityVisitingVolumeConditions(ConditionsMap):
 
     def __init__(self, highest_volume_cities: list[str]):
-        self.conditional_visualization_elements = [visualization_elements.CityScatter]
+        self.visualization_elements_types = [visualization_elements.CityScatter]
         condition_funcs = [self.city_condition, self.line_condition]
         visualization_elements_ = self._create_visualization_elements()
         conditions = [Condition(condition=condition_func, visualization_element=visualization_element) for condition_func, visualization_element in
@@ -123,17 +123,23 @@ class HighestCityVisitingVolumeConditions(ConditionsMap):
 
     @apply_to_type(entities.City)
     def city_condition(self, entity: entities.Entity):
+        if type(entity) is not entities.City:
+            return False
+
         return entity.name in self.highest_volume_cities
 
     @apply_to_type(entities.ProviderAssignment)
     def line_condition(self, entity: entities.Entity):
+        if type(entity) is not entities.ProviderAssignment:
+            return False
+
         return entity.origin_site.city_name in self.highest_volume_cities or entity.visiting_site.city_name in self.highest_volume_cities
 
 
 class NumberOfVisitingProvidersConditions(ConditionsMap):
 
     def __init__(self):
-        self.conditional_visualization_elements = [visualization_elements.CityScatter]
+        self.visualization_elements_types = [visualization_elements.CityScatter]
         condition_funcs = [self.range_1_condition,
                            self.range_2_condition,
                            self.range_3_condition,
@@ -197,7 +203,7 @@ class NumberOfVisitingProvidersConditions(ConditionsMap):
 class NumberOfVisitingSpecialtiesConditions(ConditionsMap):
 
     def __init__(self):
-        self.conditional_visualization_elements = [visualization_elements.CityScatter]
+        self.visualization_elements_types = [visualization_elements.CityScatter]
         condition_funcs = [self.range_1_condition,
                            self.range_2_condition,
                            self.range_3_condition]

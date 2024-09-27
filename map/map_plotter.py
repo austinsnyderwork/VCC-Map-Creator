@@ -7,16 +7,6 @@ from things.entities import entities
 from things.visualization_elements import visualization_elements
 
 
-def _group_exclusive_origin_outpatients(origin_groups: dict, dual_origin_outpatient: list):
-    excl_origins = [origin for origin in origin_groups.keys() if origin not in dual_origin_outpatient]
-    excl_outpatients = []
-    for origin_group in origin_groups.values():
-        for outpatient in origin_group.outpatients:
-            if outpatient not in dual_origin_outpatient:
-                excl_outpatients.append(outpatient)
-    return excl_origins, excl_outpatients
-
-
 def show_map(show_pause):
     plt.show(block=False)
 
@@ -39,7 +29,9 @@ def convert_bbox_to_data_coordinates(ax, bbox):
 
 class MapPlotter:
 
-    def __init__(self, config_: config_manager.ConfigManager, display_fig_size: tuple, county_line_width: float):
+    def __init__(self, config_: config_manager.ConfigManager, display_fig_size: tuple, county_line_width: float,
+                 show_display: bool):
+        self.show_display = show_display
         self.config_ = config_
 
         self.iowa_map = None
@@ -55,10 +47,14 @@ class MapPlotter:
         }
 
     def convert_coord_to_display(self, coord: tuple):
-        convert_lon, convert_lat = self.iowa_map(coord)
+        lon, lat = coord
+        convert_lon, convert_lat = self.iowa_map(lon, lat)
         return convert_lon, convert_lat
 
     def _create_figure(self, fig_size, county_line_width: float):
+        if not self.show_display:
+            return
+
         # Create visual Iowa map
         self.fig, self.ax = plt.subplots(figsize=fig_size)
         self.ax.set_title("Main")
