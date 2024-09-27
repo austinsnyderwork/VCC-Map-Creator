@@ -6,7 +6,6 @@ import config_manager
 import environment_management
 from environment_management import entity_relationship_manager
 from environment_management import CityOriginNetworkHandler
-from plotting import plot_configurations
 import plotting
 from environment_management import entities_factory
 import things
@@ -64,38 +63,30 @@ class ApplicationManager:
     def create_highest_volume_line_map(self, number_of_results: int):
         highest_volume_cities = data_functions.get_top_volume_incoming_cities(df=self.df,
                                                                               num_results=number_of_results)
-        conditions_map = plot_configurations.HighestCityVisitingVolumeConditions(
+        conditions_map = plotting.HighestCityVisitingVolumeConditions(
             highest_volume_cities=highest_volume_cities,
             config=self.config)
-        vis_element_plot_controller = plot_configurations.PlotController(
+        vis_element_plot_controller = plotting.PlotController(
             config=self.config,
             show_visiting_text_boxes=False)
-        visualization_elements =
-        intial_entities = self.entities_manager.get_all_entities(entities_type=[entities.City, entities.ProviderAssignment])
-        vis_elements = []
-        for entity in intial_entities:
-            if type(entity) in conditions_map.visualization_elements_types:
-                vis_element = conditions_map.get_visualization_element_for_condition(entity)
-            else:
-                vis_element = self.thing_converter.convert_thing(entity)
-            vis_elements.append(vis_element)
-        plot = plotting.PlotManager(entities_manager=self.entities_manager,
-                                    plot_controller=vis_element_plot_controller,
-                                    conditions_map=conditions_map,
-                                    thing_converter=self.thing_converter,
+        initial_entities = self.entities_manager.get_all_entities(entities_type=[entities.City, entities.ProviderAssignment])
+        plot = plotting.PlotManager(thing_converter_=self.thing_converter,
                                     algorithm_plotter=self.algorithm_handler.algo_map_plotter,
                                     map_plotter=self.map_plotter)
-        plot.plot()
+        for entity in initial_entities:
+            plot.plot(entity=entity,
+                      conditions_map=conditions_map,
+                      plot_controller=vis_element_plot_controller)
 
     def create_number_of_visiting_providers_map(self):
-        conditions_map = plot_configurations.NumberOfVisitingProvidersConditions()
-        vis_element_plot_controller = plot_configurations.PlotController(
+        conditions_map = plotting.NumberOfVisitingProvidersConditions()
+        vis_element_plot_controller = plotting.PlotController(
             entity_conditions_map=conditions_map,
             should_plot_origin_lines=False,
             should_plot_outpatient_lines=False,
             should_plot_origin_text_box=False
         )
-        city_objs = list(self.entitites_manager.get.cities_directory.values())
+        city_objs = list(self.entities_manager.get_all_entities(entities.City))
         for iteration, city_obj in enumerate(city_objs):
             conditions_map.get_visualization_element_for_condition(num_visiting_providers=len(city_obj.visiting_providers))
             if vis_element_plot_controller.should_display(entity_type=entities.City,

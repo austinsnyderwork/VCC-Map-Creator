@@ -40,7 +40,7 @@ class MapPlotter:
         self._create_figure(fig_size=display_fig_size,
                             county_line_width=county_line_width)
 
-        self.element_plot_funcs = {
+        self.visualization_element_plot_funcs = {
             visualization_elements.Line: self._plot_line,
             visualization_elements.CityScatter: self._plot_point,
             visualization_elements.CityTextBox: self._plot_text
@@ -67,9 +67,10 @@ class MapPlotter:
         self.iowa_map.drawcounties(linewidth=county_line_width)
         logging.info("Created base Iowa map.")
 
-    def plot_element(self, vis_element: visualization_elements.VisualizationElement, zorder: int):
-        func = self.element_plot_funcs[type(vis_element)]
-        obj = func(vis_element, zorder)
+    def plot_element(self, vis_element: visualization_elements.VisualizationElement, zorder: int,
+                     override_coord: tuple = None):
+        plot_func = self.visualization_element_plot_funcs[type(vis_element)]
+        obj = plot_func(vis_element, zorder, override_coord=override_coord)
         return obj
 
     def _plot_point(self, scatter: visualization_elements.CityScatter, zorder: int, **kwargs):
@@ -85,10 +86,13 @@ class MapPlotter:
 
         return line
 
-    def _plot_text(self, text_box: visualization_elements.CityTextBox, zorder: int):
+    def _plot_text(self, text_box: visualization_elements.CityTextBox, zorder: int, override_coord: tuple = None):
         # We don't want Iowa cities to have the state abbreviation
         city_name = text_box.city_name.replace(', IA', '')
-        lon, lat = text_box.centroid
+        if override_coord:
+            lon, lat = override_coord
+        else:
+            lon, lat = text_box.centroid
         city_text = self.ax.text(lon, lat, city_name,
                                  fontsize=text_box.fontsize,
                                  font=text_box.font,

@@ -98,24 +98,3 @@ class ThingConverter:
             visualization_element = self.convert_thing(entity)
             vis_elements.append(visualization_element)
         return vis_elements
-
-    def convert_visualization_elements_to_polygons(
-            self,
-            visualization_elements_: list[visualization_elements.VisualizationElement],
-            conditions_map: plot_configurations.ConditionsMap,
-            plot_controller: plot_configurations.PlotController):
-
-
-        def _produce_visualization_element(self, entity: entities.Entity, display_type: str, iterations: int = -1) \
-                -> Union[visualization_elements.VisualizationElement, None]:
-            site_type = entity.site_type if type(entity) is entities.City else None
-            if not self.plot_controller.should_display(entity, iterations=iterations, display_type=display_type,
-                                                       site_type=site_type):
-                return
-
-            # Function returns None if there's no corresponding condition for this entity type
-            vis_element = self.conditions_map.get_visualization_element_for_condition(entity=entity)
-            if vis_element:
-                return vis_element
-
-            return self.thing_converter.convert_thing(entity)
