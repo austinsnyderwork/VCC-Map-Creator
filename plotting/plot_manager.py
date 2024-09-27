@@ -13,9 +13,9 @@ class PlotManager:
 
     def __init__(self, thing_converter_: thing_converter.ThingConverter, algorithm_plotter: algorithm.AlgorithmPlotter,
                  map_plotter: map.MapPlotter):
-        self.thing_converter = thing_converter
+        self.thing_converter_ = thing_converter_
         self.algorithm_plotter = algorithm_plotter
-        self.visualization_plotter = map_plotter
+        self.map_plotter = map_plotter
 
         self.display_plotters = {
             'algorithm': algorithm_plotter,
@@ -28,34 +28,19 @@ class PlotManager:
         elif display_type == 'map':
             self.algorithm_plotter.plot_element(vis_element)
 
-    def plot(self, entities_: list[entities.Entity], conditions_map: ConditionsMap, plot_controller: PlotController):
-        vis_elements = []
-        for entity in entities_:
-            conditional_vis_element = conditions_map.get_visualization_element_for_condition(**entity.__dict__)
-            if conditional_vis_element:
-                vis_elements.append(conditional_vis_element)
-                continue
+    def plot(self, entity: entities.Entity, conditions_map: ConditionsMap, plot_controller: PlotController, zorder: int,
+             return_dimensions: bool = False):
+        conditional_vis_element = conditions_map.get_visualization_element_for_condition(**entity.__dict__)
+        vis_element = conditional_vis_element if conditional_vis_element else self.thing_converter_.convert_thing(entity)
+        if return_dimensions:
+            patch = self.map_plotter.plot_element(vis_element, override_coord=(0, 0), zorder=zorder)
+            return patch.dimensions
 
-            vis_element = self.thing_converter.convert_thing(entity)
-            vis_elements.append(vis_element)
+        if plot_controller.should_display(type(vis_element), display_type='algorithm'):
+            self.algorithm_plotter.plot_element(vis_element)
 
-        for city in self.entities_manager.get_all_entities(entities.City):
-            # !!!!Make this into a function to be reused for each entity type
-            vis_element_output_algo = self._produce_visualization_element(city,
-                                                                          display_type='algorithm')
-            if vis_element_output_algo:
-                self._plot_visualization_element(vis_element=vis_element_output_algo, display_type='algorithm')
-
-            vis_element_output_map = self._produce_visualization_element(city,
-                                                                         display_type='map')
-            if vis_element_output_map:
-                self._plot_visualization_element(vis_element=vis_element_output_map, display_type='map')
-
-        for provider_assignment in self.entities_manager.get_all_entities(entities.ProviderAssignment):
-            vis_element_output_algo = self._produce
-
-        for vis_element in vis_elements:
-            self._plot_visualization_element(vis_element)
+        if plot_controller.should_display(type(vis_element), display_type='map'):
+            self.map_plotter.plot_element(vis_element, zorder)
 
 
 
