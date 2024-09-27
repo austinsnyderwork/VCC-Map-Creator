@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Union
 
 from things.thing_container import ThingContainer
 from things.entities import entities
@@ -25,14 +25,14 @@ class EntitiesManager:
             entities.Provider: ThingContainer(generate_key_func=_generate_key)
         }
 
-    def get_all_entities(self, entities_type: entities.Entity = None, entities_types: list[entities.Entity] = None):
-        if entities_type:
+    def get_all_entities(self, entities_type: Union[entities.Entity, list[entities.Entity]]):
+        if not isinstance(entities_type, list):
             container = self.entities_containers[entities_type]
             entities_ = container.get_all_things()
-        elif entities_types:
+        else:
             entities_ = []
-            for entity_type in entities_types:
-                entities_.extend(self.get_all_entities(entities_type=entity_type))
+            for type_ in entities_type:
+                entities_.extend(self.get_all_entities(entities_type=type_))
         return entities_
 
     def add_entity(self, entity: entities.Entity):

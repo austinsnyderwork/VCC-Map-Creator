@@ -13,15 +13,6 @@ from things import entities
 import map
 
 
-def check_data_imported(func):
-    def wrapper(self, *args, **kwargs):
-        if not self.data_imported:
-            raise RuntimeError(f"Have to import data first before calling {__name__}.")
-        return func(self, *args, **kwargs)
-
-    return wrapper
-
-
 class ApplicationManager:
 
     def __init__(self, df: pd.DataFrame,
@@ -52,28 +43,26 @@ class ApplicationManager:
             get_text_display_dimensions=self.map_plotter.get_text_box_dimensions)
 
         self.startup(self.startup_factory_)
-        self.data_imported = False
 
     def startup(self, startup_factory_: startup_factory.StartupFactory):
         startup_factory_.fill_entities_manager(coord_converter_func=self.map_plotter.convert_coord_to_display)
         startup_factory_.fill_city_origin_networks()
         self.data_imported = True
 
-    @check_data_imported
     def create_line_map(self):
         entity_plot_controller = environment_management.VisualizationElementPlotController()
 
-    @check_data_imported
     def create_highest_volume_line_map(self, number_of_results: int):
         highest_volume_cities = data_functions.get_top_volume_incoming_cities(df=self.df,
                                                                               num_results=number_of_results)
         conditions_map = plot_configurations.HighestCityVisitingVolumeConditions(
-            highest_volume_cities=highest_volume_cities)
+            highest_volume_cities=highest_volume_cities,
+            config=self.config)
         vis_element_plot_controller = plot_configurations.VisualizationElementPlotController(
             config=self.config,
             show_visiting_text_boxes=False
         )
-        intial_entities = self.entities_manager.get_all_entities([entities.City, entities.ProviderAssignment])
+        intial_entities = self.entities_manager.get_all_entities(entities_type=[entities.City, entities.ProviderAssignment])
         vis_elements = []
         for entity in intial_entities:
             if type(entity) in conditions_map.visualization_elements_types:
@@ -89,7 +78,6 @@ class ApplicationManager:
                                 map_plotter=self.map_plotter)
         plot.plot()
 
-    @check_data_imported
     def create_number_of_visiting_providers_map(self):
         conditions_map = plot_configurations.NumberOfVisitingProvidersConditions()
         vis_element_plot_controller = plot_configurations.VisualizationElementPlotController(

@@ -31,7 +31,7 @@ class MapDisplayController:
 
         try:
             return self.config.get_config_value(key, type(default_value))
-        except ValueError:
+        except KeyError:
             logging.warning(f"Defaulted to '{default_value}' because could not find '{key}' in plot_settings or config.")
             return default_value
 
@@ -94,7 +94,7 @@ class AlgorithmDisplayController:
 
         try:
             return self.config.get_config_value(key, type(default_value))
-        except ValueError:
+        except KeyError:
             logging.warning(
                 f"Defaulted to '{default_value}' because could not find '{key}' in plot_settings or config.")
             return default_value
@@ -138,7 +138,7 @@ class VisualizationElementPlotController:
 
         try:
             return self.config.get_config_value(key, type(default_value))
-        except ValueError:
+        except KeyError:
             logging.warning(
                 f"Defaulted to '{default_value}' because could not find '{key}' in plot_settings or config.")
             return default_value

@@ -27,11 +27,17 @@ class ThingConverter:
             'visiting': self.config.get_config_value('map_display.visiting_marker', str)
         }
 
+        self.scatter_color_map = {
+            'dual_origin_visiting': self.config.get_config_value('map_display.dual_origin_visiting_color', str),
+            'origin': self.config.get_config_value('map_display.origin_color', str),
+            'visiting': self.config.get_config_value('map_display.visiting_color', str)
+        }
+
     def _produce_city_scatter_data(self, city_entity: entities.City):
-        color = self.config.get_config_value(key='map_display.scatter_color', cast_type='str')
+        city_type = city_entity.site_type
         scatter_data = {
-            'color': color,
-            'edgecolor': color,
+            'color': self.scatter_color_map[city_type],
+            'edgecolor': self.scatter_color_map[city_type],
             'marker': self.scatter_marker_map[city_entity.site_type],
             'size': self.config.get_config_value(key='map_display.scatter_size', cast_type=int),
             'label': city_entity.site_type
@@ -41,7 +47,7 @@ class ThingConverter:
     def _produce_city_text_box_data(self, city_entity: entities.City):
         font_size = self.config.get_config_value('map_display.city_font_size', int)
         font_weight = self.config.get_config_value('map_display.city_font_weight', str)
-        font = self.config.get_config_value('map_display.font', str)
+        font = self.config.get_config_value('map_display.city_font', str)
         text_box_data = self.get_text_display_dimensions_func(city_entity,
                                                               font_size=font_size,
                                                               font_weight=font_weight,

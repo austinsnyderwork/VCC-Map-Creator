@@ -6,6 +6,7 @@ import config_manager
 from things.entities import entities
 from things.visualization_elements import visualization_elements
 
+
 def apply_to_type(expected_type):
     def decorator(func):
         @wraps(func)
@@ -27,19 +28,19 @@ class Condition:
 class ConditionsMap(ABC):
 
     def __init__(self, conditions: list[Condition]):
-        self.visualization_elements_types = []
         self.conditions = conditions
-        self.config = config_manager.ConfigManager()
+        self.visualization_elements_types = []
 
     def get_visualization_element_for_condition(self, **kwargs):
         for condition in self.conditions:
             if condition.condition(**kwargs):
                 return condition.visualization_element
 
-1
+
 class NumberOfVisitingClinicsConditions(ConditionsMap):
 
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
         self.visualization_elements_types = [visualization_elements.CityScatter]
         condition_funcs = [self.range_1_condition,
                            self.range_2_condition,
@@ -50,23 +51,23 @@ class NumberOfVisitingClinicsConditions(ConditionsMap):
         conditions = [Condition(condition=condition_func, visualization_element=vis_element) for condition_func, vis_element in
                       zip(condition_funcs, vis_elements_)]
 
-        super().__init__(conditions=conditions)
+        super().__init__(conditions)
 
     def _create_visualization_elements(self):
         visualization_element_1 = visualization_elements.CityScatter(
-            size=self.config.get_config_value('num_visiting_clinics.range_1_size', int),
+            size=self.config.get_config_value('num_visiting_clinics.range_1_scatter_size', int),
             color=self.config.get_config_value('num_visiting_clinics.range_1_color', str)
         )
         visualization_element_2 = visualization_elements.CityScatter(
-            size=self.config.get_config_value('num_visiting_clinics.range_2_size', int),
+            size=self.config.get_config_value('num_visiting_clinics.range_2_scatter_size', int),
             color=self.config.get_config_value('num_visiting_clinics.range_2_color', str)
         )
         visualization_element_3 = visualization_elements.CityScatter(
-            size=self.config.get_config_value('num_visiting_clinics.range_3_size', int),
+            size=self.config.get_config_value('num_visiting_clinics.range_3_scatter_size', int),
             color=self.config.get_config_value('num_visiting_clinics.range_3_color', str)
         )
         visualization_element_4 = visualization_elements.CityScatter(
-            size=self.config.get_config_value('num_visiting_clinics.range_4_size', int),
+            size=self.config.get_config_value('num_visiting_clinics.range_4_scatter_size', int),
             color=self.config.get_config_value('num_visiting_clinics.range_4_color', str)
         )
         visualization_elements_ = [visualization_element_1, visualization_element_2, visualization_element_3, visualization_element_4]
@@ -103,19 +104,19 @@ class NumberOfVisitingClinicsConditions(ConditionsMap):
 
 class HighestCityVisitingVolumeConditions(ConditionsMap):
 
-    def __init__(self, highest_volume_cities: list[str]):
+    def __init__(self, highest_volume_cities: list[str], config):
+        self.config = config
         self.visualization_elements_types = [visualization_elements.CityScatter]
         condition_funcs = [self.city_condition, self.line_condition]
         visualization_elements_ = self._create_visualization_elements()
         conditions = [Condition(condition=condition_func, visualization_element=visualization_element) for condition_func, visualization_element in
                       zip(condition_funcs, visualization_elements_)]
-
         super().__init__(conditions)
         self.highest_volume_cities = highest_volume_cities
 
     def _create_visualization_elements(self):
         visualization_element_1 = visualization_elements.CityScatter(
-            size=self.config.get_config_value('num_visiting_providers.range_1_size', int),
+            size=self.config.get_config_value('num_visiting_providers.range_1_scatter_size', int),
             color=self.config.get_config_value('num_visiting_providers.range_1_color', str)
         )
         visualization_elements_ = [visualization_element_1]
@@ -138,7 +139,8 @@ class HighestCityVisitingVolumeConditions(ConditionsMap):
 
 class NumberOfVisitingProvidersConditions(ConditionsMap):
 
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
         self.visualization_elements_types = [visualization_elements.CityScatter]
         condition_funcs = [self.range_1_condition,
                            self.range_2_condition,
@@ -153,19 +155,19 @@ class NumberOfVisitingProvidersConditions(ConditionsMap):
 
     def _create_visualization_elements(self):
         visualization_element_1 = visualization_elements.CityScatter(
-            size=self.config.get_config_value('num_visiting_providers.range_1_size', int),
+            size=self.config.get_config_value('num_visiting_providers.range_1_scatter_size', int),
             color=self.config.get_config_value('num_visiting_providers.range_1_color', str)
         )
         visualization_element_2 = visualization_elements.CityScatter(
-            size=self.config.get_config_value('num_visiting_providers.range_2_size', int),
+            size=self.config.get_config_value('num_visiting_providers.range_2_scatter_size', int),
             color=self.config.get_config_value('num_visiting_providers.range_2_color', str)
         )
         visualization_element_3 = visualization_elements.CityScatter(
-            size=self.config.get_config_value('num_visiting_providers.range_3_size', int),
+            size=self.config.get_config_value('num_visiting_providers.range_3_scatter_size', int),
             color=self.config.get_config_value('num_visiting_providers.range_3_color', str)
         )
         visualization_element_4 = visualization_elements.CityScatter(
-            size=self.config.get_config_value('num_visiting_providers.range_4_size', int),
+            size=self.config.get_config_value('num_visiting_providers.range_4_scatter_size', int),
             color=self.config.get_config_value('num_visiting_providers.range_4_color', str)
         )
         visualization_elements_ = [visualization_element_1, visualization_element_2, visualization_element_3, visualization_element_4]
@@ -202,7 +204,8 @@ class NumberOfVisitingProvidersConditions(ConditionsMap):
 
 class NumberOfVisitingSpecialtiesConditions(ConditionsMap):
 
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
         self.visualization_elements_types = [visualization_elements.CityScatter]
         condition_funcs = [self.range_1_condition,
                            self.range_2_condition,
@@ -215,15 +218,15 @@ class NumberOfVisitingSpecialtiesConditions(ConditionsMap):
 
     def _create_visualization_elements(self):
         visualization_element_1 = visualization_elements.CityScatter(
-            size=self.config.get_config_value('num_visiting_specialties.range_1_size', int),
+            size=self.config.get_config_value('num_visiting_specialties.range_1_scatter_size', int),
             color=self.config.get_config_value('num_visiting_specialties.range_1_color', str)
         )
         visualization_element_2 = visualization_elements.CityScatter(
-            size=self.config.get_config_value('num_visiting_specialties.range_2_size', int),
+            size=self.config.get_config_value('num_visiting_specialties.range_2_scatter_size', int),
             color=self.config.get_config_value('num_visiting_specialties.range_2_color', str)
         )
         visualization_element_3 = visualization_elements.CityScatter(
-            size=self.config.get_config_value('num_visiting_specialties.range_3_size', int),
+            size=self.config.get_config_value('num_visiting_specialties.range_3_scatter_size', int),
             color=self.config.get_config_value('num_visiting_specialties.range_3_color', str)
         )
         visualization_elements_ = [visualization_element_1, visualization_element_2, visualization_element_3]

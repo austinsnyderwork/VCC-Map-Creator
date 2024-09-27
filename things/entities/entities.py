@@ -30,16 +30,14 @@ class VccClinicSite(Entity):
         self.leaving_provider_assignments = set()
         self.visiting_provider_assignments = set()
 
-    def add_provider(self, provider: Provider, specialty: str, direction: str):
+    def add_provider_assignment(self, provider_assignment: ProviderAssignment, direction: str):
         direction_lists = {
             'visiting': self.leaving_provider_assignments,
             'leaving': self.visiting_provider_assignments
         }
-        if provider not in direction_lists.keys():
+        if direction not in direction_lists.keys():
             raise ValueError(f"Passed in direction '{direction}' is not one of acceptable directions "
                              f"{list(direction_lists.keys())}")
-
-        provider_assignment = ProviderAssignment(provider=provider, specialty=specialty)
         direction_lists[direction].add(provider_assignment)
 
     @property
@@ -54,54 +52,31 @@ class City(Entity):
         self.name = name
         self.coord = coord
 
-        self.visiting_clinics = set()
-        self.leaving_clinics = set()
-
-        self.visiting_providers = set()
-        self.leaving_providers = set()
-
-        self._visiting_specialties = set()
-        self.leaving_specialties = set()
+        self.clinics = {
+            'visiting': set(),
+            'leaving': set()
+        }
 
         self.data_is_static = False
 
     def add_clinic_site(self, clinic_site: VccClinicSite, direction: str):
-        directions_lists = {
-            'visiting': self.visiting_clinics,
-            'leaving': self.leaving_clinics
-        }
-
-        providers_lists = {
-            'visiting': (self.visiting_providers, clinic_site.providers_visiting),
-            'leaving': (self.leaving_providers, clinic_site.providers_leaving)
-        }
-        if direction not in directions_lists.keys():
+        if direction not in self.clinics.keys():
             raise ValueError(f"add_clinic_site direction value '{direction}' is not one of acceptable directions: "
-                             f"{list(directions_lists.keys())}")
+                             f"{list(self.clinics.keys())}")
 
-        directions_lists[direction].add(clinic_site)
+        self.clinics[direction].add(clinic_site)
 
-        self_providers, clinic_providers = providers_lists[direction]
-        self_providers.update(clinic_providers)
         self.data_is_static = False
 
     @property
-    def visiting_specialties(self):
-        if self.data_is_static and self.visiting_specialties:
-            return self._visiting_specialties
-
-        self._visiting_specialties = set()
-        for clinic in self.visiting_clinics:
-            self._visiting_specialties.update(clinic.visiting_specialties)
-
-        self.data_is_static = True
-
-    @property
     def site_type(self):
-        if len(self.visiting_clinics) > 0 and len(self.leaving_clinics) > 0:
+        if len(self.clinics['visiting']) > 0 and len(self.clinics['leaving']) > 0:
             return 'dual_origin_visiting'
-        elif len(self.visiting_clinics) > 0:
+        elif len(self.clinics['leaving']) > 0:
             return 'visiting'
-        else:
+        elif len(self.clinics['visiting']):
             return 'origin'
+        else:
+            raise RuntimeError(f"Attempted to define site type for city '{self.name}' without any visiting or leaving "
+                               f"clinics.")
 

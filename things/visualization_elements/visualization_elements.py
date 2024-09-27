@@ -27,11 +27,8 @@ class DualVisualizationElement(VisualizationElement):
 
     def __init__(self, algorithm_data_class, map_data_class, **kwargs):
         super().__init__()
-        algorithm_kwargs = kwargs['algorithm']
-        self.algorithm_data = algorithm_data_class(**algorithm_kwargs)
-
-        map_kwargs = kwargs['map']
-        self.map_data = map_data_class(**map_kwargs)
+        self.algorithm_data = algorithm_data_class(kwargs['algorithm']) if 'algorithm' in kwargs else algorithm_data_class()
+        self.map_data = map_data_class(kwargs['map']) if 'map' in kwargs else map_data_class()
 
     def __getattr__(self, item):
         type_, item = which_class(item)
@@ -70,18 +67,18 @@ class Line(DualVisualizationElement):
 
 class CityScatterAlgorithmData:
 
-    def __init__(self):
-        self.coordinate = None
+    def __init__(self, **kwargs):
+        self.coordinate = kwargs['coordinate']
 
 
 class CityScatterMapData:
 
-    def __init__(self):
-        self.size = None
-        self.color = None
-        self.edgecolor = None
-        self.marker = None
-        self.label = None
+    def __init__(self, **kwargs):
+        self.size = kwargs['size'] if 'szie'
+        self.color = kwargs['color']
+        self.edgecolor = kwargs['color']
+        self.marker = kwargs['marker']
+        self.label = kwargs['label']
 
 
 class CityScatter(DualVisualizationElement):
