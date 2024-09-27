@@ -6,7 +6,7 @@ import config_manager
 import environment_management
 from environment_management import CityOriginNetworkHandler, plot_configurations
 import plotting
-from . import startup_factory
+from environment_management import entities_factory
 import things
 from things import visualization_elements
 from things import entities
@@ -16,17 +16,15 @@ import map
 class ApplicationManager:
 
     def __init__(self, df: pd.DataFrame,
-                 startup_factory_: startup_factory.StartupFactory = None,
+                 entities_factory_: entities_factory.EntitiesFactory = None,
                  map_plotter: map.MapPlotter = None,
                  algorithm_handler: algorithm.AlgorithmHandler = None):
         self.df = df
         self.config = config_manager.ConfigManager()
         self.entities_manager = entities.EntitiesManager()
         self.city_origin_network_handler = CityOriginNetworkHandler(colors=helper_functions.get_colors())
-        self.startup_factory_ = startup_factory_ if startup_factory_ else startup_factory.StartupFactory(
-            df=self.df,
-            entities_manager=self.entities_manager,
-            city_origin_network_handler=self.city_origin_network_handler)
+        self.entities_factory_ = entities_factory_ if entities_factory_ \
+            else entities_factory.EntitiesFactory(df=self.df)
 
         self.map_plotter = map_plotter or map.MapPlotter(
             config_=self.config,
@@ -42,12 +40,11 @@ class ApplicationManager:
             city_origin_network_handler=self.city_origin_network_handler,
             get_text_display_dimensions=self.map_plotter.get_text_box_dimensions)
 
-        self.startup(self.startup_factory_)
-
-    def startup(self, startup_factory_: startup_factory.StartupFactory):
+    def startup(self):
+        cities = self.entities_factory_.create_cities(coord_converter=self.map_plotter.convert_coord_to_display)
+        provider_assignments = self.entities_factory_.create
         startup_factory_.fill_entities_manager(coord_converter_func=self.map_plotter.convert_coord_to_display)
         startup_factory_.fill_city_origin_networks()
-        self.data_imported = True
 
     def create_line_map(self):
         entity_plot_controller = environment_management.VisualizationElementPlotController()
@@ -73,7 +70,7 @@ class ApplicationManager:
         plot = plotting.Plotter(entities_manager=self.entities_manager,
                                 plot_controller=vis_element_plot_controller,
                                 conditions_map=conditions_map,
-                                entity_converter=self.thing_converter.convert_thing,
+                                thing_converter=self.thing_converter,
                                 algorithm_plotter=self.algorithm_handler.algo_map_plotter,
                                 map_plotter=self.map_plotter)
         plot.plot()

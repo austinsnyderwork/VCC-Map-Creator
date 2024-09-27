@@ -13,11 +13,14 @@ class Provider(Entity):
 
 class ProviderAssignment:
 
-    def __init__(self, provider: Provider, specialty: str, origin_site: 'VccClinicSite', visiting_site: 'VccClinicSite'):
+    def __init__(self, provider: Provider, specialty: str, origin_site_name: str, origin_city_name: str,
+                 visiting_site_name: str, visiting_city_name: str):
         self.provider = provider
         self.specialty = specialty
-        self.origin_site = origin_site,
-        self.visiting_site = visiting_site
+        self.origin_site_name = origin_site_name
+        self.origin_city_name = origin_city_name
+        self.visiting_site_name = visiting_site_name
+        self.visiting_city_name = visiting_city_name
 
 
 class VccClinicSite(Entity):
@@ -57,16 +60,12 @@ class City(Entity):
             'leaving': set()
         }
 
-        self.data_is_static = False
-
     def add_clinic_site(self, clinic_site: VccClinicSite, direction: str):
         if direction not in self.clinics.keys():
             raise ValueError(f"add_clinic_site direction value '{direction}' is not one of acceptable directions: "
                              f"{list(self.clinics.keys())}")
 
         self.clinics[direction].add(clinic_site)
-
-        self.data_is_static = False
 
     @property
     def site_type(self):

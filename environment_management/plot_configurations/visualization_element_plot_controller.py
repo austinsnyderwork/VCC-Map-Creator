@@ -13,13 +13,13 @@ class MapDisplayController:
         self.plot_settings = plot_settings
 
         self.entity_type_display = {
-            visualization_elements.Line: self.retrieve_setting('viz_display_show_line', True),
-            visualization_elements.TextBoxScan: self.retrieve_setting('viz_display_show_scan_poly', True),
-            visualization_elements.TextBoxScanArea: self.retrieve_setting('viz_display_show_scan_area_poly', True),
-            visualization_elements.CityScatter: self.retrieve_setting('viz_display_show_scatter', True),
-            visualization_elements.Intersection: self.retrieve_setting('viz_display_show_intersecting_poly', True),
-            visualization_elements.TextBoxFinalist: self.retrieve_setting('viz_display_show_finalist_poly', True),
-            visualization_elements.TextBoxNearbySearchArea: self.retrieve_setting('viz_display_show_nearby_search_poly', True),
+            visualization_elements.Line: self.retrieve_setting('map_display_show_line', True),
+            visualization_elements.TextBoxScan: self.retrieve_setting('map_display_show_scan_poly', True),
+            visualization_elements.TextBoxScanArea: self.retrieve_setting('map_display_show_scan_area_poly', True),
+            visualization_elements.CityScatter: self.retrieve_setting('map_display_show_scatter', True),
+            visualization_elements.Intersection: self.retrieve_setting('map_display_show_intersecting_poly', True),
+            visualization_elements.TextBoxFinalist: self.retrieve_setting('map_display_show_finalist_poly', True),
+            visualization_elements.TextBoxNearbySearchArea: self.retrieve_setting('map_display_show_nearby_search_poly', True),
         }
 
     def should_display(self, entity_type, *args, **kwargs) -> bool:

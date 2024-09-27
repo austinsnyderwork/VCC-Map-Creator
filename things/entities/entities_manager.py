@@ -4,11 +4,14 @@ from things.thing_container import ThingContainer
 from things.entities import entities
 
 
-def _generate_key(entity_type, **kwargs):
+def generate_key(entity_type=None, entity: entities.Entity = None, **kwargs):
+    if entity:
+        entity_type = type(entity)
+
     if entity_type is entities.City:
         return entities.City, kwargs['name']
     elif entity_type is entities.ProviderAssignment:
-        return entities.ProviderAssignment, kwargs['origin_site_name'], kwargs['visiting_site_name']
+        return entities.ProviderAssignment, kwargs['origin_site'], kwargs['visiting_site']
     elif entity_type is entities.VccClinicSite:
         return entities.VccClinicSite, kwargs['city_name'], kwargs['name']
     elif entity_type is entities.Provider:
@@ -19,23 +22,25 @@ class EntitiesManager:
 
     def __init__(self):
         self.entities_containers = {
-            entities.City: ThingContainer(generate_key_func=_generate_key),
-            entities.ProviderAssignment: ThingContainer(generate_key_func=_generate_key),
-            entities.VccClinicSite: ThingContainer(generate_key_func=_generate_key),
-            entities.Provider: ThingContainer(generate_key_func=_generate_key)
+            entities.City: ThingContainer(generate_key_func=generate_key),
+            entities.ProviderAssignment: ThingContainer(generate_key_func=generate_key),
+            entities.VccClinicSite: ThingContainer(generate_key_func=generate_key),
+            entities.Provider: ThingContainer(generate_key_func=generate_key)
         }
 
     def get_all_entities(self, entities_type: Union[entities.Entity, list[entities.Entity]]):
-        if not isinstance(entities_type, list):
-            container = self.entities_containers[entities_type]
-            entities_ = container.get_all_things()
-        else:
+        if isinstance(entities_type, list):
             entities_ = []
             for type_ in entities_type:
                 entities_.extend(self.get_all_entities(entities_type=type_))
+                container = self.entities_containers[type_]
+                entities_.extend(container.get_all_things())
+        else:
+            container = self.entities_containers[entities_type]
+            entities_ = container.get_all_things()
         return entities_
 
-    def add_entity(self, entity: entities.Entity):
+    def add_entity(self, entity: entities.Entity, **kwargs):
         entities_container = self.entities_containers[type(entity)]
         entities_container.add_thing(thing=entity)
 
@@ -52,7 +57,7 @@ class EntitiesManager:
         return container.get_thing(entities.VccClinicSite, name=name)
 
     def contains_entity(self, entity_type, **kwargs):
-        key = _generate_key(entity_type=entity_type, **kwargs)
+        key = generate_key(entity_type=entity_type, **kwargs)
         return key in self.entities_containers
 
 

@@ -1,4 +1,8 @@
 
+
+def get_kwarg(kwarg, key, default):
+    return kwarg[key] if key in kwarg else default
+
 class VisualizationElement:
     
     def __init__(self, **kwargs):
@@ -27,8 +31,8 @@ class DualVisualizationElement(VisualizationElement):
 
     def __init__(self, algorithm_data_class, map_data_class, **kwargs):
         super().__init__()
-        self.algorithm_data = algorithm_data_class(kwargs['algorithm']) if 'algorithm' in kwargs else algorithm_data_class()
-        self.map_data = map_data_class(kwargs['map']) if 'map' in kwargs else map_data_class()
+        self.algorithm_data = get_kwarg(kwargs, 'algorithm', algorithm_data_class())
+        self.map_data = get_kwarg(kwargs, 'map', map_data_class())
 
     def __getattr__(self, item):
         type_, item = which_class(item)
@@ -43,18 +47,18 @@ class DualVisualizationElement(VisualizationElement):
 class LineAlgorithmData:
 
     def __init__(self, **kwargs):
-        self.x_data = kwargs['x_data']
-        self.y_data = kwargs['y_data']
+        self.x_data = get_kwarg(kwargs, 'x_data', None)
+        self.y_data = get_kwarg(kwargs, 'y_data', None)
 
-        self.color = kwargs['color']
+        self.color = get_kwarg(kwargs, 'color', None)
 
 
 class LineMapData:
 
     def __init__(self, **kwargs):
-        self.linewidth = kwargs['linewidth']
-        self.color = kwargs['color']
-        self.edgecolor = kwargs['edgecolor']
+        self.linewidth = get_kwarg(kwargs, 'linewidth', None)
+        self.color = get_kwarg(kwargs, 'color', None)
+        self.edgecolor = get_kwarg(kwargs, 'edgecolor', None)
 
 
 class Line(DualVisualizationElement):
@@ -68,17 +72,17 @@ class Line(DualVisualizationElement):
 class CityScatterAlgorithmData:
 
     def __init__(self, **kwargs):
-        self.coordinate = kwargs['coordinate']
+        self.coordinate = get_kwarg(kwargs, 'coordinate', None)
 
 
 class CityScatterMapData:
 
     def __init__(self, **kwargs):
-        self.size = kwargs['size'] if 'szie'
-        self.color = kwargs['color']
-        self.edgecolor = kwargs['color']
-        self.marker = kwargs['marker']
-        self.label = kwargs['label']
+        self.size = get_kwarg(kwargs, 'size', None)
+        self.color = get_kwarg(kwargs, 'color', None)
+        self.edgecolor = get_kwarg(kwargs, 'color', None)
+        self.marker = get_kwarg(kwargs, 'marker', None)
+        self.label = get_kwarg(kwargs, 'label', None)
 
 
 class CityScatter(DualVisualizationElement):
@@ -92,7 +96,7 @@ class CityScatter(DualVisualizationElement):
 class CityTextBoxAlgorithmData:
 
     def __init__(self, **kwargs):
-        self.text_box_dimensions = kwargs['text_box_dimensions']
+        self.text_box_dimensions = get_kwarg(kwargs, 'text_box_dimension', None)
 
     @property
     def centroid(self):
@@ -108,11 +112,11 @@ class CityTextBoxAlgorithmData:
 class CityTextBoxMapData:
 
     def __init__(self, **kwargs):
-        self.city_name = kwargs['city_name']
-        self.fontsize = kwargs['font_size']
-        self.font = kwargs['font']
-        self.color = kwargs['color']
-        self.fontweight = kwargs['fontweight']
+        self.city_name = get_kwarg(kwargs, 'city_name', None)
+        self.fontsize = get_kwarg(kwargs, 'font_size', None)
+        self.font = get_kwarg(kwargs, 'font', None)
+        self.color = get_kwarg(kwargs, 'color', None)
+        self.fontweight = get_kwarg(kwargs, 'fontweight', None)
 
 
 class CityTextBox(DualVisualizationElement):
@@ -128,6 +132,16 @@ class CityScatterAndText:
     def __init__(self, city_scatter: CityScatter, city_text_box: CityTextBox):
         self.city_scatter = city_scatter
         self.city_text_box = city_text_box
+
+    def __getattr__(self, item):
+        if item in super().__getattribute__('__dict__'):
+            return super().__getattribute__(item)
+        elif hasattr(self.city_scatter, item):
+            return getattr(self.city_scatter, item)
+        elif hasattr(self.city_text_box, item):
+            return getattr(self.city_text_box, item)
+        else:
+            raise AttributeError(f"Could not find attribute {item} in CityScatterAndText object.")
 
 
 class TextBoxScan(VisualizationElement):

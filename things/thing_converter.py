@@ -74,7 +74,7 @@ class ThingConverter:
     def convert_thing(self, entity: entities.Entity):
         if type(entity) is entities.ProviderAssignment:
             line_data = self._produce_provider_assignment_line_data(entity)
-            line = visualization_elements.Line(line_data)
+            line = visualization_elements.Line(**line_data)
             return line
         elif type(entity) is entities.City:
             scatter_data = self._produce_city_scatter_data(entity)
