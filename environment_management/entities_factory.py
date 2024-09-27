@@ -29,7 +29,8 @@ def _apply_create_clinic_sites(row, clinics: dict):
     origin_city_coord = row['origin_lon'], row['origin_lat']
 
     key = entities_manager.generate_key(entity_type=entities.VccClinicSite,
-                                        name=origin_clinic_name)
+                                        name=origin_clinic_name,
+                                        city_name=origin_city_name)
     if key not in clinics:
         origin_clinic = entities.VccClinicSite(name=origin_clinic_name,
                                                city_name=origin_city_name,
@@ -40,7 +41,8 @@ def _apply_create_clinic_sites(row, clinics: dict):
     visiting_city_name = row['visiting_city']
     visiting_city_coord = row['visiting_lon'], row['visiting_lat']
     key = entities_manager.generate_key(entity_type=entities.VccClinicSite,
-                                        name=visiting_clinic_name)
+                                        name=visiting_clinic_name,
+                                        city_name=visiting_city_name)
     if key not in clinics:
         visiting_clinic = entities.VccClinicSite(name=visiting_clinic_name,
                                                  city_name=visiting_city_name,
@@ -84,12 +86,12 @@ class EntitiesFactory:
         self.df.apply(_apply_create_cities, coord_converter=coord_converter, cities=cities, axis=1)
 
         clinics = {}
-        self.df.apply(_apply_create_clinic_sites, entities_manager=entities_manager, clinics=clinics)
+        self.df.apply(_apply_create_clinic_sites, clinics=clinics, axis=1)
 
         provider_assignments = {}
         providers = {}
         self.df.apply(_apply_create_provider_assignments, provider_assignments=provider_assignments,
-                      providers=providers)
+                      providers=providers, axis=1)
 
         return {
             entities.City: list(cities.values()),

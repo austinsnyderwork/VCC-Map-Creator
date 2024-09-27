@@ -48,6 +48,20 @@ class VccClinicSite(Entity):
         specialties = (provider_assignment.specialty for provider_assignment in self.visiting_provider_assignments)
         return specialties
 
+    @property
+    def visiting_cities(self):
+        visiting_cities = set()
+        for provider_assignment in self.visiting_provider_assignments:
+            visiting_cities.add(provider_assignment.visiting_city_name)
+        return visiting_cities
+
+    @property
+    def leaving_cities(self):
+        leaving_cities = set()
+        for provider_assignment in self.leaving_provider_assignments:
+            leaving_cities.add(provider_assignment.origin_city_name)
+        return leaving_cities
+
 
 class City(Entity):
 

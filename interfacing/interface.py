@@ -12,6 +12,7 @@ class Interface:
                                             'origin_city': city_name_changes
                                         })
         self.application_manager = application_manager.ApplicationManager(df=df)
+        self.application_manager.startup()
 
     def create_line_map(self, **kwargs):
         self.application_manager.create_line_map(**kwargs)

@@ -4,6 +4,7 @@ from . import data_functions, helper_functions
 import algorithm
 import config_manager
 import environment_management
+from environment_management import entity_relationship_manager
 from environment_management import CityOriginNetworkHandler, plot_configurations
 import plotting
 from environment_management import entities_factory
@@ -41,10 +42,19 @@ class ApplicationManager:
             get_text_display_dimensions=self.map_plotter.get_text_box_dimensions)
 
     def startup(self):
-        cities = self.entities_factory_.create_cities(coord_converter=self.map_plotter.convert_coord_to_display)
-        provider_assignments = self.entities_factory_.create
-        startup_factory_.fill_entities_manager(coord_converter_func=self.map_plotter.convert_coord_to_display)
-        startup_factory_.fill_city_origin_networks()
+        entities_ = self.entities_factory_.create_entities(coord_converter=self.map_plotter.convert_coord_to_display)
+        all_entities = [entity for entities_list in entities_.values() for entity in entities_list]
+
+        for entity in all_entities:
+            self.entities_manager.add_entity(entity)
+
+        entity_relationship_manager_ = entity_relationship_manager.EntityRelationshipManager(
+            cities=entities_[entities.City],
+            clinics=entities_[entities.VccClinicSite],
+            provider_assignments=entities_[entities.ProviderAssignment]
+        )
+        entity_relationship_manager_.fill_entities()
+        self.city_origin_network_handler.fill_city_origin_networks(entities_manager=self.entities_manager)
 
     def create_line_map(self):
         entity_plot_controller = environment_management.VisualizationElementPlotController()

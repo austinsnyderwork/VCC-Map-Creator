@@ -11,7 +11,7 @@ def generate_key(entity_type=None, entity: entities.Entity = None, **kwargs):
     if entity_type is entities.City:
         return entities.City, kwargs['name']
     elif entity_type is entities.ProviderAssignment:
-        return entities.ProviderAssignment, kwargs['origin_site'], kwargs['visiting_site']
+        return entities.ProviderAssignment, kwargs['origin_site_name'], kwargs['visiting_site_name']
     elif entity_type is entities.VccClinicSite:
         return entities.VccClinicSite, kwargs['city_name'], kwargs['name']
     elif entity_type is entities.Provider:
