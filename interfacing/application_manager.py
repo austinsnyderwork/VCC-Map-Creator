@@ -5,7 +5,8 @@ import algorithm
 import config_manager
 import environment_management
 from environment_management import entity_relationship_manager
-from environment_management import CityOriginNetworkHandler, plot_configurations
+from environment_management import CityOriginNetworkHandler
+from plotting import plot_configurations
 import plotting
 from environment_management import entities_factory
 import things
@@ -38,6 +39,7 @@ class ApplicationManager:
         self.algorithm_handler = algorithm_handler or algorithm.AlgorithmHandler(config=self.config)
         self.thing_converter = things.thing_converter.ThingConverter(
             config=self.config,
+            entities_manager=self.entities_manager,
             city_origin_network_handler=self.city_origin_network_handler,
             get_text_display_dimensions=self.map_plotter.get_text_box_dimensions)
 
@@ -65,10 +67,10 @@ class ApplicationManager:
         conditions_map = plot_configurations.HighestCityVisitingVolumeConditions(
             highest_volume_cities=highest_volume_cities,
             config=self.config)
-        vis_element_plot_controller = plot_configurations.VisualizationElementPlotController(
+        vis_element_plot_controller = plot_configurations.PlotController(
             config=self.config,
-            show_visiting_text_boxes=False
-        )
+            show_visiting_text_boxes=False)
+        visualization_elements =
         intial_entities = self.entities_manager.get_all_entities(entities_type=[entities.City, entities.ProviderAssignment])
         vis_elements = []
         for entity in intial_entities:
@@ -77,17 +79,17 @@ class ApplicationManager:
             else:
                 vis_element = self.thing_converter.convert_thing(entity)
             vis_elements.append(vis_element)
-        plot = plotting.Plotter(entities_manager=self.entities_manager,
-                                plot_controller=vis_element_plot_controller,
-                                conditions_map=conditions_map,
-                                thing_converter=self.thing_converter,
-                                algorithm_plotter=self.algorithm_handler.algo_map_plotter,
-                                map_plotter=self.map_plotter)
+        plot = plotting.PlotManager(entities_manager=self.entities_manager,
+                                    plot_controller=vis_element_plot_controller,
+                                    conditions_map=conditions_map,
+                                    thing_converter=self.thing_converter,
+                                    algorithm_plotter=self.algorithm_handler.algo_map_plotter,
+                                    map_plotter=self.map_plotter)
         plot.plot()
 
     def create_number_of_visiting_providers_map(self):
         conditions_map = plot_configurations.NumberOfVisitingProvidersConditions()
-        vis_element_plot_controller = plot_configurations.VisualizationElementPlotController(
+        vis_element_plot_controller = plot_configurations.PlotController(
             entity_conditions_map=conditions_map,
             should_plot_origin_lines=False,
             should_plot_outpatient_lines=False,

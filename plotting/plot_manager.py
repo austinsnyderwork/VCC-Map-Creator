@@ -2,24 +2,18 @@
 from typing import Union
 
 import algorithm
-import environment_management
-from environment_management import plot_configurations, VisualizationElementPlotController
-import things
+from . import ConditionsMap, PlotController
 from things.entities import entities
 from things.visualization_elements import visualization_elements
 from things import thing_converter
 import map
 
 
-class Plotter:
+class PlotManager:
 
-    def __init__(self, entities_manager: things.EntitiesManager, thing_converter: thing_converter.ThingConverter,
-                 conditions_map: plot_configurations.ConditionsMap, plot_controller: VisualizationElementPlotController,
-                 algorithm_plotter: algorithm.AlgorithmPlotter, map_plotter: map.MapPlotter):
-        self.entities_manager = entities_manager
+    def __init__(self, thing_converter_: thing_converter.ThingConverter, algorithm_plotter: algorithm.AlgorithmPlotter,
+                 map_plotter: map.MapPlotter):
         self.thing_converter = thing_converter
-        self.conditions_map = conditions_map
-        self.plot_controller = plot_controller
         self.algorithm_plotter = algorithm_plotter
         self.visualization_plotter = map_plotter
 
@@ -28,31 +22,23 @@ class Plotter:
             'map': map_plotter
         }
 
-    def _produce_visualization_element(self, entity: entities.Entity, display_type: str, iterations: int = -1) \
-            -> Union[visualization_elements.VisualizationElement, None]:
-        site_type = entity.site_type if type(entity) is entities.City else None
-        if not self.plot_controller.should_display(entity, iterations=iterations, display_type=display_type,
-                                                   site_type=site_type):
-            return
-
-        # Function returns None if there's no corresponding condition for this entity type
-        vis_element = self.conditions_map.get_visualization_element_for_condition(entity=entity)
-        if vis_element:
-            return vis_element
-
-        return self.thing_converter.convert_thing(entity)
-
     def _plot_visualization_element(self, vis_element: visualization_elements.VisualizationElement, display_type: str):
         if display_type == 'algorithm':
             self.algorithm_plotter.plot_element(vis_element)
         elif display_type == 'map':
             self.algorithm_plotter.plot_element(vis_element)
 
-    def plot(self):
-        vis_elements = {
-            'algorithm': [],
-            'map': []
-        }
+    def plot(self, entities_: list[entities.Entity], conditions_map: ConditionsMap, plot_controller: PlotController):
+        vis_elements = []
+        for entity in entities_:
+            conditional_vis_element = conditions_map.get_visualization_element_for_condition(**entity.__dict__)
+            if conditional_vis_element:
+                vis_elements.append(conditional_vis_element)
+                continue
+
+            vis_element = self.thing_converter.convert_thing(entity)
+            vis_elements.append(vis_element)
+
         for city in self.entities_manager.get_all_entities(entities.City):
             # !!!!Make this into a function to be reused for each entity type
             vis_element_output_algo = self._produce_visualization_element(city,

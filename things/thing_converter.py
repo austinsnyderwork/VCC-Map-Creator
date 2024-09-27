@@ -57,9 +57,8 @@ class ThingConverter:
         return text_box_data
 
     def _produce_provider_assignment_line_data(self, assignment_entity: entities.ProviderAssignment):
-        origin_city = self.entities_manager.get_city(name=assignment_entity.origin_site_name)
-        visiting_city = self.entities_manager.get_city(name=assignment_entity.visiting_site_name)
-
+        origin_city = self.entities_manager.get_city(name=assignment_entity.origin_city_name)
+        visiting_city = self.entities_manager.get_city(name=assignment_entity.visiting_city_name)
 
         x_data = origin_city.coord[0], visiting_city.coord[0]
         y_data = origin_city.coord[1], visiting_city.coord[1]
@@ -76,10 +75,12 @@ class ThingConverter:
 
     def convert_thing(self, entity: entities.Entity):
         if type(entity) is entities.ProviderAssignment:
+            entity: entities.ProviderAssignment
             line_data = self._produce_provider_assignment_line_data(entity)
             line = visualization_elements.Line(**line_data)
             return line
         elif type(entity) is entities.City:
+            entity: entities.City
             scatter_data = self._produce_city_scatter_data(entity)
             city_scatter = visualization_elements.CityScatter(**scatter_data)
 
@@ -90,3 +91,31 @@ class ThingConverter:
                                                                               city_text_box=text_box)
 
             return city_scatter_and_text
+
+    def convert_entities_to_visualization_elements(self, entities_: list[entities.Entity]) -> list[visualization_elements.VisualizationElement]:
+        vis_elements = []
+        for entity in entities_:
+            visualization_element = self.convert_thing(entity)
+            vis_elements.append(visualization_element)
+        return vis_elements
+
+    def convert_visualization_elements_to_polygons(
+            self,
+            visualization_elements_: list[visualization_elements.VisualizationElement],
+            conditions_map: plot_configurations.ConditionsMap,
+            plot_controller: plot_configurations.PlotController):
+
+
+        def _produce_visualization_element(self, entity: entities.Entity, display_type: str, iterations: int = -1) \
+                -> Union[visualization_elements.VisualizationElement, None]:
+            site_type = entity.site_type if type(entity) is entities.City else None
+            if not self.plot_controller.should_display(entity, iterations=iterations, display_type=display_type,
+                                                       site_type=site_type):
+                return
+
+            # Function returns None if there's no corresponding condition for this entity type
+            vis_element = self.conditions_map.get_visualization_element_for_condition(entity=entity)
+            if vis_element:
+                return vis_element
+
+            return self.thing_converter.convert_thing(entity)

@@ -30,7 +30,13 @@ class EntitiesManager:
             entities.Provider: ThingContainer(generate_key_func=generate_key)
         }
 
-    def get_all_entities(self, entities_type: Union[entities.Entity, list[entities.Entity]]):
+    def get_all_entities(self, entities_type: Union[entities.Entity, list[entities.Entity, None]]):
+        if not entities_type:
+            entities_ = []
+            for entity_type, container in self.entities_containers.items():
+                typed_entities = container.get_all_things()
+                entities_.extend(typed_entities)
+            return entities_
         if isinstance(entities_type, list):
             entities_ = []
             for type_ in entities_type:

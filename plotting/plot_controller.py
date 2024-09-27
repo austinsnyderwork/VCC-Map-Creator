@@ -1,9 +1,7 @@
 import logging
-from typing import Union
 
 import config_manager
 from things.visualization_elements import visualization_elements
-from environment_management.plot_configurations import visualization_element_conditions_map
 
 
 class MapDisplayController:
@@ -100,7 +98,7 @@ class AlgorithmDisplayController:
             return default_value
 
 
-class VisualizationElementPlotController:
+class PlotController:
 
     def __init__(self,
                  config: config_manager.ConfigManager = None,
@@ -143,21 +141,21 @@ class VisualizationElementPlotController:
                 f"Defaulted to '{default_value}' because could not find '{key}' in plot_settings or config.")
             return default_value
 
-    def should_display(self, entity_type, display_type: str, site_type: str = None, iterations: int = None, **kwargs) -> bool:
+    def should_display(self, visualization_element_type, display_type: str, site_type: str = None, iterations: int = None, **kwargs) -> bool:
         # If a master setting says don't display for this entity type, then immediately return False
-        if entity_type in self.master_display_origin_visiting_settings:
-            if not self.master_display_origin_visiting_settings[entity_type][site_type]:
+        if visualization_element_type in self.master_display_origin_visiting_settings:
+            if not self.master_display_origin_visiting_settings[visualization_element_type][site_type]:
                 return False
 
-        if entity_type in self.master_display_settings:
-            if not self.master_display_settings[entity_type]:
+        if visualization_element_type in self.master_display_settings:
+            if not self.master_display_settings[visualization_element_type]:
                 return False
 
         should_display_funcs = {
             'map': self.map_display_controller.should_display,
             'algorithm': self.algorithm_display_controller.should_display
         }
-        if not should_display_funcs[display_type](entity_type, iterations):
+        if not should_display_funcs[display_type](visualization_element_type, iterations):
             return False
 
         return True

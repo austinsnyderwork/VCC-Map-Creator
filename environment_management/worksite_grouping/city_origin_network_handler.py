@@ -43,7 +43,7 @@ class CityOriginNetworkHandler:
 
     def get_entity_color(self, entity: entities.ProviderAssignment):
         if type(entity) is entities.ProviderAssignment:
-            origin_city_name = entity.origin_site.city_name
+            origin_city_name = entity.origin_city_name
             return self.city_origin_networks[origin_city_name]
 
     def fill_city_origin_networks(self, entities_manager: entities.EntitiesManager):
