@@ -1,6 +1,6 @@
 from typing import Callable
 
-from things.entities import entities
+from things import entities
 import config_manager
 import environment_management
 from .visualization_elements import visualization_elements
@@ -9,9 +9,11 @@ from .visualization_elements import visualization_elements
 class ThingConverter:
 
     def __init__(self, config: config_manager.ConfigManager,
+                 entities_manager: entities.EntitiesManager,
                  city_origin_network_handler: environment_management.CityOriginNetworkHandler,
                  get_text_display_dimensions: Callable):
         self.config = config
+        self.entities_manager = entities_manager
         self.city_origin_network_handler = city_origin_network_handler
 
         self.get_text_display_dimensions_func = get_text_display_dimensions
@@ -55,11 +57,12 @@ class ThingConverter:
         return text_box_data
 
     def _produce_provider_assignment_line_data(self, assignment_entity: entities.ProviderAssignment):
-        origin_coord = assignment_entity.origin_site.city_coord
-        visiting_coord = assignment_entity.visiting_site.city_coord
+        origin_city = self.entities_manager.get_city(name=assignment_entity.origin_site_name)
+        visiting_city = self.entities_manager.get_city(name=assignment_entity.visiting_site_name)
 
-        x_data = origin_coord[0], visiting_coord[0]
-        y_data = origin_coord[1], visiting_coord[1]
+
+        x_data = origin_city.coord[0], visiting_city.coord[0]
+        y_data = origin_city.coord[1], visiting_city.coord[1]
 
         color = self.city_origin_network_handler.get_entity_color(entity=assignment_entity)
         line_data = {

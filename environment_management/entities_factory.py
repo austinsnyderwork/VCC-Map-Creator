@@ -11,7 +11,7 @@ def _apply_create_cities(row, coord_converter, cities: dict):
     if origin_city_name not in cities:
         origin_city = entities.City(name=origin_city_name,
                                     coord=(origin_lon, origin_lat))
-        key = entities_manager.generate_key(origin_city, **origin_city.__dict__)
+        key = entities_manager.generate_key(entity=origin_city, **origin_city.__dict__)
         cities[key] = origin_city
 
     visiting_city_name = row['visiting_city']
@@ -19,7 +19,7 @@ def _apply_create_cities(row, coord_converter, cities: dict):
     if visiting_city_name not in cities:
         visiting_city = entities.City(name=visiting_city_name,
                                       coord=(visiting_lon, visiting_lat))
-        key = entities_manager.generate_key(visiting_city, **visiting_city.__dict__)
+        key = entities_manager.generate_key(entity=visiting_city, **visiting_city.__dict__)
         cities[key] = visiting_city
 
 

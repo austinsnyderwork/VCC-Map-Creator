@@ -16,6 +16,8 @@ def generate_key(entity_type=None, entity: entities.Entity = None, **kwargs):
         return entities.VccClinicSite, kwargs['city_name'], kwargs['name']
     elif entity_type is entities.Provider:
         return entities.Provider, kwargs['name']
+    else:
+        raise ValueError(f"Could not generate key for entity.\nKwargs: {kwargs}")
 
 
 class EntitiesManager:

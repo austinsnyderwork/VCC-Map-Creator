@@ -48,10 +48,11 @@ class CityOriginNetworkHandler:
 
     def fill_city_origin_networks(self, entities_manager: entities.EntitiesManager):
         for provider_assignment in entities_manager.get_all_entities(entities.ProviderAssignment):
-            origin_city = entities_manager.get_city(name=provider_assignment.origin_site.city_name)
+            origin_city = entities_manager.get_city(name=provider_assignment.origin_city_name)
             self.add_city_origin_network(origin_city=origin_city)
+
         for provider_assignment in entities_manager.get_all_entities(entities.ProviderAssignment):
-            origin_city = entities_manager.get_city(name=provider_assignment.origin_site.city_name)
-            visiting_city = entities_manager.get_city(name=provider_assignment.visiting_site.city_name)
+            origin_city = entities_manager.get_city(name=provider_assignment.origin_city_name)
+            visiting_city = entities_manager.get_city(name=provider_assignment.visiting_city_name)
             self.add_visiting_city(origin_city=origin_city,
                                    visiting_city=visiting_city)
