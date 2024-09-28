@@ -69,8 +69,10 @@ class ApplicationManager:
         vis_element_plot_controller = plotting.PlotController(
             config=self.config,
             show_visiting_text_boxes=False)
+        # Have to just plot lines and scatters first, then we can figure out the best spots for the text boxes and plot those after
         initial_entities = self.entities_manager.get_all_entities(entities_type=[entities.City, entities.ProviderAssignment])
-        plot = plotting.PlotManager(thing_converter_=self.thing_converter,
+        plot = plotting.PlotManager(config=self.config,
+                                    thing_converter_=self.thing_converter,
                                     algorithm_plotter=self.algorithm_handler.algo_map_plotter,
                                     map_plotter=self.map_plotter)
         for entity in initial_entities:
@@ -79,7 +81,7 @@ class ApplicationManager:
                       plot_controller=vis_element_plot_controller)
 
     def create_number_of_visiting_providers_map(self):
-        conditions_map = plotting.NumberOfVisitingProvidersConditions()
+        conditions_map = plotting.NumberOfVisitingProvidersConditions(config=self.config)
         vis_element_plot_controller = plotting.PlotController(
             entity_conditions_map=conditions_map,
             should_plot_origin_lines=False,

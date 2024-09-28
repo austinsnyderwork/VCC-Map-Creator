@@ -26,19 +26,22 @@ class Condition:
 
 class ConditionsMap(ABC):
 
-    def __init__(self, conditions: list[Condition]):
+    def __init__(self, conditions: list[Condition], **kwargs):
         self.conditions = conditions
         self.visualization_elements_types = []
 
-    def get_visualization_element_for_condition(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    def get_visualization_element_for_condition(self, entity, **kwargs):
         for condition in self.conditions:
-            if condition.condition(**kwargs):
+            if condition.condition(entity=entity, **kwargs):
                 return condition.visualization_element
 
 
 class NumberOfVisitingClinicsConditions(ConditionsMap):
 
-    def __init__(self, config):
+    def __init__(self, config, **kwargs):
         self.config = config
         self.visualization_elements_types = [visualization_elements.CityScatter]
         condition_funcs = [self.range_1_condition,
@@ -103,7 +106,7 @@ class NumberOfVisitingClinicsConditions(ConditionsMap):
 
 class HighestCityVisitingVolumeConditions(ConditionsMap):
 
-    def __init__(self, highest_volume_cities: list[str], config):
+    def __init__(self, highest_volume_cities: list[str], config, **kwargs):
         self.config = config
         self.visualization_elements_types = [visualization_elements.CityScatter]
         condition_funcs = [self.city_condition, self.line_condition]
@@ -122,14 +125,14 @@ class HighestCityVisitingVolumeConditions(ConditionsMap):
         return visualization_elements_
 
     @apply_to_type(entities.City)
-    def city_condition(self, entity: entities.Entity):
+    def city_condition(self, entity: entities.Entity, **kwargs):
         if type(entity) is not entities.City:
             return False
 
         return entity.name in self.highest_volume_cities
 
     @apply_to_type(entities.ProviderAssignment)
-    def line_condition(self, entity: entities.Entity):
+    def line_condition(self, entity: entities.Entity, **kwargs):
         if type(entity) is not entities.ProviderAssignment:
             return False
 

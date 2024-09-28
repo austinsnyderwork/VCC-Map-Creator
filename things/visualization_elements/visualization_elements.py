@@ -3,6 +3,7 @@
 def get_kwarg(kwarg, key, default):
     return kwarg[key] if key in kwarg else default
 
+
 class VisualizationElement:
     
     def __init__(self, **kwargs):
