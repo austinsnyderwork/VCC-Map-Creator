@@ -106,21 +106,23 @@ class NumberOfVisitingClinicsConditions(ConditionsMap):
 
 class HighestCityVisitingVolumeConditions(ConditionsMap):
 
-    def __init__(self, highest_volume_cities: list[str], config, **kwargs):
+    def __init__(self, highest_volume_cities: list[str], config, visualization_element_data: dict = None, **kwargs):
         self.config = config
         self.visualization_elements_types = [visualization_elements.CityScatter]
         condition_funcs = [self.city_condition, self.line_condition]
-        visualization_elements_ = self._create_visualization_elements()
+        visualization_elements_ = self._create_visualization_elements(visualization_element_data)
         conditions = [Condition(condition=condition_func, visualization_element=visualization_element) for condition_func, visualization_element in
                       zip(condition_funcs, visualization_elements_)]
         super().__init__(conditions)
         self.highest_volume_cities = highest_volume_cities
 
-    def _create_visualization_elements(self):
+    def _create_visualization_elements(self, visualization_element_data: dict):
         visualization_element_1 = visualization_elements.CityScatter(
             size=self.config.get_config_value('num_visiting_providers.range_1_scatter_size', int),
             color=self.config.get_config_value('num_visiting_providers.range_1_color', str)
         )
+        for k, v in visualization_element_data.items():
+            setattr(visualization_element_1, k, v)
         visualization_elements_ = [visualization_element_1]
         return visualization_elements_
 

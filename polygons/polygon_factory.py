@@ -11,7 +11,10 @@ from things.visualization_elements import visualization_elements
 
 class PolygonFactory:
 
-    def __init__(self):
+    def __init__(self, radius_per_scatter_size: int, units_per_line_width: int):
+        self.radius_per_scatter_size = radius_per_scatter_size
+        self.unit_per_line_width = units_per_line_width
+
         self.vis_element_to_poly_type_map = {
             visualization_elements.Line: typed_polygon.LinePolygon,
             visualization_elements.CityScatter: typed_polygon.ScatterPolygon,
@@ -37,15 +40,12 @@ class PolygonFactory:
             vis_element_type = type(vis_element)
         func = self.poly_create_functions_by_type[vis_element_type]
         poly_type = self.vis_element_to_poly_type_map[vis_element_type]
-        try:
-            poly = func(**kwargs)
-            t_poly = poly_type(poly=poly)
-            return t_poly
-        except TypeError:
-            logging.error(f"Error when attempting to create polygon from arguments:\n{kwargs}")
-            raise TypeError
+        poly = func(vis_element=vis_element,
+                    **kwargs)
+        t_poly = poly_type(poly=poly)
+        return t_poly
 
-    def _create_line_polygon(self, line_element: visualization_elements.Line) -> typed_polygon.LinePolygon:
+    def _create_line_polygon(self, line_element: visualization_elements.Line, **kwargs) -> typed_polygon.LinePolygon:
         x_data = line_element.algorithm_x_data
         y_data = line_element.algorithm_y_data
 
@@ -74,10 +74,11 @@ class PolygonFactory:
         else:
             raise ValueError("Could not form a valid line polygon.")
 
-    def _create_scatter_polygon(self, vis_element: visualization_elements.VisualizationElement, radius,
-                                num_points=100) -> typed_polygon.ScatterPolygon:
+    def _create_scatter_polygon(self, vis_element: visualization_elements.VisualizationElement,
+                                num_points=100, **kwargs) -> typed_polygon.ScatterPolygon:
         angles = np.linspace(0, 2 * np.pi, num_points)
-        points = [(vis_element.coord[0] + radius * np.cos(angle), vis_element.coord[1] + radius * np.sin(angle)) for
+        radius = vis_element.map_size * self.radius_per_scatter_size
+        points = [(vis_element.algo_coord[0] + radius * np.cos(angle), vis_element.coord[1] + radius * np.sin(angle)) for
                   angle in angles]
         poly = Polygon(points)
         scatter_poly = typed_polygon.ScatterPolygon(poly=poly)
@@ -91,7 +92,7 @@ class PolygonFactory:
     def _get_attributes(obj, attributes: list[str]) -> tuple:
         return tuple(getattr(obj, attr) for attr in attributes)
 
-    def _create_rectangle_polygon(self, vis_element: visualization_elements.VisualizationElement) -> Polygon:
+    def _create_rectangle_polygon(self, vis_element: visualization_elements.VisualizationElement, **kwargs) -> Polygon:
         attributes_1 = ['lon', 'lat', 'width', 'height']
         attributes_2 = ['center_coord', 'poly_width']
         attributes_3 = ['x_min', 'y_min', 'x_max', 'y_max']

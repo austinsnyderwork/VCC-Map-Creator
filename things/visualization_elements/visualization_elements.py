@@ -32,8 +32,12 @@ class DualVisualizationElement(VisualizationElement):
 
     def __init__(self, algorithm_data_class, map_data_class, **kwargs):
         super().__init__()
-        self.algorithm_data = get_kwarg(kwargs, 'algorithm', algorithm_data_class())
-        self.map_data = get_kwarg(kwargs, 'map', map_data_class())
+        self.algorithm_data = get_kwarg(kwargs, 'algorithm', algorithm_data_class(**kwargs))
+        self.map_data = get_kwarg(kwargs, 'map', map_data_class(**kwargs))
+
+        for k, v in kwargs.items():
+            if not hasattr(self.algorithm_data, k) and not hasattr(self.map_data, k):
+                setattr(self, k, v)
 
     def __getattr__(self, item):
         type_, item = which_class(item)

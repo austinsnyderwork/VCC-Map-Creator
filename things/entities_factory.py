@@ -1,8 +1,8 @@
 import pandas as pd
 from typing import Callable
 
-from things.entities import entities
-from things.entities import entities_manager
+from . import entities
+from .entities import entities_manager
 
 
 def _apply_create_cities(row, coord_converter, cities: dict):

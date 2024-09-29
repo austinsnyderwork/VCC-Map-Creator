@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Union
 
 from things import entities
 import config_manager
@@ -42,7 +42,8 @@ class ThingConverter:
             'edgecolor': self.scatter_color_map[city_type],
             'marker': self.scatter_marker_map[city_entity.site_type],
             'size': self.config.get_config_value(key='map_display.scatter_size', cast_type=int),
-            'label': city_entity.site_type
+            'label': city_entity.site_type,
+            'coord': city_entity.coord
         }
         return scatter_data
 
@@ -73,24 +74,22 @@ class ThingConverter:
         }
         return line_data
 
-    def convert_thing(self, entity: entities.Entity):
+    def convert_thing(self, entity: entities.Entity) -> list[visualization_elements.VisualizationElement]:
         if type(entity) is entities.ProviderAssignment:
             entity: entities.ProviderAssignment
             line_data = self._produce_provider_assignment_line_data(entity)
             line = visualization_elements.Line(**line_data)
-            return line
+            return [line]
         elif type(entity) is entities.City:
             entity: entities.City
             scatter_data = self._produce_city_scatter_data(entity)
             city_scatter = visualization_elements.CityScatter(**scatter_data)
 
             text_box_data = self._produce_city_text_box_data(city_entity=entity)
-            text_box = visualization_elements.CityTextBox(**text_box_data)
+            text_box = visualization_elements.CityTextBox(city_name=entity.name,
+                                                          **text_box_data)
 
-            city_scatter_and_text = visualization_elements.CityScatterAndText(city_scatter=city_scatter,
-                                                                              city_text_box=text_box)
-
-            return city_scatter_and_text
+            return [city_scatter, text_box]
 
     def convert_entities_to_visualization_elements(self, entities_: list[entities.Entity]) -> list[visualization_elements.VisualizationElement]:
         vis_elements = []
