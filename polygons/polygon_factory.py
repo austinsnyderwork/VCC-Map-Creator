@@ -78,7 +78,9 @@ class PolygonFactory:
                                 num_points=100, **kwargs) -> typed_polygon.ScatterPolygon:
         angles = np.linspace(0, 2 * np.pi, num_points)
         radius = vis_element.map_size * self.radius_per_scatter_size
-        points = [(vis_element.algo_coord[0] + radius * np.cos(angle), vis_element.coord[1] + radius * np.sin(angle)) for
+        logging.info(f"{vis_element.algorithm_data.__dict__}")
+        points = [(vis_element.algorithm_coord[0] + radius * np.cos(angle),
+                   vis_element.algorithm_coord[1] + radius * np.sin(angle)) for
                   angle in angles]
         poly = Polygon(points)
         scatter_poly = typed_polygon.ScatterPolygon(poly=poly)

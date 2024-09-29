@@ -35,6 +35,23 @@ class ThingConverter:
             'visiting': self.config.get_config_value('map_display.visiting_color', str)
         }
 
+    def fill_in_data(self, entity: entities.Entity, visualization_element: visualization_elements.VisualizationElement):
+        data_variables = {
+            visualization_elements.CityScatter: {
+                'name': 'city_name',
+                'coord': 'algorithm_coord'
+            },
+            visualization_elements.CityTextBox: {
+                'name': 'city_name',
+                'coord': 'algorithm_coord'
+            }
+        }
+        if type(visualization_element) in data_variables:
+            variables_dict = data_variables[type(visualization_element)]
+            for entity_name, visualization_name in variables_dict.items():
+                new_value = getattr(entity, entity_name)
+                setattr(visualization_element, visualization_name, new_value)
+
     def _produce_city_scatter_data(self, city_entity: entities.City):
         city_type = city_entity.site_type
         scatter_data = {
@@ -79,7 +96,7 @@ class ThingConverter:
             entity: entities.ProviderAssignment
             line_data = self._produce_provider_assignment_line_data(entity)
             line = visualization_elements.Line(**line_data)
-            return [line]
+            vis_elements = [line]
         elif type(entity) is entities.City:
             entity: entities.City
             scatter_data = self._produce_city_scatter_data(entity)
@@ -88,8 +105,11 @@ class ThingConverter:
             text_box_data = self._produce_city_text_box_data(city_entity=entity)
             text_box = visualization_elements.CityTextBox(city_name=entity.name,
                                                           **text_box_data)
+            vis_elements = [city_scatter, text_box]
+        else:
+            raise RuntimeError("Unable to convert thing.")
 
-            return [city_scatter, text_box]
+        return vis_elements
 
     def convert_entities_to_visualization_elements(self, entities_: list[entities.Entity]) -> list[visualization_elements.VisualizationElement]:
         vis_elements = []

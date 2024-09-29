@@ -33,10 +33,10 @@ class ConditionsMap(ABC):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    def get_visualization_element_for_condition(self, entity, **kwargs):
+    def get_visualization_element_for_condition(self, entity, **kwargs) -> list[visualization_elements.VisualizationElement]:
         for condition in self.conditions:
             if condition.condition(entity=entity, **kwargs):
-                return condition.visualization_element
+                return [condition.visualization_element]
 
 
 class NumberOfVisitingClinicsConditions(ConditionsMap):
@@ -121,8 +121,9 @@ class HighestCityVisitingVolumeConditions(ConditionsMap):
             size=self.config.get_config_value('num_visiting_providers.range_1_scatter_size', int),
             color=self.config.get_config_value('num_visiting_providers.range_1_color', str)
         )
-        for k, v in visualization_element_data.items():
-            setattr(visualization_element_1, k, v)
+        if visualization_element_data:
+            for k, v in visualization_element_data.items():
+                setattr(visualization_element_1, k, v)
         visualization_elements_ = [visualization_element_1]
         return visualization_elements_
 

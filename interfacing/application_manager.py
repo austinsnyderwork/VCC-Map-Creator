@@ -66,10 +66,14 @@ class ApplicationManager:
         logging.info("Finished startup.")
 
     def _convert_entity_to_vis_elements(self, entity: entities.Entity, conditions_map) -> list[visualization_elements.VisualizationElement]:
-        conditional_vis_element = conditions_map.get_visualization_element_for_condition(entity=entity,
-                                                                                         **entity.__dict__)
-        vis_elements = conditional_vis_element if conditional_vis_element else self.thing_converter.convert_thing(
+        conditional_vis_elements = conditions_map.get_visualization_element_for_condition(entity=entity,
+                                                                                          **entity.__dict__)
+        vis_elements = conditional_vis_elements if conditional_vis_elements else self.thing_converter.convert_thing(
             entity)
+
+        for vis_element in vis_elements:
+            self.thing_converter.fill_in_data(entity=entity, visualization_element=vis_element)
+
         vis_elements = [vis_elements] if not isinstance(vis_elements, list) else vis_elements
         return vis_elements
 

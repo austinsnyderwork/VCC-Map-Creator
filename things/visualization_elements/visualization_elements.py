@@ -1,3 +1,4 @@
+import logging
 
 
 def get_kwarg(kwarg, key, default):
@@ -12,7 +13,7 @@ class VisualizationElement:
 
 
 def which_class(s):
-    # Find the position of the first period
+    # Find the position of the first underscore
     period_index = s.find('_')
 
     # If no period is found, return the original string
@@ -21,6 +22,9 @@ def which_class(s):
 
     # Extract the word before the period
     first_word = s[:period_index]
+
+    if first_word not in ['algorithm', 'map']:
+        return s, ""
 
     # Remove the first word and the period
     remaining_string = s[period_index + 1:]
@@ -39,12 +43,33 @@ class DualVisualizationElement(VisualizationElement):
             if not hasattr(self.algorithm_data, k) and not hasattr(self.map_data, k):
                 setattr(self, k, v)
 
+    def __setattr__(self, key, value):
+        reserved_class_attribute_names = ['algorithm_data', 'map_data']
+        if key in reserved_class_attribute_names:
+            super().__setattr__(key, value)
+
+        type_, item = which_class(key)
+        if type_ == 'algorithm':
+            algo_data = super().__getattribute__('algorithm_data')
+            setattr(algo_data, item, value)
+        elif type_ == 'map':
+            map_data = super().__getattribute__('map_data')
+            setattr(map_data, item, value)
+        else:
+            super().__setattr__(key, value)
+
     def __getattr__(self, item):
+        reserved_class_attribute_names = ['algorithm_data', 'map_data']
+        if item in reserved_class_attribute_names:
+            return super().__getattribute__(item)
+
         type_, item = which_class(item)
         if type_ == 'algorithm' and hasattr(self.algorithm_data, item):
-            return getattr(self.algorithm_data, item)
+            algo_data = super().__getattribute__('algorithm_data')
+            return getattr(algo_data, item)
         elif type_ == 'map' and hasattr(self.map_data, item):
-            return getattr(self.map_data, item)
+            map_data = super().__getattribute__('map_data')
+            return getattr(map_data, item)
         else:
             raise ValueError(f"Failed to get value for '{item}' in the {type_} of {self.__class__.__name__}")
 
