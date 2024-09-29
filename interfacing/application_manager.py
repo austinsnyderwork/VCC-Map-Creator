@@ -1,5 +1,6 @@
 import logging
 import pandas as pd
+import time
 
 from . import data_functions, helper_functions
 import algorithm
@@ -66,8 +67,11 @@ class ApplicationManager:
         logging.info("Finished startup.")
 
     def _convert_entity_to_vis_elements(self, entity: entities.Entity, conditions_map) -> list[visualization_elements.VisualizationElement]:
-        conditional_vis_elements = conditions_map.get_visualization_element_for_condition(entity=entity,
-                                                                                          **entity.__dict__)
+        conditional_vis_elements = None
+        if type(entity) in conditions_map.visualization_elements_types:
+            conditional_vis_elements = conditions_map.get_visualization_element_for_condition(entity=entity,
+                                                                                              **entity.__dict__)
+
         vis_elements = conditional_vis_elements if conditional_vis_elements else self.thing_converter.convert_thing(
             entity)
 
@@ -79,7 +83,8 @@ class ApplicationManager:
 
     def _convert_entities_to_vis_elements(self, entities_: list[entities.Entity], conditions_map):
         vis_elements = []
-        for entity in entities_:
+        for i, entity in enumerate(entities_):
+            logging.info(f"Converting entity number {i} of {len(entities_)}.\n\tEntity type: {str(type(entity))}")
             new_vis_elements = self._convert_entity_to_vis_elements(entity, conditions_map=conditions_map)
             vis_elements.extend(new_vis_elements)
         return vis_elements
@@ -112,9 +117,18 @@ class ApplicationManager:
         plotter = plotting.PlotManager(algorithm_handler=self.algorithm_handler,
                                        map_plotter=self.map_plotter)
 
+        logging.info("Creating entities.")
         entities_ = self.entities_manager.get_all_entities(entities_type=[entities.City, entities.ProviderAssignment])
+        logging.info("Created entities.")
+
+        logging.info("Converting entities to visualization elements.")
         vis_elements = self._convert_entities_to_vis_elements(entities_=entities_,
                                                               conditions_map=conditions_map)
+        logging.info("Converted entities to visualization elements.")
+
+        nan_coord_elements = [vis_element for vis_element in vis_elements if
+                              type(vis_element) is visualization_elements.CityScatter
+                              and pd.isna(vis_element.coord[0])]
         self._fill_visualization_elements_with_polygons(visualization_elements_=vis_elements,
                                                         plotter=plotter)
         non_text_vis_elements = [vis_element for vis_element in vis_elements if type(vis_element)

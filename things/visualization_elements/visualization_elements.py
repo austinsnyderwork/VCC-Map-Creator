@@ -18,13 +18,13 @@ def which_class(s):
 
     # If no period is found, return the original string
     if period_index == -1:
-        return s, ""
+        return "", s
 
     # Extract the word before the period
     first_word = s[:period_index]
 
     if first_word not in ['algorithm', 'map']:
-        return s, ""
+        return "", s
 
     # Remove the first word and the period
     remaining_string = s[period_index + 1:]
@@ -71,7 +71,7 @@ class DualVisualizationElement(VisualizationElement):
             map_data = super().__getattribute__('map_data')
             return getattr(map_data, item)
         else:
-            raise ValueError(f"Failed to get value for '{item}' in the {type_} of {self.__class__.__name__}")
+            raise AttributeError(f"Failed to get value for '{item}' in the {type_} of {self.__class__.__name__}")
 
 
 class LineAlgorithmData:
@@ -102,7 +102,7 @@ class Line(DualVisualizationElement):
 class CityScatterAlgorithmData:
 
     def __init__(self, **kwargs):
-        self.coordinate = get_kwarg(kwargs, 'coordinate', None)
+        self.coord = get_kwarg(kwargs, 'coord', None)
 
 
 class CityScatterMapData:

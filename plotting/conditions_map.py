@@ -11,7 +11,7 @@ def apply_to_type(expected_type):
         @wraps(func)
         def wrapper(self, entity, **kwargs):
             if not isinstance(entity, expected_type):
-                return None
+                return False
             return func(self, entity, **kwargs)
         return wrapper
     return decorator

@@ -8,19 +8,19 @@ from .entities import entities_manager
 def _apply_create_cities(row, coord_converter, cities: dict):
     origin_city_name = row['origin_city']
     origin_lon, origin_lat = coord_converter(coord=(row['origin_lon'], row['origin_lat']))
-    if origin_city_name not in cities:
+    origin_key = entities_manager.generate_key(entity_type=entities.City, name=origin_city_name)
+    if origin_key not in cities:
         origin_city = entities.City(name=origin_city_name,
                                     coord=(origin_lon, origin_lat))
-        key = entities_manager.generate_key(entity=origin_city, **origin_city.__dict__)
-        cities[key] = origin_city
+        cities[origin_key] = origin_city
 
     visiting_city_name = row['visiting_city']
     visiting_lon, visiting_lat = coord_converter(coord=(row['visiting_lon'], row['visiting_lat']))
-    if visiting_city_name not in cities:
+    visiting_key = entities_manager.generate_key(entity_type=entities.City, name=visiting_city_name)
+    if visiting_key not in cities:
         visiting_city = entities.City(name=visiting_city_name,
                                       coord=(visiting_lon, visiting_lat))
-        key = entities_manager.generate_key(entity=visiting_city, **visiting_city.__dict__)
-        cities[key] = visiting_city
+        cities[visiting_key] = visiting_city
 
 
 def _apply_create_clinic_sites(row, clinics: dict):

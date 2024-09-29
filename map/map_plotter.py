@@ -94,12 +94,12 @@ class MapPlotter:
         else:
             lon, lat = text_box.centroid
         city_text = self.ax.text(lon, lat, city_name,
-                                 fontsize=text_box.fontsize,
-                                 font=text_box.font,
+                                 fontsize=text_box.map_fontsize,
+                                 font=text_box.map_font,
                                  ha='center',
                                  va='center',
-                                 color=text_box.color,
-                                 fontweight=text_box.fontweight,
+                                 color=text_box.map_color,
+                                 fontweight=text_box.map_fontweight,
                                  zorder=zorder,
                                  bbox=dict(facecolor='white', edgecolor='white', boxstyle='square,pad=0.0'))
         return city_text

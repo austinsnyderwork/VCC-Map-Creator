@@ -32,4 +32,11 @@ class PlotManager:
 
     def get_text_box_bounds(self, visualization_element: visualization_elements.VisualizationElement):
         patch = self.map_plotter.plot_element(visualization_element, override_coord=(0, 0), zorder=1)
-        return patch.bounds
+        bbox = patch.get_window_extent()
+        x_min, y_min, x_max, y_max = bbox.x0, bbox.y0, bbox.x1, bbox.y1
+        return {
+            'x_min': x_min,
+            'y_min': y_min,
+            'x_max': x_max,
+            'y_max': y_max
+        }
