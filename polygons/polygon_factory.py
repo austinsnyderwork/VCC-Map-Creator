@@ -57,9 +57,9 @@ class PolygonFactory:
         poly_coords = []
         for coord in [x_data, y_data]:
             new_coord_0 = helper_functions.move_coordinate(coord[0], coord[1], slope=perpendicular_slope,
-                                                           distance=line_element.algorithm_linewidth / 2)
+                                                           distance=line_element.map_linewidth / 2)
             new_coord_1 = helper_functions.move_coordinate(coord[0], coord[1], slope=-perpendicular_slope,
-                                                           distance=line_element.algorithm_linewidth / 2)
+                                                           distance=line_element.map_linewidth / 2)
             poly_coords.append(new_coord_0)
             poly_coords.append(new_coord_1)
 

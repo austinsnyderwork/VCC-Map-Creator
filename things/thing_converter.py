@@ -134,6 +134,10 @@ class ThingConverter:
 
         color = self.city_origin_network_handler.get_entity_color(entity=assignment_entity)
         line_data = {
+            'origin_city': assignment_entity.origin_city_name,
+            'visiting_city': assignment_entity.visiting_city_name,
+            'origin_site': assignment_entity.origin_site_name,
+            'visiting_site': assignment_entity.visiting_site_name,
             'x_data': x_data,
             'y_data': y_data,
             'linewidth': self.config.get_config_value(key='map_display.linewidth', cast_type=int),

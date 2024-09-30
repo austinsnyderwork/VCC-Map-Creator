@@ -89,17 +89,30 @@ class ApplicationManager:
             vis_elements.extend(new_vis_elements)
         return vis_elements
 
+    def _remove_same_origin_visiting_assignments(self, entities_: list[entities.Entity]) -> set[entities.Entity]:
+        correct_entities = set()
+        for entity in entities_:
+            if type(entity) is entities.ProviderAssignment and entity.origin_city_name == entity.visiting_city_name:
+                continue
+            correct_entities.add(entity)
+        return correct_entities
+
     def _fill_visualization_elements_with_polygons(self, plotter: plotting.PlotManager,
                                                    visualization_elements_: list[visualization_elements.VisualizationElement]):
         for visualization_element in visualization_elements_:
             if type(visualization_element) is visualization_elements.CityTextBox:
                 vis_element: visualization_elements.CityTextBox
                 text_box_bounds = plotter.get_text_box_bounds(visualization_element=visualization_element)
-                visualization_element.poly = self.polygon_factory_.create_poly(vis_element=visualization_element,
-                                                                               **text_box_bounds)
+                poly = self.polygon_factory_.create_poly(vis_element=visualization_element,
+                                                         **text_box_bounds)
             else:
-                visualization_element.poly = self.polygon_factory_.create_poly(vis_element=visualization_element,
-                                                                               **visualization_element.__dict__)
+                poly = self.polygon_factory_.create_poly(vis_element=visualization_element,
+                                                         **visualization_element.__dict__)
+
+            if type(visualization_element) is visualization_elements.DualVisualizationElement:
+                visualization_element.algorithm_poly = poly
+            else:
+                visualization_element.poly = poly
 
     def create_line_map(self):
         entity_plot_controller = environment_management.VisualizationElementPlotController()
@@ -119,6 +132,7 @@ class ApplicationManager:
 
         logging.info("Creating entities.")
         entities_ = self.entities_manager.get_all_entities(entities_type=[entities.City, entities.ProviderAssignment])
+        entities_ = self._remove_same_origin_visiting_assignments(entities_=entities_)
         logging.info("Created entities.")
 
         logging.info("Converting entities to visualization elements.")
@@ -126,9 +140,6 @@ class ApplicationManager:
                                                               conditions_map=conditions_map)
         logging.info("Converted entities to visualization elements.")
 
-        nan_coord_elements = [vis_element for vis_element in vis_elements if
-                              type(vis_element) is visualization_elements.CityScatter
-                              and pd.isna(vis_element.coord[0])]
         self._fill_visualization_elements_with_polygons(visualization_elements_=vis_elements,
                                                         plotter=plotter)
         non_text_vis_elements = [vis_element for vis_element in vis_elements if type(vis_element)

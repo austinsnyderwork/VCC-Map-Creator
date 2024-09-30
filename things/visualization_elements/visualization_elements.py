@@ -44,9 +44,12 @@ class DualVisualizationElement(VisualizationElement):
                 setattr(self, k, v)
 
     def __setattr__(self, key, value):
-        reserved_class_attribute_names = ['algorithm_data', 'map_data']
-        if key in reserved_class_attribute_names:
-            super().__setattr__(key, value)
+        if key == 'algorithm_data':
+            self.__dict__['algorithm_data'] = value
+            return
+        elif key == 'map_data':
+            self.__dict__['map_data'] = value
+            return
 
         type_, item = which_class(key)
         if type_ == 'algorithm':
