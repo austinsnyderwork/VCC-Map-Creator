@@ -85,15 +85,15 @@ class AlgorithmHandler:
             text_box=text_box_element.algorithm_box_geometry,
                                            city_poly=city_element.algorithm_poly)
         best_poly = self._handle_city_text_box_search(city_text_box_search=city_text_box_search)
-        logging.info(f"Found best poly for {city_ele.city_name}.")
-        city_ele.best_poly = best_poly
+        logging.info(f"Found best poly for {city_element.city_name}.")
+        city_element.best_poly = best_poly
 
         poly_data = lookup_poly_characteristics(poly_type='best')
         show_poly = should_show_algo(poly_data=poly_data,
                                      poly_type='best',
-                                     city_name=city_ele.city_name)
+                                     city_name=city_element.city_name)
         if show_poly:
-            self.algo_map_creator.add_poly_to_map(poly=best_poly,
+            self.algo_map_plotter.plot_element(poly=best_poly,
                                                   **poly_data)
         self.rtree_analyzer.add_poly(poly=best_poly,
                                      poly_class='text')

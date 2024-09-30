@@ -7,7 +7,7 @@ from .visualization_elements import CityScatter, CityTextBox
 
 def _generate_key(element_type, **kwargs):
     if element_type is visualization_elements.Line:
-        return visualization_elements.Line, kwargs['origin'], kwargs['visiting']
+        return visualization_elements.Line, kwargs['origin_city'], kwargs['visiting_city']
     elif element_type is visualization_elements.CityScatter:
         return visualization_elements.CityScatter, kwargs['city_name']
     elif element_type is visualization_elements.CityTextBox:
@@ -46,7 +46,9 @@ class CityScatterAndText:
     """
 
 
-def _is_scatter_and_text(visualization_elements):
+def _is_scatter_and_text(visualization_elements: list):
+    if len(visualization_elements) != 2:
+        return
     return (isinstance(visualization_elements[0], visualization_elements.CityScatter) and isinstance(visualization_elements[1], CityTextBox)) or \
         (isinstance(visualization_elements[0], visualization_elements.CityTextBox) and isinstance(visualization_elements[1], CityScatter))
 

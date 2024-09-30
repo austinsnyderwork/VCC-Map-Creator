@@ -72,11 +72,11 @@ class AlgorithmDisplayController:
             return False
 
         if entity_type in self.entity_type_display_origin_visiting:
-            if not self.entity_type_display_origin_visiting[entity_type][entity_type.origin_or_visiting]:
+            if not self.entity_type_display_origin_visiting[entity_type][entity_type.site_type]:
                 return False
 
         if entity_type in self.entities_display:
-            if not self.entities_display[entity_type][entity_type.origin_or_visiting]:
+            if not self.entities_display[entity_type]:
                 return False
 
         if entity_type in self.entity_type_iterations_display:

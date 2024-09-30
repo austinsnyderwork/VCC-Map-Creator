@@ -188,6 +188,12 @@ class TextBoxFinalist(VisualizationElement):
         super().__init__(**kwargs)
 
 
+class Best(VisualizationElement):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
 class Intersection(VisualizationElement):
 
     def __init__(self, **kwargs):

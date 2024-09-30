@@ -53,6 +53,42 @@ class DataConvertMap:
             }
         }
 
+        self._vis_element_algo_configs = {
+            visualization_elements.CityScatter: {
+                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_scatter', bool)
+            },
+            visualization_elements.Line: {
+                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_line', bool)
+            },
+            visualization_elements.CityTextBox: {
+
+            }
+            visualization_elements.TextBoxScanArea: {
+                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_scan_area_poly', bool),
+                'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_scan_area_poly', bool)
+            },
+            visualization_elements.Intersection: {
+                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_intersecting_poly', bool),
+                'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_intersecting_poly', bool)
+            },
+            visualization_elements.Best: {
+                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_best_poly', bool),
+                'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_best_poly', bool)
+            },
+            visualization_elements.TextBoxFinalist: {
+                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_poly_finalist', bool),
+                'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_poly_finalist', bool)
+            },
+            visualization_elements.TextBoxScan: {
+                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_scan_poly', bool),
+                'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_scan_poly', bool)
+            },
+            visualization_elements.TextBoxNearbySearchArea: {
+                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_nearby_search_poly', bool),
+                'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_nearby_search_poly', bool)
+            }
+        }
+
     def get_scatter_marker(self, site_type: str):
         return self._scatter_marker_map[site_type]
 
@@ -71,6 +107,9 @@ class DataConvertMap:
             return self._entity_to_vis_element_variables_conversion[entity_type]
         else:
             return {}
+        
+    def get_algorithm_config_data(self, visualization_element: visualization_elements.VisualizationElement):
+        return self._vis_element_algo_configs[type(visualization_element)]
 
 
 class ThingConverter:
@@ -109,6 +148,11 @@ class ThingConverter:
         vis_element_data_func = self.vis_element_data_func_map[type(visualization_element)]
         vis_element_data = vis_element_data_func(entity, **kwargs)
         for key, value in vis_element_data.items():
+            if not hasattr(visualization_element, key) or getattr(visualization_element, key) is None:
+                setattr(visualization_element, key, value)
+                
+        vis_element_algo_configs = self.data_converter_map.get_algorithm_config_data(visualization_element=visualization_element)
+        for key, value in vis_element_algo_configs.items():
             if not hasattr(visualization_element, key) or getattr(visualization_element, key) is None:
                 setattr(visualization_element, key, value)
 
