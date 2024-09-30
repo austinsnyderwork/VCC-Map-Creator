@@ -150,6 +150,7 @@ class ApplicationManager:
 
         text_vis_elements = [vis_element for vis_element in vis_elements if type(vis_element)
                              is visualization_elements.CityTextBox]
+        # Now we search for the best coordinate for each CityTextBox visualization element
 
     def create_number_of_visiting_providers_map(self):
         conditions_map = plotting.NumberOfVisitingProvidersConditions(config=self.config)

@@ -14,7 +14,6 @@ def _get_setting(variable: str, default, **kwargs):
         return default
 
 
-# Have to differentiate between algorithm data (eg: color) and map data
 class DataConvertMap:
 
     def __init__(self, config, city_origin_network_handler):
@@ -31,7 +30,11 @@ class DataConvertMap:
                 'origin': self.config.get_config_value('map_display.origin_color', str),
                 'visiting': self.config.get_config_value('map_display.visiting_color', str)
             },
-            'algorithm': self.config.get_config_value('algo_display.scatter_color', str)
+            'algorithm': {
+                'dual_origin_visiting': self.config.get_config_value('algo_display.scatter_color', str),
+                'origin': self.config.get_config_value('algo_display.scatter_color', str),
+                'visiting': self.config.get_config_value('algo_display.scatter_color', str)
+            }
         }
 
         self._line_color_map = {
@@ -54,10 +57,7 @@ class DataConvertMap:
         return self._scatter_marker_map[site_type]
 
     def get_scatter_color(self, site_type: str, display_type: str):
-        if display_type == 'map':
-            return self._scatter_color_map[display_type][site_type]
-        else:
-            return self._scatter_color_map[display_type]
+        return self._scatter_color_map[display_type][site_type]
 
     def get_line_color(self, entity: entities.Entity, display_type: str) -> str:
         if display_type == 'map':
