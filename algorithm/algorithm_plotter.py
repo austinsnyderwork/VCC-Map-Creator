@@ -6,6 +6,17 @@ from mpl_toolkits import basemap
 from things.visualization_elements import visualization_elements
 
 
+def check_show_display(func):
+    def wrapper(self, *args, **kwargs):
+        if self.show_display:
+            return func(self, *args, **kwargs)
+        else:
+            logging.info(f"{func.__name__} skipped because self.show_display is False.")
+            return
+
+    return wrapper
+
+
 class AlgorithmPlotter:
 
     def __init__(self, display_fig_size: tuple, county_line_width: float, show_display: bool):
@@ -34,6 +45,7 @@ class AlgorithmPlotter:
 
         plt.figure(self.fig)
 
+    @check_show_display
     def plot_element(self, vis_element: visualization_elements.VisualizationElement):
         polygon_coords = list(vis_element.algorithm_poly.exterior.coords)
 
