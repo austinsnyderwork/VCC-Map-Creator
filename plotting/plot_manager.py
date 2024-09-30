@@ -10,9 +10,10 @@ import map
 class PlotManager:
 
     def __init__(self, algorithm_handler: algorithm.AlgorithmHandler,
-                 map_plotter: map.MapPlotter):
+                 map_plotter: map.MapPlotter, plot_controller: PlotController):
         self.algorithm_handler = algorithm_handler
         self.map_plotter = map_plotter
+        self.plot_controller = plot_controller
 
     def _get_zorder(self, vis_element_type):
         type_zorder_map = {
@@ -24,7 +25,9 @@ class PlotManager:
         return type_zorder_map[vis_element_type]
 
     def plot(self, vis_element: visualization_elements.VisualizationElement, display_types: list[str] = ['algorithm', 'map']):
-        if 'algorithm' in display_types:
+        if 'algorithm' in display_types and self.plot_controller.should_display(
+                visualization_element=vis_element,
+                display_type='algorithm'):
             self.algorithm_handler.plot_element(vis_element)
         elif 'map' in display_types:
             zorder = self._get_zorder(type(vis_element))

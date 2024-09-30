@@ -1,7 +1,8 @@
-
+from typing import Union
 
 from things.thing_container import ThingContainer
 from . import visualization_elements
+from .visualization_elements import CityScatter, CityTextBox
 
 
 def _generate_key(element_type, **kwargs):
@@ -13,6 +14,43 @@ def _generate_key(element_type, **kwargs):
         return visualization_elements.CityTextBox, kwargs['city_name']
 
 
+class CityScatterAndText:
+
+    def __init__(self, *args):
+        self.city_scatter = None
+        self.city_text_box = None
+        self.city_name = None
+        for arg in args:
+            if hasattr(arg, 'name'):
+                self.city_name = arg.name
+            if isinstance(arg, visualization_elements.CityScatter):
+                self.city_scatter = arg
+            elif isinstance(arg, visualization_elements.CityTextBox):
+                self.city_text_box = arg
+            else:
+                raise ValueError(f"Received unexpected arg type: {type(arg)}")
+
+        if self.city_scatter is None or self.city_text_box is None:
+            raise ValueError("Both 'CityScatter' and 'CityTextBox' instances are required.")
+
+    """
+    def __getattr__(self, item):
+        if item in super().__getattribute__('__dict__'):
+            return super().__getattribute__(item)
+        elif hasattr(self.city_scatter, item):
+            return getattr(self.city_scatter, item)
+        elif hasattr(self.city_text_box, item):
+            return getattr(self.city_text_box, item)
+        else:
+            raise AttributeError(f"Could not find attribute {item} in CityScatterAndText object.")
+    """
+
+
+def _is_scatter_and_text(visualization_elements):
+    return (isinstance(visualization_elements[0], visualization_elements.CityScatter) and isinstance(visualization_elements[1], CityTextBox)) or \
+        (isinstance(visualization_elements[0], visualization_elements.CityTextBox) and isinstance(visualization_elements[1], CityScatter))
+
+
 class VisualizationElementsManager:
 
     def __init__(self):
@@ -22,9 +60,23 @@ class VisualizationElementsManager:
             visualization_elements.CityTextBox: ThingContainer(_generate_key)
         }
 
-    def add_element(self, element):
-        container = self.vis_element_containers[type(element)]
-        container.add_thing(thing=element)
+        self.city_scatter_and_texts = {}
+
+    def add_visualization_elements(self, visualization_elements: list[visualization_elements.VisualizationElement]):
+        if _is_scatter_and_text(visualization_elements):
+            city_scatter_and_text_obj = CityScatterAndText(visualization_elements)
+            self.city_scatter_and_texts[city_scatter_and_text_obj.city_name] = city_scatter_and_text_obj
+
+        for vis_element in visualization_elements:
+            container = self.vis_element_containers[type(vis_element)]
+            container.add_thing(thing=vis_element)
+
+    def get_all(self, visualization_element_types):
+        vis_elements = set()
+        for vis_ele_type in visualization_element_types:
+            vis_eles_container = self.vis_element_containers[vis_ele_type]
+            vis_elements.update(vis_eles_container.get_all_things())
+        return vis_elements
 
     def get_line(self, origin_city_name: str, visiting_city_name: str):
         container = self.vis_element_containers[visualization_elements.Line]

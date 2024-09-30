@@ -115,6 +115,7 @@ class ThingConverter:
     def _produce_city_scatter_data(self, city_entity: entities.City, **kwargs):
         city_type = city_entity.site_type
         scatter_data = {
+            'site_type': city_entity.site_type,
             'map_color': _get_setting(variable='color',
                                       default=self.data_converter_map.get_scatter_color(city_type,
                                                                                         display_type='map'),
@@ -168,6 +169,7 @@ class ThingConverter:
         text_box_data['map_fontsize'] = font_size
         text_box_data['map_fontweight'] = font_weight
         text_box_data['map_font'] = font
+        text_box_data['site_type'] = city_entity.site_type
         return text_box_data
 
     def _produce_line_data(self, assignment_entity: entities.ProviderAssignment, **kwargs):

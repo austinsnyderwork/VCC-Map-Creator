@@ -160,23 +160,6 @@ class CityTextBox(DualVisualizationElement):
                          **kwargs)
 
 
-class CityScatterAndText:
-
-    def __init__(self, city_scatter: CityScatter, city_text_box: CityTextBox):
-        self.city_scatter = city_scatter
-        self.city_text_box = city_text_box
-
-    def __getattr__(self, item):
-        if item in super().__getattribute__('__dict__'):
-            return super().__getattribute__(item)
-        elif hasattr(self.city_scatter, item):
-            return getattr(self.city_scatter, item)
-        elif hasattr(self.city_text_box, item):
-            return getattr(self.city_text_box, item)
-        else:
-            raise AttributeError(f"Could not find attribute {item} in CityScatterAndText object.")
-
-
 class TextBoxScan(VisualizationElement):
 
     def __init__(self, **kwargs):

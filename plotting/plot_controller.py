@@ -109,12 +109,12 @@ class PlotController:
             visualization_elements.CityScatter: {
                 'origin': self.retrieve_setting('show_origin_scatters', True),
                 'visiting': self.retrieve_setting('show_visiting_scatters', True),
-                'dual': self.retrieve_setting('show_dual_scatters', True)
+                'dual_origin_visiting': self.retrieve_setting('show_dual_scatters', True)
             },
             visualization_elements.CityTextBox: {
                 'origin': self.retrieve_setting('show_origin_text_box', True),
                 'visiting': self.retrieve_setting('show_visiting_text_box', True),
-                'dual': self.retrieve_setting('show_dual_text_box', True)
+                'dual_origin_visiting': self.retrieve_setting('show_dual_text_box', True)
             }
         }
 
@@ -136,13 +136,15 @@ class PlotController:
         except KeyError:
             return default_value
 
-    def should_display(self, visualization_element_type, display_type: str, site_type: str = None, iterations: int = None, **kwargs) -> bool:
+    def should_display(self, visualization_element: visualization_elements.VisualizationElement, display_type: str,
+                       iterations: int = None, **kwargs) -> bool:
+        visualization_element_type = type(visualization_element)
         # If a master setting says don't display for this entity type, then immediately return False
         if visualization_element_type in self.master_display_origin_visiting_settings:
-            if not self.master_display_origin_visiting_settings[visualization_element_type][site_type]:
+            if not self.master_display_origin_visiting_settings[visualization_element_type][visualization_element.site_type]:
                 return False
 
-        if visualization_element_type in self.master_display_settings:
+        if type(visualization_element) in self.master_display_settings:
             if not self.master_display_settings[visualization_element_type]:
                 return False
 

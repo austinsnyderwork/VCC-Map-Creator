@@ -25,6 +25,7 @@ class ApplicationManager:
         self.df = df
         self.config = config_manager.ConfigManager()
         self.entities_manager = entities.EntitiesManager()
+        self.visualization_elements_manager = visualization_elements.VisualizationElementsManager()
         self.polygon_factory_ = polygon_factory.PolygonFactory(
             radius_per_scatter_size=self.config.get_config_value('dimensions.units_radius_per_1_scatter_size', int),
             units_per_line_width=self.config.get_config_value('dimensions.units_per_1_linewidth', int)
@@ -40,7 +41,6 @@ class ApplicationManager:
             county_line_width=self.config.get_config_value('display.county_line_width', float),
             show_display=self.config.get_config_value('map_display.show_display', bool)
         )
-        self.vis_elements_manager = visualization_elements.VisualizationElementsManager()
 
         self.algorithm_handler = algorithm_handler or algorithm.AlgorithmHandler(config=self.config)
         self.thing_converter = things.thing_converter.ThingConverter(
@@ -114,8 +114,21 @@ class ApplicationManager:
             else:
                 visualization_element.poly = poly
 
-    def create_line_map(self):
-        entity_plot_controller = environment_management.VisualizationElementPlotController()
+    def _fill_vis_elements_manager(self, plotter: plotting.PlotManager, conditions_map: plotting.ConditionsMap):
+        logging.info("Creating entities.")
+        entities_ = self.entities_manager.get_all_entities(entities_type=[entities.City, entities.ProviderAssignment])
+        entities_ = self._remove_same_origin_visiting_assignments(entities_=entities_)
+        logging.info("Created entities.")
+
+        logging.info("Converting entities to visualization elements.")
+        vis_elements = self._convert_entities_to_vis_elements(entities_=entities_,
+                                                              conditions_map=conditions_map)
+        for vis_element in vis_elements:
+            self.visualization_elements_manager.add_visualization_elements([vis_element])
+        logging.info("Converted entities to visualization elements.")
+
+        self._fill_visualization_elements_with_polygons(visualization_elements_=vis_elements,
+                                                        plotter=plotter)
 
     def create_highest_volume_line_map(self, number_of_results: int):
         logging.info("Creating highest volume line map.")
@@ -128,46 +141,18 @@ class ApplicationManager:
             config=self.config,
             show_visiting_text_boxes=False)
         plotter = plotting.PlotManager(algorithm_handler=self.algorithm_handler,
-                                       map_plotter=self.map_plotter)
+                                       map_plotter=self.map_plotter,
+                                       plot_controller=vis_element_plot_controller)
 
-        logging.info("Creating entities.")
-        entities_ = self.entities_manager.get_all_entities(entities_type=[entities.City, entities.ProviderAssignment])
-        entities_ = self._remove_same_origin_visiting_assignments(entities_=entities_)
-        logging.info("Created entities.")
+        self._fill_vis_elements_manager(plotter=plotter, conditions_map=conditions_map)
 
-        logging.info("Converting entities to visualization elements.")
-        vis_elements = self._convert_entities_to_vis_elements(entities_=entities_,
-                                                              conditions_map=conditions_map)
-        logging.info("Converted entities to visualization elements.")
-
-        self._fill_visualization_elements_with_polygons(visualization_elements_=vis_elements,
-                                                        plotter=plotter)
-        non_text_vis_elements = [vis_element for vis_element in vis_elements if type(vis_element)
-                                 is not visualization_elements.CityTextBox]
+        non_text_vis_elements = self.visualization_elements_manager.get_all([visualization_elements.CityScatter,
+                                                                             visualization_elements.Line])
         for vis_element in non_text_vis_elements:
             plotter.plot(display_types=['algorithm'],
                          vis_element=vis_element)
 
-        text_vis_elements = [vis_element for vis_element in vis_elements if type(vis_element)
-                             is visualization_elements.CityTextBox]
         # Now we search for the best coordinate for each CityTextBox visualization element
-
-    def create_number_of_visiting_providers_map(self):
-        conditions_map = plotting.NumberOfVisitingProvidersConditions(config=self.config)
-        vis_element_plot_controller = plotting.PlotController(
-            entity_conditions_map=conditions_map,
-            should_plot_origin_lines=False,
-            should_plot_outpatient_lines=False,
-            should_plot_origin_text_box=False
-        )
-        city_objs = list(self.entities_manager.get_all_entities(entities.City))
-        for iteration, city_obj in enumerate(city_objs):
-            conditions_map.get_visualization_element_for_condition(
-                num_visiting_providers=len(city_obj.visiting_providers))
-            if vis_element_plot_controller.should_display(entity_type=entities.City,
-                                                          iterations=iteration,
-                                                          display_type='algorithm'):
-                self.algorithm_handler.plot_point()
-        """
-        For every city in environment entities, plot that city scatter if it is one of the highest volume cities.
-        Then, plot a text box for every city."""
+        for city_scatter_and_text in self.visualization_elements_manager.city_scatter_and_texts:
+            self.algorithm_handler.find_best_polygon(city_element=city_scatter_and_text.city_scatter,
+                                                     text_box_element=city_scatter_and_text.city_text_box)
