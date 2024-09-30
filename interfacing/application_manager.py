@@ -109,7 +109,7 @@ class ApplicationManager:
                 poly = self.polygon_factory_.create_poly(vis_element=visualization_element,
                                                          **visualization_element.__dict__)
 
-            if type(visualization_element) is visualization_elements.DualVisualizationElement:
+            if issubclass(type(visualization_element), visualization_elements.DualVisualizationElement):
                 visualization_element.algorithm_poly = poly
             else:
                 visualization_element.poly = poly

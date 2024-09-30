@@ -12,6 +12,9 @@ def _get_setting(variable: str, default, **kwargs):
     else:
         return default
 
+# Have to differentiate between algorithm data (eg: color) and map data
+class VisualizationElementDataMap:
+
 
 class ThingConverter:
 
@@ -78,12 +81,13 @@ class ThingConverter:
     def _produce_city_scatter_data(self, city_entity: entities.City, **kwargs):
         city_type = city_entity.site_type
         scatter_data = {
-            'color': _get_setting(variable='color',
-                                  default=self.scatter_color_map[city_type],
-                                  kwargs=kwargs),
-            'edgecolor': _get_setting(variable='edgecolor',
+            'map_color': _get_setting(variable='color',
                                       default=self.scatter_color_map[city_type],
                                       kwargs=kwargs),
+            'algorithm_color': _get_setting(variable='')
+            'map_edgecolor': _get_setting(variable='edgecolor',
+                                          default=self.scatter_color_map[city_type],
+                                          kwargs=kwargs),
             'marker': _get_setting(variable='marker',
                                    default=self.scatter_marker_map[city_entity.site_type],
                                    kwargs=kwargs),
@@ -95,7 +99,10 @@ class ThingConverter:
                                   kwargs=kwargs),
             'coord': _get_setting(variable='coord',
                                   default=city_entity.coord,
-                                  kwargs=kwargs)
+                                  kwargs=kwargs),
+            'transparency': _get_setting(variable='transparency',
+                                         default=self.config.get_config_value(key='algo_display.scatter_transparency',
+                                                                              cast_type=float))
         }
         return scatter_data
 
@@ -141,6 +148,7 @@ class ThingConverter:
             'x_data': x_data,
             'y_data': y_data,
             'linewidth': self.config.get_config_value(key='map_display.linewidth', cast_type=int),
+            'transparency': self.config.get_config_value(key='algo_display.line_transparency', cast_type=float),
             'color': color,
             'edgecolor': color
         }
