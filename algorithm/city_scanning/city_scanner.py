@@ -74,10 +74,10 @@ class CityScanner:
             x_max = x_min + scan_poly_width
             y_max = y_min + scan_poly_height
             scan_poly = self.poly_factory.create_poly(poly_type='rectangle',
-                                                  x_min=x_min,
-                                                  y_min=y_min,
-                                                  x_max=x_max,
-                                                  y_max=y_max)
+                                                      x_min=x_min,
+                                                      y_min=y_min,
+                                                      x_max=x_max,
+                                                      y_max=y_max)
             scan_poly_obj = typed_polygon.ScanPolygon(poly=scan_poly,
                                                       city_name=self.city_name)
             intersecting_polys = spatial_analysis.get_intersecting_polys(rtree_idx=rtree_idx,
@@ -129,26 +129,26 @@ class CityScanner:
         perimeter_movement_amount = city_perimeter / number_of_steps
 
         while self.text_box.x_min < city_box.x_max:
-            scan_poly = polygon_factory.create_poly(poly_type=typed_polygon.ScanPolygon,
-                                                    kwargs=self.text_box.dimensions)
+            scan_poly = self.poly_factory.create_poly(poly_type=typed_polygon.ScanPolygon,
+                                                      kwargs=self.text_box.dimensions)
             self.text_box.move_box('right', min(perimeter_movement_amount, (city_box.x_max - self.text_box.x_min)))
             yield scan_poly
 
         while self.text_box.y_min < city_box.y_max:
-            scan_poly = polygon_factory.create_poly(poly_type=typed_polygon.ScanPolygon,
-                                                    kwargs=self.text_box.dimensions)
+            scan_poly = self.poly_factory.create_poly(poly_type=typed_polygon.ScanPolygon,
+                                                      kwargs=self.text_box.dimensions)
             self.text_box.move_box('up', min(perimeter_movement_amount, (city_box.y_max - self.text_box.y_min)))
             yield scan_poly
 
         while self.text_box.x_max > city_box.x_min:
-            scan_poly = polygon_factory.create_poly(poly_type=typed_polygon.ScanPolygon,
-                                                    kwargs=self.text_box_dimensions)
+            scan_poly = self.poly_factory.create_poly(poly_type=typed_polygon.ScanPolygon,
+                                                      kwargs=self.text_box_dimensions)
             self.text_box.move_box('left', min(perimeter_movement_amount, (self.text_box.x_max - city_box.x_min)))
             yield scan_poly
 
         while self.text_box.y_max > city_box.y_min:
-            scan_poly = polygon_factory.create_poly(poly_type=typed_polygon.ScanPolygon,
-                                                    kwargs=self.text_box_dimensions)
+            scan_poly = self.poly_factory.create_poly(poly_type=typed_polygon.ScanPolygon,
+                                                      kwargs=self.text_box_dimensions)
             self.text_box.move_box('down', min(perimeter_movement_amount, (self.text_box.y_max - city_box.y_min)))
             yield scan_poly
         return polys
