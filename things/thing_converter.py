@@ -159,6 +159,7 @@ class ThingConverter:
     def _produce_city_scatter_data(self, city_entity: entities.City, **kwargs):
         city_type = city_entity.site_type
         scatter_data = {
+            'city_name': city_entity.name,
             'site_type': city_entity.site_type,
             'map_color': _get_setting(variable='color',
                                       default=self.data_converter_map.get_scatter_color(city_type,

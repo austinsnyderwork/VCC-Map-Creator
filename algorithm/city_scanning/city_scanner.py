@@ -27,6 +27,7 @@ class CityScanner:
         self.config = config
         self.text_box = text_box
         self.city_scatter_element = city_scatter_element
+        self.city_name = self.city_scatter_element.city_name
         self.poly_factory = poly_factory
 
         self.scan_polys_manager = scan_polygons_manager.ScanPolygonsManager()
@@ -38,12 +39,13 @@ class CityScanner:
         }
 
         self.poly_patches = {
-            'best': None,
-            'nearby_search': None,
-            'scan': None,
-            'finalist': None,
-            'intersecting': []
+            typed_polygon.BestPolygon: None,
+            typed_polygon.NearbySearchPolygon: None,
+            typed_polygon.ScanPolygon: None,
+            typed_polygon.FinalistPolygon: None
         }
+
+        self.intersecting_polygon_patches = []
 
     def _create_initial_scan_area_poly(self, search_height: int, search_width: int):
         city_poly = self.city_scatter_element.algorithm_poly
@@ -52,10 +54,10 @@ class CityScanner:
                                                        center_coord=center_coord,
                                                        poly_height=search_height,
                                                        poly_width=search_width)
-        t_scan_area_poly = typed_polygon.TypedPolygon(poly=scan_area_poly,
-                                                      poly_class='algorithm_misc',
-                                                      poly_type='scan_area',
-                                                      center_coord=center_coord)
+        t_scan_area_poly = typed_polygon.ScanAreaPolygon(poly=scan_area_poly,
+                                                         poly_class='algorithm_misc',
+                                                         poly_type='scan_area',
+                                                         center_coord=center_coord)
         return t_scan_area_poly
 
     def _run_initial_scan(self, number_of_steps: int, rtree_idx, polygons, city_buffer: int,
@@ -128,42 +130,54 @@ class CityScanner:
         city_perimeter = (2 * city_box.height) + (2 * city_box.width)
         perimeter_movement_amount = city_perimeter / number_of_steps
 
+        scan_polys = []
+
         while self.text_box.x_min < city_box.x_max:
             scan_poly = self.poly_factory.create_poly(poly_type=typed_polygon.ScanPolygon,
                                                       kwargs=self.text_box.dimensions)
+            t_scan_poly = typed_polygon.ScanPolygon(poly=scan_poly,
+                                                    city_name=self.city_name)
+            text_scan = visualization_elements.TextBoxScan()
             self.text_box.move_box('right', min(perimeter_movement_amount, (city_box.x_max - self.text_box.x_min)))
-            yield scan_poly
+            scan_polys.append(t_scan_poly)
 
         while self.text_box.y_min < city_box.y_max:
             scan_poly = self.poly_factory.create_poly(poly_type=typed_polygon.ScanPolygon,
                                                       kwargs=self.text_box.dimensions)
+            t_scan_poly = typed_polygon.ScanPolygon(poly=scan_poly,
+                                                    city_name=self.city_name)
             self.text_box.move_box('up', min(perimeter_movement_amount, (city_box.y_max - self.text_box.y_min)))
-            yield scan_poly
+            scan_polys.append(t_scan_poly)
 
         while self.text_box.x_max > city_box.x_min:
             scan_poly = self.poly_factory.create_poly(poly_type=typed_polygon.ScanPolygon,
-                                                      kwargs=self.text_box_dimensions)
+                                                      kwargs=self.text_box.dimensions)
+            t_scan_poly = typed_polygon.ScanPolygon(poly=scan_poly,
+                                                    city_name=self.city_name)
             self.text_box.move_box('left', min(perimeter_movement_amount, (self.text_box.x_max - city_box.x_min)))
-            yield scan_poly
+            scan_polys.append(t_scan_poly)
 
         while self.text_box.y_max > city_box.y_min:
             scan_poly = self.poly_factory.create_poly(poly_type=typed_polygon.ScanPolygon,
-                                                      kwargs=self.text_box_dimensions)
+                                                      kwargs=self.text_box.dimensions)
+            t_scan_poly = typed_polygon.ScanPolygon(poly=scan_poly,
+                                                    city_name=self.city_name)
             self.text_box.move_box('down', min(perimeter_movement_amount, (self.text_box.y_max - city_box.y_min)))
-            yield scan_poly
-        return polys
+            scan_polys.append(t_scan_poly)
 
-    def _get_intersecting_polygons_for_scan_polys(self, scan_polys: list[visualization_elements.TextBoxScan], rtree_idx,
+        return scan_polys
+
+    def _get_intersecting_polygons_for_scan_polys(self, text_box_scans: list[visualization_elements.TextBoxScan], rtree_idx,
                                                   polygons: dict):
-        for num_iterations, scan_poly in enumerate(scan_polys):
-            intersecting_polys = spatial_analysis.get_intersecting_polys(rtree_idx=rtree_idx,
-                                                                         polygons=polygons,
-                                                                         scan_poly=scan_poly,
-                                                                         attributes_of_polys_to_ignore={
-                                                                             'city_name': self.city_name
-                                                                         })
+        for num_iterations, text_box_scan in enumerate(text_box_scans):
+            intersecting_polys = spatial_analysis.get_intersecting_polygons(rtree_idx=rtree_idx,
+                                                                            polygons=polygons,
+                                                                            scan_poly=text_box_scan.poly,
+                                                                            attributes_of_polys_to_ignore={
+                                                                                'city_name': self.city_name
+                                                                            })
             non_starter_polys = [poly for poly in intersecting_polys if
-                                 poly.poly_class in unacceptable_scan_overlap_classes]
+                                 poly.poly_class in [visualization_elements.CityScatter, visualization_elements.Best]]
             if len(non_starter_polys) > 0:
                 continue
 
@@ -181,15 +195,16 @@ class CityScanner:
 
             self.scan_polys_manager.add_scan_poly(scan_poly)
 
-    def find_best_poly(self, rtree_analyzer_: rtree_analyzer.RtreeAnalyzer):
+    def find_best_poly(self, rtree_analyzer_: rtree_analyzer.RtreeAnalyzer, city_buffer: int, number_of_steps: int):
 
-        scan_polys = self._create_text_boxes_surrounding_city_poly()
+        scan_polys = self._create_polygons_surrounding_city(city_buffer=city_buffer,
+                                                            number_of_steps=number_of_steps)
         for i, scan_poly in enumerate(scan_polys):
             scan_result = poly_result.PolyResult(poly=scan_poly,
                                                  poly_type='scan',
                                                  num_iterations=i)
             yield scan_result
-        for result in self._get_intersecting_polygons_for_scan_polys(scan_polys=scan_polys,
+        for result in self._get_intersecting_polygons_for_scan_polys(text_box_scans=scan_polys,
                                                                      rtree_idx=rtree_analyzer_.rtree_idx,
                                                                      polygons=rtree_analyzer_.polygons):
             yield result

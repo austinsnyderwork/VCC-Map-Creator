@@ -78,7 +78,7 @@ class ScanAreaPolygon(TypedPolygon):
         super().__init__(poly, **kwargs)
 
 
-class FinalistPolygon(TypedPolygon):
+class FinalistPolygon(ScanPolygon):
 
     def __init__(self, poly: Polygon, **kwargs):
         super().__init__(poly, **kwargs)
@@ -90,4 +90,8 @@ class NearbySearchPolygon(TypedPolygon):
         super().__init__(poly, **kwargs)
 
 
+class BestPolygon(ScanPolygon):
+
+    def __init__(self, poly: Polygon, **kwargs):
+        super().__init__(poly, **kwargs)
 

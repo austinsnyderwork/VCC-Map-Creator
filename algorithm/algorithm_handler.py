@@ -3,21 +3,21 @@ import logging
 from . import rtree_analyzer
 import config_manager
 from algorithm.city_scanning.city_scanner import CityScanner
-from .algo_utils import helper_functions
-from . import spatial_analysis
 from .algorithm_plotter import AlgorithmPlotter
+from polygons import polygon_factory, typed_polygon
 from things.visualization_elements import visualization_elements
 
 
 class AlgorithmHandler:
 
-    def __init__(self, config: config_manager.ConfigManager):
+    def __init__(self, config: config_manager.ConfigManager, polygon_factory_: polygon_factory.PolygonFactory):
         self.config = config
         self.algo_map_plotter = AlgorithmPlotter(
             display_fig_size=(self.config.get_config_value('display.fig_size_x', int), self.config.get_config_value('display.fig_size_y', int)),
             county_line_width=self.config.get_config_value('display.county_line_width', float),
             show_display=self.config.get_config_value('algo_display.show_display', bool))
         self.rtree_analyzer = rtree_analyzer.RtreeAnalyzer()
+        self.polygon_factory_ = polygon_factory_
 
     def plot_element(self, element: visualization_elements.VisualizationElement):
         element_poly_classes = {
@@ -35,15 +35,14 @@ class AlgorithmHandler:
         city_text_box_search = CityScanner(
             config=self.config,
             text_box=text_box_element.algorithm_box_geometry,
-            city_scatter_element=city_element)
+            city_scatter_element=city_element,
+            poly_factory=self.polygon_factory_)
 
-        best_poly = None
         for result in city_text_box_search.find_best_poly(rtree_analyzer_=self.rtree_analyzer):
             yield result
-            if result.poly_type == 'best':
-                best_poly = result.poly
+            if type(result.poly) is typed_polygon.BestPolygon:
+                city_element.best_poly = result.poly
         logging.info(f"Found best poly for {city_element.city_name}.")
 
-        city_element.best_poly = best_poly
-        self.rtree_analyzer.add_poly(poly=best_poly,
+        self.rtree_analyzer.add_poly(poly=city_element.best_poly,
                                      poly_class='text')

@@ -124,6 +124,8 @@ class CityScatter(DualVisualizationElement):
         super().__init__(algorithm_data_class=CityScatterAlgorithmData,
                          map_data_class=CityScatterMapData,
                          **kwargs)
+        self.city_name = get_kwarg(kwargs, 'city_name', None)
+        self.site_type = get_kwarg(kwargs, 'site_type', None)
 
 
 class CityTextBoxAlgorithmData:

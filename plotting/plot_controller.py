@@ -20,8 +20,8 @@ class MapDisplayController:
             visualization_elements.TextBoxNearbySearchArea: self.retrieve_setting('map_display_show_nearby_search_poly', True),
         }
 
-    def should_display(self, entity_type, *args, **kwargs) -> bool:
-        return self.entity_type_display[entity_type]
+    def should_display(self, visualization_element_type, *args, **kwargs) -> bool:
+        return self.entity_type_display[visualization_element_type]
 
     def retrieve_setting(self, key, default_value):
         if key in self.plot_settings:
@@ -50,7 +50,7 @@ class AlgorithmDisplayController:
             }
         }
 
-        self.entities_display = {
+        self.visualization_elements_display = {
             visualization_elements.Line: self.retrieve_setting('algo_display_show_line', True),
             visualization_elements.TextBoxScan: self.retrieve_setting('algo_display_show_scan_poly', True),
             visualization_elements.TextBoxScanArea: self.retrieve_setting('algo_display_show_search_area_poly', True),
@@ -59,28 +59,29 @@ class AlgorithmDisplayController:
             visualization_elements.Intersection: self.retrieve_setting('algo_display_show_intersecting_poly', True)
         }
 
-        self.entity_type_iterations_display = {
+        self.visualization_time_iterations_display = {
             visualization_elements.TextBoxScan: self.retrieve_setting('algo_display_steps_to_show_scan_poly', True),
             visualization_elements.TextBoxScanArea: self.retrieve_setting('algo_display_steps_to_show_scan_poly', True),
             visualization_elements.TextBoxFinalist: self.retrieve_setting('algo_display_steps_to_show_poly_finalist', True),
             visualization_elements.TextBoxNearbySearchArea: self.retrieve_setting('algo_display_steps_to_show_poly_finalist', True)
         }
 
-    def should_display(self, entity_type, iterations: int = None) -> bool:
+    def should_display(self, visualization_element, iterations: int = None) -> bool:
         show_algo = self.retrieve_setting('algo_display_show_algo', bool)
         if not show_algo:
             return False
 
-        if entity_type in self.entity_type_display_origin_visiting:
-            if not self.entity_type_display_origin_visiting[entity_type][entity_type.site_type]:
+        visualization_element_type = type(visualization_element)
+        if visualization_element_type in self.entity_type_display_origin_visiting:
+            if not self.entity_type_display_origin_visiting[visualization_element_type][visualization_element.site_type]:
                 return False
 
-        if entity_type in self.entities_display:
-            if not self.entities_display[entity_type]:
+        if visualization_element_type in self.visualization_elements_display:
+            if not self.visualization_elements_display[visualization_element_type]:
                 return False
 
-        if entity_type in self.entity_type_iterations_display:
-            if iterations and iterations != self.entity_type_iterations_display[entity_type]:
+        if visualization_element_type in self.visualization_time_iterations_display:
+            if iterations and iterations != self.visualization_time_iterations_display[visualization_element_type]:
                 return False
 
         return True
