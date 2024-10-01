@@ -154,5 +154,5 @@ class ApplicationManager:
 
         # Now we search for the best coordinate for each CityTextBox visualization element
         for city_scatter_and_text in self.visualization_elements_manager.city_scatter_and_texts:
-            self.algorithm_handler.find_best_polygon(city_element=city_scatter_and_text.city_scatter,
-                                                     text_box_element=city_scatter_and_text.city_text_box)
+            for result in self.algorithm_handler.find_best_polygon(city_element=city_scatter_and_text.city_scatter,
+                                                                   text_box_element=city_scatter_and_text.city_text_box)

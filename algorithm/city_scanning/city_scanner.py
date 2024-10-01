@@ -11,19 +11,23 @@ from things import box_geometry
 from things.visualization_elements import visualization_elements
 
 
-def _move_text_box_to_bottom_left_city_box_corner(text_box: box_geometry.BoxGeometry, city_box: box_geometry.BoxGeometry):
+def _move_text_box_to_bottom_left_city_box_corner(text_box: box_geometry.BoxGeometry,
+                                                  city_box: box_geometry.BoxGeometry):
     x_distance = city_box.width + (text_box.x_max - city_box.x_max)
     y_distance = city_box.height - (text_box.y_max - city_box.y_max)
     text_box.move_box('left', x_distance)
     text_box.move_box('down', y_distance)
 
+
 class CityScanner:
 
     def __init__(self, config: config_manager.ConfigManager, text_box: box_geometry.BoxGeometry,
+                 poly_factory: polygon_factory.PolygonFactory,
                  city_scatter_element: visualization_elements.CityScatter):
         self.config = config
         self.text_box = text_box
         self.city_scatter_element = city_scatter_element
+        self.poly_factory = poly_factory
 
         self.scan_polys_manager = scan_polygons_manager.ScanPolygonsManager()
 
@@ -44,14 +48,14 @@ class CityScanner:
     def _create_initial_scan_area_poly(self, search_height: int, search_width: int):
         city_poly = self.city_scatter_element.algorithm_poly
         center_coord = city_poly.centroid.x, city_poly.centroid.y
-        scan_area_poly = poly_creation.create_poly(poly_type='rectangle',
-                                                   center_coord=center_coord,
-                                                   poly_height=search_height,
-                                                   poly_width=search_width)
-        t_scan_area_poly = TypedPolygon(poly=scan_area_poly,
-                                        poly_class='algorithm_misc',
-                                        poly_type='scan_area',
-                                        center_coord=center_coord)
+        scan_area_poly = self.poly_factory.create_poly(poly_type='rectangle',
+                                                       center_coord=center_coord,
+                                                       poly_height=search_height,
+                                                       poly_width=search_width)
+        t_scan_area_poly = typed_polygon.TypedPolygon(poly=scan_area_poly,
+                                                      poly_class='algorithm_misc',
+                                                      poly_type='scan_area',
+                                                      center_coord=center_coord)
         return t_scan_area_poly
 
     def _run_initial_scan(self, number_of_steps: int, rtree_idx, polygons, city_buffer: int,
@@ -59,9 +63,9 @@ class CityScanner:
         scan_polygons = self._create_polygons_surrounding_city(city_buffer=city_buffer,
                                                                number_of_steps=number_of_steps)
         for scan_polygon in scan_polygons:
-            intersecting_polygons = spatial_analysis.get_interscting_polygons(rtree_idx=rtree_idx,
-                                                                              polygons=polygons,
-                                                                              scan_poly=scan_polygon)
+            intersecting_polygons = spatial_analysis.get_intersecting_polygons(rtree_idx=rtree_idx,
+                                                                               polygons=polygons,
+                                                                               scan_poly=scan_polygon)
         num_iterations = 0
 
         x_y_steps = [(x_min, y_min) for x_min in x_min_steps for y_min in y_min_steps]
@@ -69,7 +73,7 @@ class CityScanner:
             scan_poly_width, scan_poly_height = self.text_width_height
             x_max = x_min + scan_poly_width
             y_max = y_min + scan_poly_height
-            scan_poly = poly_creation.create_poly(poly_type='rectangle',
+            scan_poly = self.poly_factory.create_poly(poly_type='rectangle',
                                                   x_min=x_min,
                                                   y_min=y_min,
                                                   x_max=x_max,
@@ -114,7 +118,8 @@ class CityScanner:
         logging.info(f"Score best poly: {best_scan_poly.score}")
         return best_scan_poly
 
-    def _create_polygons_surrounding_city(self, city_buffer: int, number_of_steps: int) -> list[visualization_elements.TextBoxScan]:
+    def _create_polygons_surrounding_city(self, city_buffer: int, number_of_steps: int) -> list[
+        visualization_elements.TextBoxScan]:
 
         city_box: box_geometry.BoxGeometry = self.city_scatter_element.algorithm_box_geometry
         city_box.add_buffer(city_buffer)
@@ -148,7 +153,8 @@ class CityScanner:
             yield scan_poly
         return polys
 
-    def _get_intersecting_polygons_for_scan_polys(self, scan_polys: list[visualization_elements.TextBoxScan], rtree_idx, polygons: dict):
+    def _get_intersecting_polygons_for_scan_polys(self, scan_polys: list[visualization_elements.TextBoxScan], rtree_idx,
+                                                  polygons: dict):
         for num_iterations, scan_poly in enumerate(scan_polys):
             intersecting_polys = spatial_analysis.get_intersecting_polys(rtree_idx=rtree_idx,
                                                                          polygons=polygons,
@@ -218,4 +224,3 @@ class CityScanner:
                                              poly_type='best',
                                              num_iterations=-1)
         yield best_result
-        

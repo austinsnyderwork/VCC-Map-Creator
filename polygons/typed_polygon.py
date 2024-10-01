@@ -58,7 +58,7 @@ class TextBoxPolygon(TypedPolygon):
 
 class ScanPolygon(TypedPolygon):
 
-    def __init__(self, poly: Polygon, city_name: str, intersecting_polygons: list[TypedPolygon], **kwargs):
+    def __init__(self, poly: Polygon, city_name: str, intersecting_polygons: list[TypedPolygon] = None, **kwargs):
         super().__init__(poly, **kwargs)
 
         self.city_name = city_name
