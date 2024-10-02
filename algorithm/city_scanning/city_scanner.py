@@ -1,6 +1,7 @@
 import logging
 
-from algorithm import helper_functions, rtree_analyzer
+import algorithm
+from algorithm import rtree_analyzer
 import config_manager
 import polygons
 from polygons import city_text_box_manager, helper_functions, polygon_factory
@@ -24,19 +25,6 @@ class CityScanner:
         self.number_of_search_steps = number_of_search_steps
 
         self.city_text_box_manager_ = city_text_box_manager.CityTextBoxManager()
-
-        self.repolygons.move_polys_by_type = {
-            CityTextBox: [CityTextBox, Intersection],
-            TextBoxFinalist: [CityTextBox, Intersection, TextBoxFinalist, TextBoxNearbySearchArea],
-            Best: [TextBoxFinalist, Intersection, TextBoxFinalist, TextBoxNearbySearchArea]
-        }
-
-        self.poly_patches = {
-            Best: None,
-            TextBoxNearbySearchArea: None,
-            CityTextBox: None,
-            TextBoxFinalist: None
-        }
 
         self.intersecting_polygon_patches = []
 
@@ -80,8 +68,8 @@ class CityScanner:
         city_box = box_geometry.BoxGeometry(dimensions=city_scatter_bounds)
         city_box.add_buffer(self.city_buffer)
 
-        helper_functions.move_text_box_to_bottom_left_city_box_corner(text_box=self.text_box,
-                                                                      city_box=city_box)
+        algorithm.helper_functions.move_text_box_to_bottom_left_city_box_corner(text_box=self.text_box,
+                                                                                city_box=city_box)
         city_perimeter = (2 * city_box.height) + (2 * city_box.width)
         perimeter_movement_amount = city_perimeter / self.number_of_search_steps
 
@@ -91,7 +79,7 @@ class CityScanner:
         box_height = self.text_box.y_max - self.text_box.y_min
 
         while self.text_box.x_min < city_box.x_max:
-            scan_poly = self.poly_factory.create_poly(poly_type='rectangle',
+            scan_poly = self.poly_factory.create_poly(vis_element_type=CityTextBox,
                                                       kwargs=self.text_box)
             city_text_box = CityTextBox(algorithm_poly=scan_poly,
                                         city_name=self.city_name)
@@ -99,7 +87,7 @@ class CityScanner:
             city_text_boxes.append(city_text_box)
 
         while self.text_box.y_min < city_box.y_max:
-            scan_poly = self.poly_factory.create_poly(poly_type='rectangle',
+            scan_poly = self.poly_factory.create_poly(vis_element_type=CityTextBox,
                                                       kwargs=self.text_box)
             city_text_box = CityTextBox(algorithm_poly=scan_poly,
                                         city_name=self.city_name)
@@ -107,7 +95,7 @@ class CityScanner:
             city_text_boxes.append(city_text_box)
 
         while self.text_box.x_max > city_box.x_min:
-            scan_poly = self.poly_factory.create_poly(poly_type='rectangle',
+            scan_poly = self.poly_factory.create_poly(vis_element_type=CityTextBox,
                                                       kwargs=self.text_box)
             city_text_box = CityTextBox(algorithm_poly=scan_poly,
                                         city_name=self.city_name)
@@ -115,7 +103,7 @@ class CityScanner:
             city_text_boxes.append(city_text_box)
 
         while self.text_box.y_max > city_box.y_min:
-            scan_poly = self.poly_factory.create_poly(poly_type='rectangle',
+            scan_poly = self.poly_factory.create_poly(vis_element_type=CityTextBox,
                                                       kwargs=self.text_box)
             city_text_box = CityTextBox(algorithm_poly=scan_poly,
                                         city_name=self.city_name)

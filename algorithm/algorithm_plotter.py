@@ -3,6 +3,8 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 
+from things.visualization_elements import CityScatter, CityTextBox, Intersection, \
+    TextBoxFinalist, TextBoxNearbySearchArea, Best
 from things.visualization_elements import visualization_elements
 
 
@@ -28,6 +30,19 @@ class AlgorithmPlotter:
 
         self._create_figure(fig_size=display_fig_size,
                             county_line_width=county_line_width)
+
+        self.remove_polys_by_type = {
+            CityTextBox: [CityTextBox, Intersection],
+            TextBoxFinalist: [CityTextBox, Intersection, TextBoxFinalist, TextBoxNearbySearchArea],
+            Best: [TextBoxFinalist, Intersection, TextBoxFinalist, TextBoxNearbySearchArea]
+        }
+
+        self.poly_patches = {
+            Best: None,
+            TextBoxNearbySearchArea: None,
+            CityTextBox: None,
+            TextBoxFinalist: None
+        }
 
         plt.ion()
 

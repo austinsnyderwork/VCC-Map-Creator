@@ -5,7 +5,16 @@ from shapely.geometry import Polygon
 from typing import Type
 
 from polygons import helper_functions
+from things import box_geometry
 from things.visualization_elements import visualization_elements
+
+
+def _has_attributes(obj, attributes: list[str]) -> bool:
+    return all(hasattr(obj, attr) for attr in attributes)
+
+
+def _get_attributes(obj, attributes: list[str]) -> tuple:
+    return tuple(getattr(obj, attr) for attr in attributes)
 
 
 class PolygonFactory:
@@ -67,34 +76,33 @@ class PolygonFactory:
         return poly
 
     @staticmethod
-    def _has_attributes(obj, attributes: list[str]) -> bool:
-        return all(hasattr(obj, attr) for attr in attributes)
-
-    @staticmethod
-    def _get_attributes(obj, attributes: list[str]) -> tuple:
-        return tuple(getattr(obj, attr) for attr in attributes)
-
-    def _create_rectangle_polygon(self, vis_element: visualization_elements.VisualizationElement, **kwargs) -> Polygon:
-        attributes_1 = ['lon', 'lat', 'width', 'height']
-        attributes_2 = ['center_coord', 'poly_width']
-        attributes_3 = ['x_min', 'y_min', 'x_max', 'y_max']
-        if self._has_attributes(vis_element, attributes_1):
-            lon, lat, width, height = self._get_attributes(vis_element, attributes_1)
-            x_min = lon - width
-            x_max = lon + width
-            y_min = lat - height
-            y_max = lat + height
-        elif self._has_attributes(vis_element, attributes_2):
-            center_coord, poly_width = self._get_attributes(vis_element, attributes_2)
-            x_min = center_coord[0] - poly_width
-            x_max = center_coord[0] + poly_width
-            y_min = center_coord[1] - poly_width
-            y_max = center_coord[1] + poly_width
-        elif self._has_attributes(vis_element, attributes_3):
-            x_min, y_min, x_max, y_max = self._get_attributes(vis_element, attributes_3)
-        else:
-            raise ValueError(f"Could not find attributes in this visualization element to create a rectangle polygon:"
-                             f"\n{vis_element.__dict__}")
+    def _create_rectangle_polygon(vis_element: visualization_elements.VisualizationElement = None,
+                                  box: box_geometry.BoxGeometry = None, **kwargs) -> Polygon:
+        if vis_element:
+            attributes_1 = ['lon', 'lat', 'width', 'height']
+            attributes_2 = ['center_coord', 'poly_width']
+            attributes_3 = ['x_min', 'y_min', 'x_max', 'y_max']
+            if _has_attributes(vis_element, attributes_1):
+                lon, lat, width, height = _get_attributes(vis_element, attributes_1)
+                x_min = lon - width
+                x_max = lon + width
+                y_min = lat - height
+                y_max = lat + height
+            elif _has_attributes(vis_element, attributes_2):
+                center_coord, poly_width = _get_attributes(vis_element, attributes_2)
+                x_min = center_coord[0] - poly_width
+                x_max = center_coord[0] + poly_width
+                y_min = center_coord[1] - poly_width
+                y_max = center_coord[1] + poly_width
+            elif _has_attributes(vis_element, attributes_3):
+                x_min, y_min, x_max, y_max = _get_attributes(vis_element, attributes_3)
+            else:
+                raise ValueError(f"Could not find attributes in this visualization element to create a rectangle polygon")
+        elif box:
+            x_min = box.x_min
+            y_min = box.y_min
+            x_max = box.x_max
+            y_max = box.y_max
 
         coordinates = [
             (x_min, y_min),  # Bottom-left corner
