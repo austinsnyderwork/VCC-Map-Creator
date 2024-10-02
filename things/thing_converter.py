@@ -61,11 +61,11 @@ class DataConvertMap:
         self._entity_to_vis_element_variables_conversion = {
             visualization_elements.CityScatter: {
                 'name': 'city_name',
-                'coord': 'algorithm_coord'
+                'coord': 'coord'
             },
             visualization_elements.CityTextBox: {
                 'name': 'city_name',
-                'coord': 'algorithm_coord'
+                'coord': 'coord'
             }
         }
 
@@ -237,18 +237,15 @@ class ThingConverter:
         return text_box_data
 
     def _produce_line_data(self, assignment_entity: entities.ProviderAssignment, **kwargs):
-        origin_city = _get_setting(variable='origin_city',
-                                   default=self.entities_manager.get_city(name=assignment_entity.origin_city_name),
-                                   kwargs=kwargs)
-        visiting_city = _get_setting(variable='visiting_city',
-                                     default=self.entities_manager.get_city(name=assignment_entity.visiting_city_name),
-                                     kwargs=kwargs)
-        if frozenset([origin_city, visiting_city]) in self.provider_assignments_data_agg:
-            line_data = self.provider_assignments_data_agg[frozenset([origin_city, visiting_city])]
+        if frozenset([assignment_entity.origin_city_name, assignment_entity.visiting_city_name]) in self.provider_assignments_data_agg:
+            line_data = self.provider_assignments_data_agg[frozenset([assignment_entity.origin_city_name, assignment_entity.visiting_city_name])]
             return line_data
 
-        x_data = origin_city.coord[0], visiting_city.coord[0]
-        y_data = origin_city.coord[1], visiting_city.coord[1]
+        origin_city_obj = self.entities_manager.get_city(assignment_entity.origin_city_name)
+        visiting_city_obj = self.entities_manager.get_city(assignment_entity.visiting_city_name)
+
+        x_data = origin_city_obj.coord[0], visiting_city_obj.coord[0]
+        y_data = origin_city_obj.coord[1], visiting_city_obj.coord[1]
 
         map_color = self.data_converter_map.get_line_color(entity=assignment_entity,
                                                            display_type='map')
@@ -260,8 +257,8 @@ class ThingConverter:
             'visiting_city': assignment_entity.visiting_city_name,
             'origin_site': assignment_entity.origin_site_name,
             'visiting_site': assignment_entity.visiting_site_name,
-            'algorithm_x_data': x_data,
-            'algorithm_y_data': y_data,
+            'x_data': x_data,
+            'y_data': y_data,
             'map_linewidth': self.config.get_config_value('map_display.linewidth', int),
             'algorithm_transparency': self.config.get_config_value('algo_display.line_transparency', float),
             'map_color': map_color,
@@ -270,7 +267,8 @@ class ThingConverter:
             'algorithm_edgecolor': algorithm_color,
             'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_line_poly', bool)
         }
-        self.provider_assignments_data_agg[(frozenset([origin_city, visiting_city]))] = line_data
+        self.provider_assignments_data_agg[(frozenset([assignment_entity.origin_city_name,
+                                                       assignment_entity.visiting_city_name]))] = line_data
         return line_data
 
     def convert_thing(self, entity: entities.Entity) -> list[visualization_elements.VisualizationElement]:

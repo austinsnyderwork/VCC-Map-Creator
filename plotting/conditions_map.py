@@ -28,7 +28,7 @@ class ConditionsMap(ABC):
 
     def __init__(self, conditions: list[Condition], **kwargs):
         self.conditions = conditions
-        self.visualization_elements_types = []
+        self.entity_types = []
 
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -43,7 +43,7 @@ class NumberOfVisitingClinicsConditions(ConditionsMap):
 
     def __init__(self, config, **kwargs):
         self.config = config
-        self.visualization_elements_types = [visualization_elements.CityScatter]
+        self.entity_types = [entities.City]
         condition_funcs = [self.range_1_condition,
                            self.range_2_condition,
                            self.range_3_condition,
@@ -107,46 +107,49 @@ class NumberOfVisitingClinicsConditions(ConditionsMap):
 class HighestCityVisitingVolumeConditions(ConditionsMap):
 
     def __init__(self, highest_volume_cities: list[str], config, visualization_element_data: dict = None, **kwargs):
-        self.config = config
-        self.visualization_elements_types = [visualization_elements.CityScatter]
         condition_funcs = [self.city_condition, self.line_condition]
-        visualization_elements_ = self._create_visualization_elements(visualization_element_data)
-        conditions = [Condition(condition=condition_func, visualization_element=visualization_element) for condition_func, visualization_element in
+        visualization_elements_ = self._create_visualization_elements(config=config,
+                                                                      visualization_element_data=visualization_element_data)
+        conditions = [Condition(condition=condition_func, visualization_element=visualization_element) for
+                      condition_func, visualization_element in
                       zip(condition_funcs, visualization_elements_)]
         super().__init__(conditions)
-        self.highest_volume_cities = highest_volume_cities
 
-    def _create_visualization_elements(self, visualization_element_data: dict):
+        self.conditions = conditions
+        self.highest_volume_cities = highest_volume_cities
+        self.config = config
+        self.entity_types = [entities.City, entities.ProviderAssignment]
+
+    def _create_visualization_elements(self, config, visualization_element_data: dict):
         visualization_element_1 = visualization_elements.CityScatter(
-            size=self.config.get_config_value('num_visiting_providers.range_1_scatter_size', int),
-            color=self.config.get_config_value('num_visiting_providers.range_1_color', str)
+            size=config.get_config_value('num_visiting_providers.range_1_scatter_size', int),
+            color=config.get_config_value('num_visiting_providers.range_1_color', str)
         )
-        if visualization_element_data:
-            for k, v in visualization_element_data.items():
+        if visualization_element_data and visualization_elements.CityScatter in visualization_element_data:
+            for k, v in visualization_element_data[visualization_elements.CityScatter].items():
                 setattr(visualization_element_1, k, v)
-        visualization_elements_ = [visualization_element_1]
+
+        visualization_element_2 = visualization_elements.Line()
+        if visualization_element_data and visualization_elements.Line in visualization_element_data:
+            for k, v in visualization_element_data[visualization_elements.Line].items():
+                setattr(visualization_element_2, k, v)
+        visualization_elements_ = [visualization_element_1, visualization_element_2]
         return visualization_elements_
 
     @apply_to_type(entities.City)
     def city_condition(self, entity: entities.Entity, **kwargs):
-        if type(entity) is not entities.City:
-            return False
-
         return entity.name in self.highest_volume_cities
 
     @apply_to_type(entities.ProviderAssignment)
     def line_condition(self, entity: entities.Entity, **kwargs):
-        if type(entity) is not entities.ProviderAssignment:
-            return False
-
-        return entity.origin_site.city_name in self.highest_volume_cities or entity.visiting_site.city_name in self.highest_volume_cities
+        return entity.origin_city_name in self.highest_volume_cities or entity.visiting_city_name in self.highest_volume_cities
 
 
 class NumberOfVisitingProvidersConditions(ConditionsMap):
 
     def __init__(self, config):
         self.config = config
-        self.visualization_elements_types = [visualization_elements.CityScatter]
+        self.entity_types = [entities.City]
         condition_funcs = [self.range_1_condition,
                            self.range_2_condition,
                            self.range_3_condition,
@@ -211,7 +214,7 @@ class NumberOfVisitingSpecialtiesConditions(ConditionsMap):
 
     def __init__(self, config):
         self.config = config
-        self.visualization_elements_types = [visualization_elements.CityScatter]
+        self.entity_types = [entities.City]
         condition_funcs = [self.range_1_condition,
                            self.range_2_condition,
                            self.range_3_condition]

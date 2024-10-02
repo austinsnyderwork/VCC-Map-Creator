@@ -1,6 +1,7 @@
 import logging
+import matplotlib.pyplot as plt
 import pandas as pd
-import time
+from typing import Union
 
 from . import data_functions, helper_functions
 import algorithm
@@ -56,6 +57,7 @@ class ApplicationManager:
         all_entities = [entity for entities_list in entities_.values() for entity in entities_list]
 
         for entity in all_entities:
+            logging.debug(f"Attempting to add entity {entity} to entities_manager")
             self.entities_manager.add_entity(entity)
 
         entity_relationship_manager_ = entity_relationship_manager.EntityRelationshipManager(
@@ -67,13 +69,16 @@ class ApplicationManager:
         self.city_origin_network_handler.fill_city_origin_networks(entities_manager=self.entities_manager)
         logging.info("Finished startup.")
 
-    def _convert_entity_to_vis_elements(self, entity: entities.Entity, conditions_map) -> list[visualization_elements.VisualizationElement]:
-        conditional_vis_elements = None
-        if type(entity) in conditions_map.visualization_elements_types:
-            conditional_vis_elements = conditions_map.get_visualization_element_for_condition(entity=entity,
-                                                                                              **entity.__dict__)
+    def _convert_entity_to_vis_elements(self, entity: entities.Entity, conditions_map) \
+            -> Union[list[visualization_elements.VisualizationElement], None]:
+        conditional_vis_element = None
+        if type(entity) in conditions_map.entity_types:
+            conditional_vis_element = conditions_map.get_visualization_element_for_condition(entity=entity,
+                                                                                             **entity.__dict__)
+            if not conditional_vis_element:
+                return
 
-        vis_elements = conditional_vis_elements if conditional_vis_elements else self.thing_converter.convert_thing(
+        vis_elements = conditional_vis_element if conditional_vis_element else self.thing_converter.convert_thing(
             entity)
 
         for vis_element in vis_elements:
@@ -86,7 +91,13 @@ class ApplicationManager:
         vis_elements = []
         for i, entity in enumerate(entities_):
             logging.info(f"Converting entity number {i} of {len(entities_)}.\n\tEntity type: {str(type(entity))}")
+            if type(entity) is entities.ProviderAssignment:
+                logging.info(f"Origin city: {entity.origin_city_name}, Visiting city: {entity.visiting_city_name}")
             new_vis_elements = self._convert_entity_to_vis_elements(entity, conditions_map=conditions_map)
+            # convert_entity returns None when the entity is valid for the conditions map, but doesn't meet any of the
+            # conditions
+            if not new_vis_elements:
+                continue
             vis_elements.extend(new_vis_elements)
         return vis_elements
 
@@ -100,7 +111,9 @@ class ApplicationManager:
 
     def _fill_visualization_elements_with_polygons(self, plotter: plotting.PlotManager,
                                                    visualization_elements_: list[visualization_elements.VisualizationElement]):
-        for visualization_element in visualization_elements_:
+        for i, visualization_element in enumerate(visualization_elements_):
+            logging.info(f"\tFilling visualization element {visualization_element} "
+                         f"\n\t\tNumber {i} of {len(visualization_elements_)}")
             if type(visualization_element) is visualization_elements.CityTextBox:
                 vis_element: visualization_elements.CityTextBox
                 text_box_bounds = plotter.get_text_box_bounds(visualization_element=visualization_element)
@@ -124,13 +137,12 @@ class ApplicationManager:
         logging.info("Converting entities to visualization elements.")
         vis_elements = self._convert_entities_to_vis_elements(entities_=entities_,
                                                               conditions_map=conditions_map)
+        logging.info("Filling visualization elements with polygons.")
         self._fill_visualization_elements_with_polygons(visualization_elements_=vis_elements,
                                                         plotter=plotter)
 
-        for vis_element in vis_elements:
-            self.visualization_elements_manager.add_visualization_elements([vis_element])
+        self.visualization_elements_manager.add_visualization_elements(vis_elements)
         logging.info("Converted entities to visualization elements.")
-
 
     def create_highest_volume_line_map(self, number_of_results: int):
         logging.info("Creating highest volume line map.")
@@ -159,4 +171,6 @@ class ApplicationManager:
             for vis_element in self.algorithm_handler.find_best_polygon(city_element=city_scatter_and_text.city_scatter,
                                                                         text_box_element=city_scatter_and_text.city_text_box):
                 plotter.attempt_plot(vis_element=vis_element)
+
+        plt.show(block=True)
 

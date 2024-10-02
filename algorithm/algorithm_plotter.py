@@ -19,8 +19,10 @@ def check_show_display(func):
 
 class AlgorithmPlotter:
 
-    def __init__(self, display_fig_size: tuple, county_line_width: float, show_display: bool):
+    def __init__(self, display_fig_size: tuple, county_line_width: float, show_display: bool, show_pause: float):
         self.show_display = show_display
+        self.show_pause = show_pause
+
         self.fig, self.ax = None, None
         self.iowa_map = None
 
@@ -44,7 +46,6 @@ class AlgorithmPlotter:
         self.iowa_map.drawcounties(linewidth=county_line_width)
         plt.draw()
         plt.pause(0.1)
-        plt.show(block=False)
 
         logging.info("Created initial algorithm figure.")
 

@@ -34,14 +34,14 @@ class PolygonFactory:
         return poly
 
     def _create_line_polygon(self, line_element: visualization_elements.Line, **kwargs) -> Polygon:
-        x_data = line_element.algorithm_x_data
-        y_data = line_element.algorithm_y_data
+        x_data = line_element.x_data
+        y_data = line_element.y_data
 
         slope = (y_data[1] - y_data[0]) / (x_data[1] - x_data[0])
         perpendicular_slope = -1 / slope
 
         poly_coords = []
-        for coord in [x_data, y_data]:
+        for coord in zip(x_data, y_data):
             new_coord_0 = helper_functions.move_coordinate(coord[0], coord[1], slope=perpendicular_slope,
                                                            distance=line_element.map_linewidth / 2)
             new_coord_1 = helper_functions.move_coordinate(coord[0], coord[1], slope=-perpendicular_slope,

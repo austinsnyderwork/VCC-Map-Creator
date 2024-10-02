@@ -34,11 +34,22 @@ class MapPlotter:
         self.show_display = show_display
         self.config_ = config_
 
-        self.iowa_map = None
-        self.fig, self.ax = None, None
+        self.fig, self.ax = plt.subplots(figsize=display_fig_size)
+        self.ax.set_title("Main")
+        self.iowa_map = basemap.Basemap(projection='lcc', resolution='i',
+                                        lat_0=41.5, lon_0=-93.5,  # Central latitude and longitude
+                                        llcrnrlon=-97, llcrnrlat=40,  # Lower-left corner
+                                        urcrnrlon=-89, urcrnrlat=44,  # Upper-right corner
+                                        ax=self.ax)
+        self.iowa_map.drawstates()
+        self.iowa_map.drawcounties(linewidth=county_line_width)
 
-        self._create_figure(fig_size=display_fig_size,
-                            county_line_width=county_line_width)
+        if self.show_display:
+            plt.draw()
+            plt.pause(0.1)
+            plt.show(block=False)
+
+        self.fig, self.ax = None, None
 
         self.visualization_element_plot_funcs = {
             visualization_elements.Line: self._plot_line,
@@ -51,32 +62,14 @@ class MapPlotter:
         convert_lon, convert_lat = self.iowa_map(lon, lat)
         return convert_lon, convert_lat
 
-    def _create_figure(self, fig_size, county_line_width: float):
-        if not self.show_display:
-            return
-
-        # Create visual Iowa map
-        self.fig, self.ax = plt.subplots(figsize=fig_size)
-        self.ax.set_title("Main")
-        self.iowa_map = basemap.Basemap(projection='lcc', resolution='i',
-                                        lat_0=41.5, lon_0=-93.5,  # Central latitude and longitude
-                                        llcrnrlon=-97, llcrnrlat=40,  # Lower-left corner
-                                        urcrnrlon=-89, urcrnrlat=44,  # Upper-right corner
-                                        ax=self.ax)
-        self.iowa_map.drawstates()
-        self.iowa_map.drawcounties(linewidth=county_line_width)
-        logging.info("Created base Iowa map.")
-        plt.draw()
-        plt.pause(0.1)
-        plt.show(block=False)
-
     def plot_element(self, vis_element: visualization_elements.VisualizationElement, zorder: int,
                      override_coord: tuple = None):
         plot_func = self.visualization_element_plot_funcs[type(vis_element)]
         obj = plot_func(vis_element, zorder, override_coord=override_coord)
         plt.draw()
-        plt.pause(0.1)
-        plt.show(block=False)
+        if self.show_display:
+            plt.pause(0.1)
+            plt.show(block=False)
         return obj
 
     def _plot_point(self, scatter: visualization_elements.CityScatter, zorder: int, **kwargs):

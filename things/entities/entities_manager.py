@@ -24,10 +24,10 @@ class EntitiesManager:
 
     def __init__(self):
         self.entities_containers = {
-            entities.City: ThingContainer(generate_key_func=generate_key),
-            entities.ProviderAssignment: ThingContainer(generate_key_func=generate_key),
-            entities.VccClinicSite: ThingContainer(generate_key_func=generate_key),
-            entities.Provider: ThingContainer(generate_key_func=generate_key)
+            entities.City: ThingContainer(type_held=entities.City, generate_key_func=generate_key),
+            entities.ProviderAssignment: ThingContainer(type_held=entities.ProviderAssignment, generate_key_func=generate_key),
+            entities.VccClinicSite: ThingContainer(type_held=entities.VccClinicSite, generate_key_func=generate_key),
+            entities.Provider: ThingContainer(type_held=entities.Provider, generate_key_func=generate_key)
         }
 
     def get_all_entities(self, entities_type: Union[entities.Entity, list[entities.Entity, None]]):

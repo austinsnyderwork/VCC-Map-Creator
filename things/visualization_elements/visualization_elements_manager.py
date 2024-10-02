@@ -1,4 +1,4 @@
-from typing import Union
+import logging
 
 from things.thing_container import ThingContainer
 from . import visualization_elements
@@ -7,11 +7,13 @@ from .visualization_elements import CityScatter, CityTextBox
 
 def _generate_key(element_type, **kwargs):
     if element_type is visualization_elements.Line:
-        return visualization_elements.Line, kwargs['origin_city'], kwargs['visiting_city']
+        key = visualization_elements.Line, kwargs['origin_city'], kwargs['visiting_city']
     elif element_type is visualization_elements.CityScatter:
-        return visualization_elements.CityScatter, kwargs['city_name']
+        key = visualization_elements.CityScatter, kwargs['city_name']
     elif element_type is visualization_elements.CityTextBox:
-        return visualization_elements.CityTextBox, kwargs['city_name']
+        key = visualization_elements.CityTextBox, kwargs['city_name']
+    logging.info(f"Generated key: {key}")
+    return key
 
 
 class CityScatterAndText:
@@ -57,9 +59,9 @@ class VisualizationElementsManager:
 
     def __init__(self):
         self.vis_element_containers = {
-            visualization_elements.Line: ThingContainer(_generate_key),
-            visualization_elements.CityScatter: ThingContainer(_generate_key),
-            visualization_elements.CityTextBox: ThingContainer(_generate_key)
+            visualization_elements.Line: ThingContainer(visualization_elements.Line, _generate_key),
+            visualization_elements.CityScatter: ThingContainer(visualization_elements.CityScatter, _generate_key),
+            visualization_elements.CityTextBox: ThingContainer(visualization_elements.CityTextBox, _generate_key)
         }
 
         self.city_scatter_and_texts = {}

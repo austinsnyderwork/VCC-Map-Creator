@@ -15,7 +15,8 @@ class AlgorithmHandler:
         self.algo_map_plotter = AlgorithmPlotter(
             display_fig_size=(self.config.get_config_value('display.fig_size_x', int), self.config.get_config_value('display.fig_size_y', int)),
             county_line_width=self.config.get_config_value('display.county_line_width', float),
-            show_display=self.config.get_config_value('algo_display.show_display', bool))
+            show_display=self.config.get_config_value('algo_display.show_display', bool),
+            show_pause=self.config.get_config_value('algo_display.show_pause', float))
         self.rtree_analyzer = rtree_analyzer.RtreeAnalyzer()
         self.polygon_factory_ = polygon_factory_
 
