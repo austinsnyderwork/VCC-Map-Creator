@@ -17,6 +17,15 @@ from things import entities
 import map
 
 
+def _remove_same_city_visiting_assignments(entities_: list[entities.Entity]) -> set[entities.Entity]:
+    correct_entities = set()
+    for entity in entities_:
+        if type(entity) is entities.ProviderAssignment and entity.origin_city_name == entity.visiting_city_name:
+            continue
+        correct_entities.add(entity)
+    return correct_entities
+
+
 class ApplicationManager:
 
     def __init__(self, df: pd.DataFrame,
@@ -101,48 +110,26 @@ class ApplicationManager:
             vis_elements.extend(new_vis_elements)
         return vis_elements
 
-    def _remove_same_city_visiting_assignments(self, entities_: list[entities.Entity]) -> set[entities.Entity]:
-        correct_entities = set()
-        for entity in entities_:
-            if type(entity) is entities.ProviderAssignment and entity.origin_city_name == entity.visiting_city_name:
-                continue
-            correct_entities.add(entity)
-        return correct_entities
-
     def _fill_visualization_elements_with_polygons(self, plotter: plotting.PlotManager,
                                                    visualization_elements_: list[visualization_elements.VisualizationElement]):
         for i, visualization_element in enumerate(visualization_elements_):
             logging.info(f"\tFilling visualization element {visualization_element} "
                          f"\n\t\tNumber {i} of {len(visualization_elements_)}")
-            if type(visualization_element) is visualization_elements.CityTextBox:
-                vis_element: visualization_elements.CityTextBox
-                text_box_bounds = plotter.get_text_box_bounds(visualization_element=visualization_element)
-                poly = self.polygon_factory_.create_poly(vis_element=visualization_element,
-                                                         **text_box_bounds)
-            else:
-                poly = self.polygon_factory_.create_poly(vis_element=visualization_element,
-                                                         **visualization_element.__dict__)
+            extra_args = plotter.get_text_box_bounds(visualization_element) \
+                if (type(visualization_element) is visualization_elements.CityTextBox) else visualization_element.__dict__
+            poly = self.polygon_factory_.create_poly(vis_element=visualization_element,
+                                                     **extra_args)
 
             if issubclass(type(visualization_element), visualization_elements.DualVisualizationElement):
                 visualization_element.algorithm_poly = poly
             else:
                 visualization_element.poly = poly
 
-    def _fill_vis_elements_manager(self, plotter: plotting.PlotManager, conditions_map: plotting.ConditionsMap):
-        logging.info("Creating entities.")
-        entities_ = self.entities_manager.get_all_entities(entities_type=[entities.City, entities.ProviderAssignment])
-        entities_ = self._remove_same_city_visiting_assignments(entities_=entities_)
-        logging.info("Created entities.")
-
-        logging.info("Converting entities to visualization elements.")
-        vis_elements = self._convert_entities_to_vis_elements(entities_=entities_,
-                                                              conditions_map=conditions_map)
-        logging.info("Filling visualization elements with polygons.")
-        self._fill_visualization_elements_with_polygons(visualization_elements_=vis_elements,
-                                                        plotter=plotter)
-
-        self.visualization_elements_manager.add_visualization_elements(vis_elements)
-        logging.info("Converted entities to visualization elements.")
+    def _create_entities(self, entities_types: list, filter_same_city_visiting_assignments: bool = False):
+        entities_ = self.entities_manager.get_all_entities(entities_types)
+        if filter_same_city_visiting_assignments:
+            entities_ = _remove_same_city_visiting_assignments(entities_=entities_)
+        return entities_
 
     def create_highest_volume_line_map(self, number_of_results: int):
         logging.info("Creating highest volume line map.")
@@ -158,7 +145,13 @@ class ApplicationManager:
                                        map_plotter=self.map_plotter,
                                        plot_controller=vis_element_plot_controller)
 
-        self._fill_vis_elements_manager(plotter=plotter, conditions_map=conditions_map)
+        entities_ = self._create_entities(entities_types=[entities.City, entities.ProviderAssignment],
+                                          filter_same_city_visiting_assignments=True)
+        vis_elements = self._convert_entities_to_vis_elements(entities_=entities_,
+                                                              conditions_map=conditions_map)
+        self._fill_visualization_elements_with_polygons(visualization_elements_=vis_elements,
+                                                        plotter=plotter)
+        self.visualization_elements_manager.add_visualization_elements(vis_elements)
 
         non_text_vis_elements = self.visualization_elements_manager.get_all([visualization_elements.CityScatter,
                                                                              visualization_elements.Line])
@@ -172,5 +165,4 @@ class ApplicationManager:
                                                                         text_box_element=city_scatter_and_text.city_text_box):
                 plotter.attempt_plot(vis_element=vis_element)
 
-        plt.show(block=True)
 

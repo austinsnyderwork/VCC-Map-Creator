@@ -7,12 +7,6 @@ from things.entities import entities
 from things.visualization_elements import visualization_elements
 
 
-def show_map(show_pause):
-    plt.show(block=False)
-
-    plt.pause(show_pause)
-
-
 def convert_bbox_to_data_coordinates(ax, bbox):
     inverse_coord_obj = ax.transData.inverted()
     text_bbox_data = inverse_coord_obj.transform_bbox(bbox)

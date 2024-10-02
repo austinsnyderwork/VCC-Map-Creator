@@ -35,19 +35,6 @@ class CityScatterAndText:
         if self.city_scatter is None or self.city_text_box is None:
             raise ValueError("Both 'CityScatter' and 'CityTextBox' instances are required.")
 
-    """
-    def __getattr__(self, item):
-        if item in super().__getattribute__('__dict__'):
-            return super().__getattribute__(item)
-        elif hasattr(self.city_scatter, item):
-            return getattr(self.city_scatter, item)
-        elif hasattr(self.city_text_box, item):
-            return getattr(self.city_text_box, item)
-        else:
-            raise AttributeError(f"Could not find attribute {item} in CityScatterAndText object.")
-    """
-
-
 def _is_scatter_and_text(visualization_elements: list):
     if len(visualization_elements) != 2:
         return
