@@ -160,12 +160,7 @@ class CityTextBox(DualVisualizationElement):
         super().__init__(algorithm_data_class=CityTextBoxAlgorithmData,
                          map_data_class=CityTextBoxMapData,
                          **kwargs)
-
-
-class TextBoxScan(VisualizationElement):
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        self.intersecting_polys = []
 
     @property
     def bounds(self):

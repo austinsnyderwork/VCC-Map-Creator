@@ -1,0 +1,82 @@
+import math
+from shapely import Point
+
+from polygons import polygon_factory
+from things import box_geometry
+from things.visualization_elements import visualization_elements
+
+
+def get_distance_between_elements(item1, item2):
+    if isinstance(item1, tuple):
+        item1 = Point(item1)
+    if isinstance(item2, tuple):
+        item2 = Point(item2)
+    distance = item1.distance(item2)
+    return distance
+
+
+def get_intersecting_vis_elements(rtree_idx, polygons, city_text_box: visualization_elements.CityTextBox,
+                                  ignore_elements: list[visualization_elements.VisualizationElement] = None) -> list:
+    text_box_poly = city_text_box.algorithm_poly
+    intersection_indices = list(rtree_idx.intersection(text_box_poly))
+    intersecting_polygons = [polygons[idx] for idx in intersection_indices]
+    filtered_polys = []
+    for poly in intersecting_polygons:
+        if poly.visualization_element in ignore_elements:
+            continue
+        filtered_polys.append(poly)
+    intersecting_polygons = [poly for poly in filtered_polys if text_box_poly.intersects(poly)]
+    return intersecting_polygons
+
+
+def reduce_line_length(x_data, y_data, line_reduction_units) -> tuple[tuple, tuple]:
+    x1 = x_data[0]
+    x2 = x_data[1]
+    y1 = y_data[0]
+    y2 = y_data[1]
+    # Step 1: Calculate the direction vector
+    direction_vector = (x2 - x1, y2 - y1)
+
+    # Step 2: Calculate the magnitude of the vector
+    magnitude = math.sqrt(direction_vector[0] ** 2 + direction_vector[1] ** 2)
+
+    # Step 3: Normalize the direction vector
+    unit_vector = (direction_vector[0] / magnitude, direction_vector[1] / magnitude)
+
+    # Step 4: Move the first point 2 units toward the second point
+    new_x1 = x1 + line_reduction_units * unit_vector[0]
+    new_y1 = y1 + line_reduction_units * unit_vector[1]
+
+    new_x2 = x2 - line_reduction_units * unit_vector[0]
+    new_y2 = y2 - line_reduction_units * unit_vector[1]
+
+    return (new_x1, new_x2), (new_y1, new_y2)
+
+
+def move_text_box_to_bottom_left_city_box_corner(text_box: box_geometry.BoxGeometry,
+                                                 city_box: box_geometry.BoxGeometry):
+    x_distance = city_box.width + (text_box.x_max - city_box.x_max)
+    y_distance = city_box.height - (text_box.y_max - city_box.y_max)
+    text_box.move_box('left', x_distance)
+    text_box.move_box('down', y_distance)
+
+
+def verify_poly_validity(poly, name):
+    if not poly.is_valid:
+        raise ValueError(f"{name} poly was invalid on creation.")
+
+
+def reduce_poly_width(polygon_factory_: polygon_factory.PolygonFactory, poly, width_adjustment: float):
+    x_min, y_min, x_max, y_max = poly.bounds
+    poly_width = x_max - x_min
+    width_adjust_percent = width_adjustment / 100.0
+    width_change = poly_width * width_adjust_percent
+    x_min = x_min + (width_change / 2)
+    x_max = x_max - (width_change / 2)
+    poly = polygon_factory_.create_poly(poly_type='rectangle',
+                                        x_min=x_min,
+                                        y_min=y_min,
+                                        x_max=x_max,
+                                        y_max=y_max)
+    return poly
+

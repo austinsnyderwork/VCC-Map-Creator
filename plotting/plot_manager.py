@@ -24,7 +24,7 @@ class PlotManager:
 
         return type_zorder_map[vis_element_type]
 
-    def plot(self, vis_element: visualization_elements.VisualizationElement, display_types: list[str] = ['algorithm', 'map']):
+    def attempt_plot(self, vis_element: visualization_elements.VisualizationElement, display_types: list[str] = ['algorithm', 'map']):
         if 'algorithm' in display_types and self.plot_controller.should_display(
                 visualization_element=vis_element,
                 display_type='algorithm'):

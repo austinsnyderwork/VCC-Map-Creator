@@ -81,8 +81,8 @@ class MapPlotter:
         return scatter_obj
 
     def _plot_line(self, line: visualization_elements.Line, zorder: int) -> plt.Line2D:
-        line = self.ax.plot(line.x_data, line.y_data, color=line.color, linestyle='-', linewidth=line.linewidth,
-                            zorder=zorder)
+        line = self.ax.attempt_plot(line.x_data, line.y_data, color=line.color, linestyle='-', linewidth=line.linewidth,
+                                    zorder=zorder)
 
         return line
 

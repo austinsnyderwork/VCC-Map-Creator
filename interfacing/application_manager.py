@@ -42,7 +42,8 @@ class ApplicationManager:
             show_display=self.config.get_config_value('map_display.show_display', bool)
         )
 
-        self.algorithm_handler = algorithm_handler or algorithm.AlgorithmHandler(config=self.config)
+        self.algorithm_handler = algorithm_handler or algorithm.AlgorithmHandler(config=self.config,
+                                                                                 polygon_factory_=self.polygon_factory_)
         self.thing_converter = things.thing_converter.ThingConverter(
             config=self.config,
             entities_manager=self.entities_manager,
@@ -149,11 +150,12 @@ class ApplicationManager:
         non_text_vis_elements = self.visualization_elements_manager.get_all([visualization_elements.CityScatter,
                                                                              visualization_elements.Line])
         for vis_element in non_text_vis_elements:
-            plotter.plot(display_types=['algorithm'],
-                         vis_element=vis_element)
+            plotter.attempt_plot(display_types=['algorithm'],
+                                 vis_element=vis_element)
 
         # Now we search for the best coordinate for each CityTextBox visualization element
         for city_scatter_and_text in self.visualization_elements_manager.city_scatter_and_texts:
-            for result in self.algorithm_handler.find_best_polygon(city_element=city_scatter_and_text.city_scatter,
-                                                                   text_box_element=city_scatter_and_text.city_text_box):
+            for vis_element in self.algorithm_handler.find_best_polygon(city_element=city_scatter_and_text.city_scatter,
+                                                                        text_box_element=city_scatter_and_text.city_text_box):
+                plotter.attempt_plot(vis_element=vis_element)
 

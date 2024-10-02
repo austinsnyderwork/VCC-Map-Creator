@@ -4,7 +4,7 @@ from . import rtree_analyzer
 import config_manager
 from algorithm.city_scanning.city_scanner import CityScanner
 from .algorithm_plotter import AlgorithmPlotter
-from polygons import polygon_factory, typed_polygon
+from polygons import polygon_factory
 from things.visualization_elements import visualization_elements
 
 
@@ -40,8 +40,8 @@ class AlgorithmHandler:
 
         for result in city_text_box_search.find_best_poly(rtree_analyzer_=self.rtree_analyzer):
             yield result
-            if type(result.poly) is typed_polygon.BestPolygon:
-                city_element.best_poly = result.poly
+            if type(result.visualization_element) is visualization_elements.Best:
+                city_element.best_poly = result.algorithm_poly
         logging.info(f"Found best poly for {city_element.city_name}.")
 
         self.rtree_analyzer.add_poly(poly=city_element.best_poly,

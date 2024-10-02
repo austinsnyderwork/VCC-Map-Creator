@@ -12,7 +12,7 @@ class MapDisplayController:
 
         self.entity_type_display = {
             visualization_elements.Line: self.retrieve_setting('map_display_show_line', True),
-            visualization_elements.TextBoxScan: self.retrieve_setting('map_display_show_scan_poly', True),
+            visualization_elements.CityTextBox: self.retrieve_setting('map_display_show_scan_poly', True),
             visualization_elements.TextBoxScanArea: self.retrieve_setting('map_display_show_scan_area_poly', True),
             visualization_elements.CityScatter: self.retrieve_setting('map_display_show_scatter', True),
             visualization_elements.Intersection: self.retrieve_setting('map_display_show_intersecting_poly', True),
@@ -52,7 +52,7 @@ class AlgorithmDisplayController:
 
         self.visualization_elements_display = {
             visualization_elements.Line: self.retrieve_setting('algo_display_show_line', True),
-            visualization_elements.TextBoxScan: self.retrieve_setting('algo_display_show_scan_poly', True),
+            visualization_elements.CityTextBox: self.retrieve_setting('algo_display_show_scan_poly', True),
             visualization_elements.TextBoxScanArea: self.retrieve_setting('algo_display_show_search_area_poly', True),
             visualization_elements.TextBoxFinalist: self.retrieve_setting('algo_display_show_poly_finalist', True),
             visualization_elements.TextBoxNearbySearchArea: self.retrieve_setting('algo_display_show_nearby_search_poly', True),
@@ -60,7 +60,7 @@ class AlgorithmDisplayController:
         }
 
         self.visualization_time_iterations_display = {
-            visualization_elements.TextBoxScan: self.retrieve_setting('algo_display_steps_to_show_scan_poly', True),
+            visualization_elements.CityTextBox: self.retrieve_setting('algo_display_steps_to_show_scan_poly', True),
             visualization_elements.TextBoxScanArea: self.retrieve_setting('algo_display_steps_to_show_scan_poly', True),
             visualization_elements.TextBoxFinalist: self.retrieve_setting('algo_display_steps_to_show_poly_finalist', True),
             visualization_elements.TextBoxNearbySearchArea: self.retrieve_setting('algo_display_steps_to_show_poly_finalist', True)
@@ -121,7 +121,7 @@ class PlotController:
 
         self.master_display_settings = {
             visualization_elements.Line: self.retrieve_setting('show_line', True),
-            visualization_elements.TextBoxScan: self.retrieve_setting('show_scan_poly', True),
+            visualization_elements.CityTextBox: self.retrieve_setting('show_scan_poly', True),
             visualization_elements.TextBoxScanArea: self.retrieve_setting('show_search_area_poly', True),
             visualization_elements.TextBoxFinalist: self.retrieve_setting('show_poly_finalist', True),
             visualization_elements.TextBoxNearbySearchArea: self.retrieve_setting('show_nearby_search_poly', True),

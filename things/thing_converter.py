@@ -14,6 +14,22 @@ def _get_setting(variable: str, default, **kwargs):
         return default
 
 
+def convert_visualization_element(vis_element: visualization_elements.VisualizationElement, desired_type):
+    new_data = {}
+    vis_element_is_dual_vis_element = issubclass(desired_type, visualization_elements.DualVisualizationElement)
+    algo_data_substring = 'algorithm_' if vis_element_is_dual_vis_element else ''
+    map_data_substring = 'map_' if vis_element_is_dual_vis_element else ''
+    for k, v in vis_element.__dict__.items():
+        new_data[k] = v
+    if vis_element_is_dual_vis_element:
+        for k, v in vis_element.algorithm_data.__dict__.items():
+            new_data[f"{algo_data_substring}{k}"] = v
+        for k, v in vis_element.map_data.__dict__.items():
+            new_data[f"{map_data_substring}{k}"] = v
+    new_vis_element = desired_type(**new_data)
+    return new_vis_element
+
+
 class DataConvertMap:
 
     def __init__(self, config, city_origin_network_handler):
@@ -61,8 +77,9 @@ class DataConvertMap:
                 'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_line', bool)
             },
             visualization_elements.CityTextBox: {
-
-            }
+                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_scan_poly', bool),
+                'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_scan_poly', bool)
+            },
             visualization_elements.TextBoxScanArea: {
                 'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_scan_area_poly', bool),
                 'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_scan_area_poly', bool)
@@ -78,10 +95,6 @@ class DataConvertMap:
             visualization_elements.TextBoxFinalist: {
                 'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_poly_finalist', bool),
                 'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_poly_finalist', bool)
-            },
-            visualization_elements.TextBoxScan: {
-                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_scan_poly', bool),
-                'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_scan_poly', bool)
             },
             visualization_elements.TextBoxNearbySearchArea: {
                 'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_nearby_search_poly', bool),
@@ -271,6 +284,7 @@ class ThingConverter:
             raise RuntimeError("Unable to convert thing.")
 
         return vis_elements
+
 
     def convert_entities_to_visualization_elements(self, entities_: list[entities.Entity]) -> list[
         visualization_elements.VisualizationElement]:

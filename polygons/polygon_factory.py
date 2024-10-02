@@ -5,7 +5,6 @@ from shapely.geometry import Polygon
 from typing import Type
 
 from polygons import helper_functions
-from . import typed_polygon
 from things.visualization_elements import visualization_elements
 
 
@@ -15,21 +14,10 @@ class PolygonFactory:
         self.radius_per_scatter_size = radius_per_scatter_size
         self.unit_per_line_width = units_per_line_width
 
-        self.vis_element_to_poly_type_map = {
-            visualization_elements.Line: typed_polygon.LinePolygon,
-            visualization_elements.CityScatter: typed_polygon.ScatterPolygon,
-            visualization_elements.CityTextBox: typed_polygon.TextBoxPolygon,
-            visualization_elements.TextBoxScan: typed_polygon.ScanPolygon,
-            visualization_elements.TextBoxFinalist: typed_polygon.FinalistPolygon,
-            visualization_elements.TextBoxNearbySearchArea: typed_polygon.NearbySearchPolygon,
-            visualization_elements.TextBoxScanArea: typed_polygon.ScanAreaPolygon
-        }
-
         self.poly_create_functions_by_type = {
             visualization_elements.Line: self._create_line_polygon,
             visualization_elements.CityScatter: self._create_scatter_polygon,
             visualization_elements.CityTextBox: self._create_rectangle_polygon,
-            visualization_elements.TextBoxScan: self._create_rectangle_polygon,
             visualization_elements.TextBoxFinalist: self._create_rectangle_polygon,
             visualization_elements.TextBoxNearbySearchArea: self._create_rectangle_polygon,
             visualization_elements.TextBoxScanArea: self._create_rectangle_polygon
@@ -41,13 +29,11 @@ class PolygonFactory:
         if vis_element:
             vis_element_type = type(vis_element)
         func = self.poly_create_functions_by_type[vis_element_type]
-        poly_type = self.vis_element_to_poly_type_map[vis_element_type]
         poly = func(vis_element,
                     **kwargs)
-        t_poly = poly_type(poly=poly)
-        return t_poly
+        return poly
 
-    def _create_line_polygon(self, line_element: visualization_elements.Line, **kwargs) -> typed_polygon.LinePolygon:
+    def _create_line_polygon(self, line_element: visualization_elements.Line, **kwargs) -> Polygon:
         x_data = line_element.algorithm_x_data
         y_data = line_element.algorithm_y_data
 
@@ -67,17 +53,12 @@ class PolygonFactory:
         for permutation in itertools.permutations(poly_coords):
             polygon = Polygon(permutation)
             if polygon.is_valid:
-                poly = polygon
-                break
+                return poly
 
-        if poly.is_valid:
-            line_polygon = typed_polygon.LinePolygon(poly=poly)
-            return line_polygon
-        else:
-            raise ValueError("Could not form a valid line polygon.")
+        raise ValueError("Could not form a valid line polygon.")
 
     def _create_scatter_polygon(self, vis_element: visualization_elements.VisualizationElement,
-                                num_points=8, **kwargs) -> typed_polygon.ScatterPolygon:
+                                num_points=8, **kwargs) -> Polygon:
         angles = np.linspace(0, 2 * np.pi, num_points)
         radius = vis_element.map_size * self.radius_per_scatter_size
         logging.info(f"Scatter for city {vis_element.city_name} algorithm data: {vis_element.algorithm_data.__dict__}")
@@ -85,8 +66,7 @@ class PolygonFactory:
                    vis_element.algorithm_coord[1] + radius * np.sin(angle)) for
                   angle in angles]
         poly = Polygon(points)
-        scatter_poly = typed_polygon.ScatterPolygon(poly=poly)
-        return scatter_poly
+        return poly
 
     @staticmethod
     def _has_attributes(obj, attributes: list[str]) -> bool:
@@ -127,4 +107,5 @@ class PolygonFactory:
         ]
 
         # Create and return the Polygon
-        return Polygon(coordinates)
+        poly = Polygon(coordinates)
+        return poly

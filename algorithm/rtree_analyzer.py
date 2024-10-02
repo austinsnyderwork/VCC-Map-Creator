@@ -8,25 +8,27 @@ def _should_omit_poly(poly, attributes_to_omit: dict):
             return True
     return False
 
+
 class RtreeAnalyzer:
 
     def __init__(self):
         self.rtree_idx = index.Index()
 
-        self.polygons = {}
-        self.poly_classes = {}
+        self.visualization_elements = {}
         self.poly_idx = 0
 
     @staticmethod
     def _generate_poly_key(poly):
         return (poly,)
 
-    def add_poly(self, poly, poly_class: str):
+    def add_visualization_element(self, visualization_element):
+        poly = visualization_element.poly
         self.rtree_idx.insert(self.poly_idx, poly.bounds, obj=poly)
-        poly_key = self._generate_poly_key(poly=poly)
-        self.polygons[self.poly_idx] = poly
-        self.poly_classes[poly_key] = poly_class
+        self.visualization_elements[self.poly_idx] = visualization_element
         self.poly_idx += 1
+
+    def get_visualization_element(self, idx: int):
+        return self.visualization_elements[idx]
 
     def get_closest_polygons(self, query_poly, attributes_to_omit: dict):
         nearest_ids = list(self.rtree_idx.nearest(query_poly.bounds, 8))
