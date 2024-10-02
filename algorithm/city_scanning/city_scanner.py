@@ -13,8 +13,8 @@ from things import visualization_elements
 
 class CityScanner:
 
-    def __init__(self, config: config_manager.ConfigManager, text_box: box_geometry.BoxGeometry, 
-                 poly_factory: polygon_factory.PolygonFactory, city_scatter_element: CityScatter, 
+    def __init__(self, config: config_manager.ConfigManager, text_box: box_geometry.BoxGeometry,
+                 poly_factory: polygon_factory.PolygonFactory, city_scatter_element: CityScatter,
                  city_buffer: int, number_of_search_steps: int):
         self.config = config
         self.text_box = text_box
@@ -35,10 +35,11 @@ class CityScanner:
             'lowest_intersection_vis_elements': []
         }
         for city_text_box in city_text_boxes:
-            intersecting_vis_elements = helper_functions.get_intersecting_vis_elements(rtree_analyzer_=rtree_analyzer_,
-                                                                                       city_text_box=city_text_box,
-                                                                                       ignore_elements=[
-                                                                                           self.city_scatter_element])
+            intersecting_vis_elements = algorithm.helper_functions.get_intersecting_vis_elements(
+                rtree_analyzer_=rtree_analyzer_,
+                city_text_box=city_text_box,
+                ignore_elements=[
+                    self.city_scatter_element])
             nonstarter_intersections = [vis_element for vis_element in intersecting_vis_elements
                                         if type(vis_element) is Best or type(vis_element) is CityScatter]
             if len(nonstarter_intersections) > 0:
@@ -79,32 +80,32 @@ class CityScanner:
         box_height = self.text_box.y_max - self.text_box.y_min
 
         while self.text_box.x_min < city_box.x_max:
-            scan_poly = self.poly_factory.create_poly(vis_element_type=CityTextBox,
-                                                      kwargs=self.text_box)
+            scan_poly = self.poly_factory.create_poly(box=self.text_box,
+                                                      vis_element_type=CityTextBox)
             city_text_box = CityTextBox(algorithm_poly=scan_poly,
                                         city_name=self.city_name)
             polygons.move_poly('right', min(perimeter_movement_amount, box_width), dimensions=self.text_box.dimensions)
             city_text_boxes.append(city_text_box)
 
         while self.text_box.y_min < city_box.y_max:
-            scan_poly = self.poly_factory.create_poly(vis_element_type=CityTextBox,
-                                                      kwargs=self.text_box)
+            scan_poly = self.poly_factory.create_poly(box=self.text_box,
+                                                      vis_element_type=CityTextBox)
             city_text_box = CityTextBox(algorithm_poly=scan_poly,
                                         city_name=self.city_name)
             polygons.move_poly('up', min(perimeter_movement_amount, box_height), dimensions=self.text_box.dimensions)
             city_text_boxes.append(city_text_box)
 
         while self.text_box.x_max > city_box.x_min:
-            scan_poly = self.poly_factory.create_poly(vis_element_type=CityTextBox,
-                                                      kwargs=self.text_box)
+            scan_poly = self.poly_factory.create_poly(box=self.text_box,
+                                                      vis_element_type=CityTextBox)
             city_text_box = CityTextBox(algorithm_poly=scan_poly,
                                         city_name=self.city_name)
             polygons.move_poly('left', min(perimeter_movement_amount, box_width), dimensions=self.text_box.dimensions)
             city_text_boxes.append(city_text_box)
 
         while self.text_box.y_max > city_box.y_min:
-            scan_poly = self.poly_factory.create_poly(vis_element_type=CityTextBox,
-                                                      kwargs=self.text_box)
+            scan_poly = self.poly_factory.create_poly(box=self.text_box,
+                                                      vis_element_type=CityTextBox)
             city_text_box = CityTextBox(algorithm_poly=scan_poly,
                                         city_name=self.city_name)
             polygons.move_poly('down', min(perimeter_movement_amount, box_height), dimensions=self.text_box.dimensions)
@@ -112,7 +113,8 @@ class CityScanner:
 
         return city_text_boxes
 
-    def _determine_best_finalist(self, finalists: list[visualization_elements.TextBoxFinalist], rtree_idx, polygons) -> visualization_elements.VisualizationElement:
+    def _determine_best_finalist(self, finalists: list[visualization_elements.TextBoxFinalist], rtree_idx,
+                                 polygons) -> visualization_elements.VisualizationElement:
         farthest_finalist = None
         farthest_distance = 0.0
         for finalist in finalists:
@@ -145,4 +147,3 @@ class CityScanner:
         best = thing_converter.convert_visualization_element(vis_element=best_finalist,
                                                              desired_type=visualization_elements.Best)
         yield best
-

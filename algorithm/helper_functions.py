@@ -6,19 +6,11 @@ from things import box_geometry
 from things.visualization_elements import visualization_elements
 
 
-def get_distance_between_elements(item1, item2):
-    if isinstance(item1, tuple):
-        item1 = Point(item1)
-    if isinstance(item2, tuple):
-        item2 = Point(item2)
-    distance = item1.distance(item2)
-    return distance
-
 
 def get_intersecting_vis_elements(rtree_analyzer_: rtree_analyzer.RtreeAnalyzer, city_text_box: visualization_elements.CityTextBox,
                                   ignore_elements: list[visualization_elements.VisualizationElement] = None) -> list:
     text_box_poly = city_text_box.algorithm_poly
-    intersection_indices = list(rtree_analyzer_.rtree_idx.intersection(text_box_poly))
+    intersection_indices = list(rtree_analyzer_.rtree_idx.intersection(text_box_poly.bounds))
     intersecting_vis_elements = [rtree_analyzer_.visualization_elements[idx] for idx in intersection_indices]
     filtered_vis_elements = []
     for vis_element in intersecting_vis_elements:

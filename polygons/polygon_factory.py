@@ -34,17 +34,19 @@ class PolygonFactory:
 
     def create_poly(self, vis_element: visualization_elements.VisualizationElement = None,
                     vis_element_type: Type[visualization_elements.VisualizationElement] = None,
+                    box: box_geometry.BoxGeometry = None,
                     **kwargs) -> Polygon:
         if vis_element:
             vis_element_type = type(vis_element)
         func = self.poly_create_functions_by_type[vis_element_type]
-        poly = func(vis_element,
+        poly = func(vis_element=vis_element,
+                    box=box,
                     **kwargs)
         return poly
 
-    def _create_line_polygon(self, line_element: visualization_elements.Line, **kwargs) -> Polygon:
-        x_data = line_element.x_data
-        y_data = line_element.y_data
+    def _create_line_polygon(self, vis_element: visualization_elements.Line, **kwargs) -> Polygon:
+        x_data = vis_element.x_data
+        y_data = vis_element.y_data
 
         slope = (y_data[1] - y_data[0]) / (x_data[1] - x_data[0])
         perpendicular_slope = -1 / slope
@@ -52,9 +54,9 @@ class PolygonFactory:
         poly_coords = []
         for coord in zip(x_data, y_data):
             new_coord_0 = helper_functions.move_coordinate(coord[0], coord[1], slope=perpendicular_slope,
-                                                           distance=line_element.map_linewidth / 2)
+                                                           distance=vis_element.map_linewidth / 2)
             new_coord_1 = helper_functions.move_coordinate(coord[0], coord[1], slope=-perpendicular_slope,
-                                                           distance=line_element.map_linewidth / 2)
+                                                           distance=vis_element.map_linewidth / 2)
             poly_coords.append(new_coord_0)
             poly_coords.append(new_coord_1)
 
@@ -103,6 +105,8 @@ class PolygonFactory:
             y_min = box.y_min
             x_max = box.x_max
             y_max = box.y_max
+        else:
+            raise ValueError("Must explicitly pass either a visualization element or a box geometry.")
 
         coordinates = [
             (x_min, y_min),  # Bottom-left corner
