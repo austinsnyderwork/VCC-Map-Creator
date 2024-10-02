@@ -92,6 +92,7 @@ class ApplicationManager:
         if type(vis_element) is visualization_elements.CityScatterAndText:
             self.thing_converter.fill_in_data(entity=entity, visualization_element=vis_element.city_scatter)
             self.thing_converter.fill_in_data(entity=entity, visualization_element=vis_element.city_text_box)
+            vis_element.city_name = vis_element.city_scatter.city_name
         else:
             self.thing_converter.fill_in_data(entity=entity, visualization_element=vis_element)
 
@@ -105,11 +106,13 @@ class ApplicationManager:
             if type(entity) is entities.ProviderAssignment:
                 logging.info(f"Origin city: {entity.origin_city_name}, Visiting city: {entity.visiting_city_name}")
             new_vis_element = self._convert_entity(entity, conditions_map=conditions_map)
+
             # convert_entity returns None when the entity is valid for the conditions map, but doesn't meet any of the
             # conditions
             if not new_vis_element:
                 continue
             elif type(new_vis_element) is visualization_elements.CityScatterAndText:
+                self.visualization_elements_manager.add_city_scatter_and_text(new_vis_element)
                 vis_elements.append(new_vis_element.city_scatter)
                 vis_elements.append(new_vis_element.city_text_box)
             else:
@@ -170,7 +173,7 @@ class ApplicationManager:
                                  vis_element=vis_element)
 
         # Now we search for the best coordinate for each CityTextBox visualization element
-        for city_scatter_and_text in self.visualization_elements_manager.city_scatter_and_texts:
+        for city_scatter_and_text in self.visualization_elements_manager.city_scatter_and_texts.values():
             for vis_element in self.algorithm_handler.find_best_polygon(city_element=city_scatter_and_text.city_scatter,
                                                                         text_box_element=city_scatter_and_text.city_text_box):
                 plotter.attempt_plot(vis_element=vis_element)
@@ -203,9 +206,11 @@ class ApplicationManager:
             plotter.attempt_plot(display_types=['algorithm'],
                                  vis_element=vis_element)
 
-        for city_scatter_and_text in self.visualization_elements_manager.city_scatter_and_texts:
+        for city_scatter_and_text in self.visualization_elements_manager.city_scatter_and_texts.values():
             for vis_element in self.algorithm_handler.find_best_polygon(city_element=city_scatter_and_text.city_scatter,
-                                                                        text_box_element=city_scatter_and_text.city_text_box):
+                                                                        text_box_element=city_scatter_and_text.city_text_box,
+                                                                        city_buffer=self.config.get_config_value('algorithm.city_to_text_box_buffer', int),
+                                                                        number_of_steps=self.config.get_config_value('algorithm.search_steps', int)):
                 plotter.attempt_plot(vis_element=vis_element)
 
         plt.show(block=True)

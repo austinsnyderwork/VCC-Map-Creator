@@ -2,26 +2,30 @@ import logging
 
 from algorithm import helper_functions, rtree_analyzer
 import config_manager
-from polygons import city_text_box_manager, polygon_factory
-from shapely.geometry import Polygon
+import polygons
+from polygons import city_text_box_manager, helper_functions, polygon_factory
 from things import box_geometry, thing_converter
-from things.visualization_elements.visualization_elements import CityScatter, CityTextBox, Intersection, \
+from things.visualization_elements import CityScatter, CityTextBox, Intersection, \
     TextBoxFinalist, TextBoxNearbySearchArea, Best
+from things import visualization_elements
 
 
 class CityScanner:
 
-    def __init__(self, config: config_manager.ConfigManager, text_box: box_geometry.BoxGeometry,
-                 poly_factory: polygon_factory.PolygonFactory, city_scatter_element: CityScatter):
+    def __init__(self, config: config_manager.ConfigManager, text_box: box_geometry.BoxGeometry, 
+                 poly_factory: polygon_factory.PolygonFactory, city_scatter_element: CityScatter, 
+                 city_buffer: int, number_of_search_steps: int):
         self.config = config
         self.text_box = text_box
         self.city_scatter_element = city_scatter_element
         self.city_name = self.city_scatter_element.city_name
         self.poly_factory = poly_factory
+        self.city_buffer = city_buffer
+        self.number_of_search_steps = number_of_search_steps
 
         self.city_text_box_manager_ = city_text_box_manager.CityTextBoxManager()
 
-        self.remove_polys_by_type = {
+        self.repolygons.move_polys_by_type = {
             CityTextBox: [CityTextBox, Intersection],
             TextBoxFinalist: [CityTextBox, Intersection, TextBoxFinalist, TextBoxNearbySearchArea],
             Best: [TextBoxFinalist, Intersection, TextBoxFinalist, TextBoxNearbySearchArea]
@@ -36,16 +40,14 @@ class CityScanner:
 
         self.intersecting_polygon_patches = []
 
-    def _run_initial_scan(self, number_of_steps: int, rtree_idx, polygons, city_buffer: int):
-        city_text_boxes = self._create_city_text_boxes_surrounding_city(city_buffer=city_buffer,
-                                                                        number_of_steps=number_of_steps)
+    def _run_initial_scan(self, rtree_analyzer_: rtree_analyzer.RtreeAnalyzer):
+        city_text_boxes = self._create_city_text_boxes_surrounding_city()
         lowest_intersections_data = {
             'lowest_intersections': 100,
             'lowest_intersection_vis_elements': []
         }
         for city_text_box in city_text_boxes:
-            intersecting_vis_elements = helper_functions.get_intersecting_vis_elements(rtree_idx=rtree_idx,
-                                                                                       polygons=polygons,
+            intersecting_vis_elements = helper_functions.get_intersecting_vis_elements(rtree_analyzer_=rtree_analyzer_,
                                                                                        city_text_box=city_text_box,
                                                                                        ignore_elements=[
                                                                                            self.city_scatter_element])
@@ -73,53 +75,86 @@ class CityScanner:
                                                                      desired_type=TextBoxFinalist)
             yield finalist
 
-    def _create_city_text_boxes_surrounding_city(self, city_buffer: int, number_of_steps: int) -> list[CityTextBox]:
-        city_box: box_geometry.BoxGeometry = self.city_scatter_element.algorithm_box_geometry
-        city_box.add_buffer(city_buffer)
+    def _create_city_text_boxes_surrounding_city(self) -> list[CityTextBox]:
+        city_scatter_bounds = helper_functions.get_poly_bounds(self.city_scatter_element.algorithm_poly)
+        city_box = box_geometry.BoxGeometry(dimensions=city_scatter_bounds)
+        city_box.add_buffer(self.city_buffer)
+
         helper_functions.move_text_box_to_bottom_left_city_box_corner(text_box=self.text_box,
                                                                       city_box=city_box)
         city_perimeter = (2 * city_box.height) + (2 * city_box.width)
-        perimeter_movement_amount = city_perimeter / number_of_steps
+        perimeter_movement_amount = city_perimeter / self.number_of_search_steps
 
         city_text_boxes = []
 
+        box_width = self.text_box.x_max - self.text_box.x_min
+        box_height = self.text_box.y_max - self.text_box.y_min
+
         while self.text_box.x_min < city_box.x_max:
             scan_poly = self.poly_factory.create_poly(poly_type='rectangle',
-                                                      kwargs=self.text_box.dimensions)
+                                                      kwargs=self.text_box)
             city_text_box = CityTextBox(algorithm_poly=scan_poly,
                                         city_name=self.city_name)
-            self.text_box.move_box('right', min(perimeter_movement_amount, (city_box.x_max - self.text_box.x_min)))
+            polygons.move_poly('right', min(perimeter_movement_amount, box_width), dimensions=self.text_box.dimensions)
             city_text_boxes.append(city_text_box)
 
         while self.text_box.y_min < city_box.y_max:
             scan_poly = self.poly_factory.create_poly(poly_type='rectangle',
-                                                      kwargs=self.text_box.dimensions)
+                                                      kwargs=self.text_box)
             city_text_box = CityTextBox(algorithm_poly=scan_poly,
                                         city_name=self.city_name)
-            self.text_box.move_box('up', min(perimeter_movement_amount, (city_box.y_max - self.text_box.y_min)))
+            polygons.move_poly('up', min(perimeter_movement_amount, box_height), dimensions=self.text_box.dimensions)
             city_text_boxes.append(city_text_box)
 
         while self.text_box.x_max > city_box.x_min:
             scan_poly = self.poly_factory.create_poly(poly_type='rectangle',
-                                                      kwargs=self.text_box.dimensions)
+                                                      kwargs=self.text_box)
             city_text_box = CityTextBox(algorithm_poly=scan_poly,
                                         city_name=self.city_name)
-            self.text_box.move_box('left', min(perimeter_movement_amount, (self.text_box.x_max - city_box.x_min)))
+            polygons.move_poly('left', min(perimeter_movement_amount, box_width), dimensions=self.text_box.dimensions)
             city_text_boxes.append(city_text_box)
 
         while self.text_box.y_max > city_box.y_min:
             scan_poly = self.poly_factory.create_poly(poly_type='rectangle',
-                                                      kwargs=self.text_box.dimensions)
+                                                      kwargs=self.text_box)
             city_text_box = CityTextBox(algorithm_poly=scan_poly,
                                         city_name=self.city_name)
-            self.text_box.move_box('down', min(perimeter_movement_amount, (self.text_box.y_max - city_box.y_min)))
+            polygons.move_poly('down', min(perimeter_movement_amount, box_height), dimensions=self.text_box.dimensions)
             city_text_boxes.append(city_text_box)
 
         return city_text_boxes
 
-    def find_best_poly(self, rtree_analyzer_: rtree_analyzer.RtreeAnalyzer, city_buffer: int, number_of_steps: int):
-        for vis_element in self._run_initial_scan(number_of_steps=number_of_steps,
-                                                  rtree_idx=rtree_analyzer_.rtree_idx,
-                                                  polygons=rtree_analyzer_.polygons,
-                                                  city_buffer=city_buffer):
+    def _determine_best_finalist(self, finalists: list[visualization_elements.TextBoxFinalist], rtree_idx, polygons) -> visualization_elements.VisualizationElement:
+        farthest_finalist = None
+        farthest_distance = 0.0
+        for finalist in finalists:
+            nearest_polys = list(rtree_idx.nearest(finalist.poly.bounds, 5))
+
+            min_distance = 1e10
+
+            for finalist_idx in nearest_polys:
+                poly = polygons[finalist_idx]
+                distance = finalist.poly.distance(poly)
+
+                if distance < min_distance:
+                    min_distance = distance
+
+            if min_distance > farthest_distance:
+                farthest_distance = min_distance
+                farthest_finalist = finalist
+
+        return farthest_finalist
+
+    def find_best_poly(self, rtree_analyzer_: rtree_analyzer.RtreeAnalyzer):
+        finalists = []
+        for vis_element in self._run_initial_scan(rtree_analyzer_=rtree_analyzer_):
             yield vis_element
+            if type(vis_element) is visualization_elements.TextBoxFinalist:
+                finalists.append(vis_element)
+
+        best_finalist = self._determine_best_finalist(finalists=finalists,
+                                                      rtree_analyzer_=rtree_analyzer_)
+        best = thing_converter.convert_visualization_element(vis_element=best_finalist,
+                                                             desired_type=visualization_elements.Best)
+        yield best
+

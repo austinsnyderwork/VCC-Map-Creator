@@ -13,3 +13,28 @@ def move_coordinate(x, y, slope, distance) -> tuple:
     new_y = y + delta_y
 
     return new_x, new_y
+
+
+def move_poly(direction: str, amount: float, dimensions: dict = None):
+    if direction == 'up':
+        dimensions['y_min'] += amount
+        dimensions['y_max'] += amount
+    elif direction == 'down':
+        dimensions['y_min'] -= amount
+        dimensions['y_max'] -= amount
+    elif direction == 'right':
+        dimensions['x_min'] += amount
+        dimensions['x_max'] += amount
+    elif direction == 'left':
+        dimensions['x_min'] -= amount
+        dimensions['x_max'] -= amount
+
+
+def get_poly_bounds(poly):
+    x_min, y_min, x_max, y_max = poly.bounds
+    return {
+        'x_min': x_min,
+        'y_min': y_min,
+        'x_max': x_max,
+        'y_max': y_max
+    }

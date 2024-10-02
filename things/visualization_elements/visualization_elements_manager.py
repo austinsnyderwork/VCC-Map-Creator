@@ -5,17 +5,6 @@ from . import visualization_elements
 from .visualization_elements import CityScatter, CityTextBox
 
 
-def _generate_key(element_type, **kwargs):
-    if element_type is visualization_elements.Line:
-        key = visualization_elements.Line, kwargs['origin_city'], kwargs['visiting_city']
-    elif element_type is visualization_elements.CityScatter:
-        key = visualization_elements.CityScatter, kwargs['city_name']
-    elif element_type is visualization_elements.CityTextBox:
-        key = visualization_elements.CityTextBox, kwargs['city_name']
-    logging.info(f"Generated key: {key}")
-    return key
-
-
 class CityScatterAndText:
 
     def __init__(self, city_scatter=None, city_text_box=None, city_name=None, **kwargs):
@@ -26,11 +15,27 @@ class CityScatterAndText:
         if self.city_scatter is None or self.city_text_box is None:
             raise ValueError("Both 'CityScatter' and 'CityTextBox' instances are required.")
 
+
 def _is_scatter_and_text(visualization_elements: list):
     if len(visualization_elements) != 2:
         return
     return (isinstance(visualization_elements[0], visualization_elements.CityScatter) and isinstance(visualization_elements[1], CityTextBox)) or \
         (isinstance(visualization_elements[0], visualization_elements.CityTextBox) and isinstance(visualization_elements[1], CityScatter))
+
+
+def _generate_key(element_type, **kwargs):
+    if element_type is visualization_elements.Line:
+        key = visualization_elements.Line, kwargs['origin_city'], kwargs['visiting_city']
+    elif element_type is visualization_elements.CityScatter:
+        key = visualization_elements.CityScatter, kwargs['city_name']
+    elif element_type is visualization_elements.CityTextBox:
+        key = visualization_elements.CityTextBox, kwargs['city_name']
+    elif element_type is CityScatterAndText:
+        key = CityScatterAndText, kwargs['city_name']
+    else:
+        raise TypeError(f"Could not create key for element type {element_type}")
+    logging.info(f"Generated key: {key}")
+    return key
 
 
 class VisualizationElementsManager:
@@ -44,11 +49,11 @@ class VisualizationElementsManager:
 
         self.city_scatter_and_texts = {}
 
-    def add_visualization_elements(self, visualization_elements: list[visualization_elements.VisualizationElement]):
-        if _is_scatter_and_text(visualization_elements):
-            city_scatter_and_text_obj = CityScatterAndText(visualization_elements)
-            self.city_scatter_and_texts[city_scatter_and_text_obj.city_name] = city_scatter_and_text_obj
+    def add_city_scatter_and_text(self, city_scatter_and_text: CityScatterAndText):
+        key = _generate_key(type(city_scatter_and_text), city_name=city_scatter_and_text.city_name)
+        self.city_scatter_and_texts[key] = city_scatter_and_text
 
+    def add_visualization_elements(self, visualization_elements: list[visualization_elements.VisualizationElement]):
         for vis_element in visualization_elements:
             container = self.vis_element_containers[type(vis_element)]
             container.add_thing(thing=vis_element)

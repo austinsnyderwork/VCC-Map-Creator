@@ -1,6 +1,6 @@
 import math
-from shapely import Point
 
+from . import rtree_analyzer
 from polygons import polygon_factory
 from things import box_geometry
 from things.visualization_elements import visualization_elements
@@ -15,18 +15,18 @@ def get_distance_between_elements(item1, item2):
     return distance
 
 
-def get_intersecting_vis_elements(rtree_idx, polygons, city_text_box: visualization_elements.CityTextBox,
+def get_intersecting_vis_elements(rtree_analyzer_: rtree_analyzer.RtreeAnalyzer, city_text_box: visualization_elements.CityTextBox,
                                   ignore_elements: list[visualization_elements.VisualizationElement] = None) -> list:
     text_box_poly = city_text_box.algorithm_poly
-    intersection_indices = list(rtree_idx.intersection(text_box_poly))
-    intersecting_polygons = [polygons[idx] for idx in intersection_indices]
-    filtered_polys = []
-    for poly in intersecting_polygons:
-        if poly.visualization_element in ignore_elements:
+    intersection_indices = list(rtree_analyzer_.rtree_idx.intersection(text_box_poly))
+    intersecting_vis_elements = [rtree_analyzer_.visualization_elements[idx] for idx in intersection_indices]
+    filtered_vis_elements = []
+    for vis_element in intersecting_vis_elements:
+        if vis_element in ignore_elements:
             continue
-        filtered_polys.append(poly)
-    intersecting_polygons = [poly for poly in filtered_polys if text_box_poly.intersects(poly)]
-    return intersecting_polygons
+        filtered_vis_elements.append(vis_element)
+    filtered_vis_elements = [vis_element for vis_element in filtered_vis_elements if text_box_poly.intersects(vis_element.poly)]
+    return filtered_vis_elements
 
 
 def reduce_line_length(x_data, y_data, line_reduction_units) -> tuple[tuple, tuple]:

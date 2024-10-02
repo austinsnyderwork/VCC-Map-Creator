@@ -2,10 +2,11 @@ from abc import ABC
 from collections.abc import Callable
 import copy
 from functools import wraps
+from typing import Union
 
 import logging
 from things.entities import entities
-from things.visualization_elements import visualization_elements
+from things.visualization_elements import visualization_elements, CityScatterAndText
 
 
 def apply_to_type(expected_type):
@@ -165,24 +166,40 @@ class NumberOfVisitingProvidersConditions(ConditionsMap):
         self.config = config
         self.entity_types = [entities.City]
 
-    def _create_visualization_elements(self, config):
-        visualization_element_1 = visualization_elements.CityScatter(
+    def _create_visualization_elements(self, config) -> Union[list[visualization_elements.CityScatter], list[CityScatterAndText]]:
+        visualization_element_1a = visualization_elements.CityScatter(
             size=config.get_config_value('num_visiting_providers.range_1_scatter_size', int),
             color=config.get_config_value('num_visiting_providers.range_1_color', str)
         )
-        visualization_element_2 = visualization_elements.CityScatter(
+        vis_element_1b = visualization_elements.CityTextBox()
+        csat_1 = CityScatterAndText(city_scatter=visualization_element_1a,
+                                    city_text_box=vis_element_1b)
+
+        visualization_element_2a = visualization_elements.CityScatter(
             size=config.get_config_value('num_visiting_providers.range_2_scatter_size', int),
             color=config.get_config_value('num_visiting_providers.range_2_color', str)
         )
-        visualization_element_3 = visualization_elements.CityScatter(
+        vis_element_2b = visualization_elements.CityTextBox()
+        csat_2 = CityScatterAndText(city_scatter=visualization_element_2a,
+                                    city_text_box=vis_element_2b)
+
+        visualization_element_3a = visualization_elements.CityScatter(
             size=config.get_config_value('num_visiting_providers.range_3_scatter_size', int),
             color=config.get_config_value('num_visiting_providers.range_3_color', str)
         )
-        visualization_element_4 = visualization_elements.CityScatter(
+        vis_element_3b = visualization_elements.CityTextBox()
+        csat_3 = CityScatterAndText(city_scatter=visualization_element_3a,
+                                    city_text_box=vis_element_3b)
+        
+        visualization_element_4a = visualization_elements.CityScatter(
             size=config.get_config_value('num_visiting_providers.range_4_scatter_size', int),
             color=config.get_config_value('num_visiting_providers.range_4_color', str)
         )
-        visualization_elements_ = [visualization_element_1, visualization_element_2, visualization_element_3, visualization_element_4]
+        vis_element_4b = visualization_elements.CityTextBox()
+        csat_4 = CityScatterAndText(city_scatter=visualization_element_4a,
+                                    city_text_box=vis_element_4b)
+        
+        visualization_elements_ = [csat_1, csat_2, csat_3, csat_4]
         return visualization_elements_
 
     @apply_to_type(entities.City)

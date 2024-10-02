@@ -181,8 +181,9 @@ class TextBoxNearbySearchArea(VisualizationElement):
 
 class TextBoxFinalist(VisualizationElement):
 
-    def __init__(self, **kwargs):
+    def __init__(self, poly, **kwargs):
         super().__init__(**kwargs)
+        self.poly = poly
 
 
 class Best(VisualizationElement):
