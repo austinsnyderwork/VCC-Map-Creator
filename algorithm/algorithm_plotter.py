@@ -27,7 +27,7 @@ class AlgorithmPlotter:
         self._create_figure(fig_size=display_fig_size,
                             county_line_width=county_line_width)
 
-        self.enabled = True
+        plt.ion()
 
     def _create_figure(self, fig_size, county_line_width):
         if not self.show_display:
@@ -42,17 +42,24 @@ class AlgorithmPlotter:
                                         ax=self.ax)
         self.iowa_map.drawstates()
         self.iowa_map.drawcounties(linewidth=county_line_width)
+        plt.draw()
+        plt.pause(0.1)
+        plt.show(block=False)
 
-        plt.figure(self.fig)
+        logging.info("Created initial algorithm figure.")
+
+        plt.show(block=False)
 
     @check_show_display
     def plot_element(self, vis_element: visualization_elements.VisualizationElement):
+        logging.info(f"Plotting visualization element: {vis_element}")
         polygon_coords = list(vis_element.algorithm_poly.exterior.coords)
 
         # Create a Polygon patch
         polygon_patch = patches.Polygon(polygon_coords, closed=True, fill=True, edgecolor=vis_element.algorithm_color,
                                         facecolor=vis_element.algorithm_color, alpha=vis_element.algorithm_transparency)
         self._configure_visual(vis_element=vis_element, patch=polygon_patch, polygon_coords=polygon_coords)
+
         return polygon_patch
 
     def _configure_visual(self, vis_element: visualization_elements.VisualizationElement, patch, polygon_coords):

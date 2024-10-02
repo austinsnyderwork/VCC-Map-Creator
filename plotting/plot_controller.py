@@ -153,11 +153,7 @@ class PlotController:
             'map': self.map_display_controller.should_display,
             'algorithm': self.algorithm_display_controller.should_display
         }
-        if not should_display_funcs[display_type](visualization_element_type, iterations):
-            return False
-
-        return True
-
+        return should_display_funcs[display_type](visualization_element_type, iterations)
 
 
 

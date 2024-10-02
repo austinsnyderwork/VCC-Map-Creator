@@ -20,14 +20,14 @@ class AlgorithmHandler:
         self.polygon_factory_ = polygon_factory_
 
     def plot_element(self, element: visualization_elements.VisualizationElement):
-        element_poly_classes = {
-            visualization_elements.Line: 'line',
-            visualization_elements.CityScatter: 'scatter',
-            visualization_elements.CityTextBox: 'text'
-        }
         self.algo_map_plotter.plot_element(element)
-        self.rtree_analyzer.add_poly(poly_class=element_poly_classes[type(element)],
-                                     poly=element.algorithm_poly)
+        if issubclass(type(element), visualization_elements.DualVisualizationElement):
+            self.rtree_analyzer.add_visualization_element(visualization_element=element,
+                                                          poly=element.algorithm_poly)
+        else:
+            self.rtree_analyzer.add_visualization_element(visualization_element=element,
+                                                          poly=element.poly)
+
 
     def find_best_polygon(self, city_element: visualization_elements.CityScatter,
                           text_box_element: visualization_elements.CityTextBox):

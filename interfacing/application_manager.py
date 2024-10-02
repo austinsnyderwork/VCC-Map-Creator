@@ -90,7 +90,7 @@ class ApplicationManager:
             vis_elements.extend(new_vis_elements)
         return vis_elements
 
-    def _remove_same_origin_visiting_assignments(self, entities_: list[entities.Entity]) -> set[entities.Entity]:
+    def _remove_same_city_visiting_assignments(self, entities_: list[entities.Entity]) -> set[entities.Entity]:
         correct_entities = set()
         for entity in entities_:
             if type(entity) is entities.ProviderAssignment and entity.origin_city_name == entity.visiting_city_name:
@@ -118,18 +118,19 @@ class ApplicationManager:
     def _fill_vis_elements_manager(self, plotter: plotting.PlotManager, conditions_map: plotting.ConditionsMap):
         logging.info("Creating entities.")
         entities_ = self.entities_manager.get_all_entities(entities_type=[entities.City, entities.ProviderAssignment])
-        entities_ = self._remove_same_origin_visiting_assignments(entities_=entities_)
+        entities_ = self._remove_same_city_visiting_assignments(entities_=entities_)
         logging.info("Created entities.")
 
         logging.info("Converting entities to visualization elements.")
         vis_elements = self._convert_entities_to_vis_elements(entities_=entities_,
                                                               conditions_map=conditions_map)
+        self._fill_visualization_elements_with_polygons(visualization_elements_=vis_elements,
+                                                        plotter=plotter)
+
         for vis_element in vis_elements:
             self.visualization_elements_manager.add_visualization_elements([vis_element])
         logging.info("Converted entities to visualization elements.")
 
-        self._fill_visualization_elements_with_polygons(visualization_elements_=vis_elements,
-                                                        plotter=plotter)
 
     def create_highest_volume_line_map(self, number_of_results: int):
         logging.info("Creating highest volume line map.")

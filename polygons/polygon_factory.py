@@ -49,11 +49,10 @@ class PolygonFactory:
             poly_coords.append(new_coord_0)
             poly_coords.append(new_coord_1)
 
-        poly = None
         for permutation in itertools.permutations(poly_coords):
             polygon = Polygon(permutation)
             if polygon.is_valid:
-                return poly
+                return polygon
 
         raise ValueError("Could not form a valid line polygon.")
 
@@ -61,7 +60,6 @@ class PolygonFactory:
                                 num_points=8, **kwargs) -> Polygon:
         angles = np.linspace(0, 2 * np.pi, num_points)
         radius = vis_element.map_size * self.radius_per_scatter_size
-        logging.info(f"Scatter for city {vis_element.city_name} algorithm data: {vis_element.algorithm_data.__dict__}")
         points = [(vis_element.algorithm_coord[0] + radius * np.cos(angle),
                    vis_element.algorithm_coord[1] + radius * np.sin(angle)) for
                   angle in angles]

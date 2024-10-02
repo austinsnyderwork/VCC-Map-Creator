@@ -172,6 +172,12 @@ class ThingConverter:
     def _produce_city_scatter_data(self, city_entity: entities.City, **kwargs):
         city_type = city_entity.site_type
         scatter_data = {
+            'algorithm_show': _get_setting(variable='show',
+                                           default=self.config.get_config_value('algo_display.show_scatter', bool),
+                                           kwargs=kwargs),
+            'algorithm_center_view': _get_setting(variable='center_view',
+                                                  default=self.config.get_config_value('algo_display.center_view_on_scatter', bool),
+                                                  kwargs=kwargs),
             'city_name': city_entity.name,
             'site_type': city_entity.site_type,
             'map_color': _get_setting(variable='color',
@@ -249,18 +255,20 @@ class ThingConverter:
         algorithm_color = self.data_converter_map.get_line_color(entity=assignment_entity,
                                                                  display_type='algorithm')
         line_data = {
+            'algorithm_show': self.config.get_config_value('algo_display.show_line', bool),
             'origin_city': assignment_entity.origin_city_name,
             'visiting_city': assignment_entity.visiting_city_name,
             'origin_site': assignment_entity.origin_site_name,
             'visiting_site': assignment_entity.visiting_site_name,
             'algorithm_x_data': x_data,
             'algorithm_y_data': y_data,
-            'map_linewidth': self.config.get_config_value(key='map_display.linewidth', cast_type=int),
-            'algorithm_transparency': self.config.get_config_value(key='algo_display.line_transparency', cast_type=float),
+            'map_linewidth': self.config.get_config_value('map_display.linewidth', int),
+            'algorithm_transparency': self.config.get_config_value('algo_display.line_transparency', float),
             'map_color': map_color,
             'map_edgecolor': map_color,
             'algorithm_color': algorithm_color,
-            'algorithm_edgecolor': algorithm_color
+            'algorithm_edgecolor': algorithm_color,
+            'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_line_poly', bool)
         }
         self.provider_assignments_data_agg[(frozenset([origin_city, visiting_city]))] = line_data
         return line_data

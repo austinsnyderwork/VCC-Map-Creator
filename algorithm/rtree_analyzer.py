@@ -21,8 +21,7 @@ class RtreeAnalyzer:
     def _generate_poly_key(poly):
         return (poly,)
 
-    def add_visualization_element(self, visualization_element):
-        poly = visualization_element.poly
+    def add_visualization_element(self, visualization_element, poly):
         self.rtree_idx.insert(self.poly_idx, poly.bounds, obj=poly)
         self.visualization_elements[self.poly_idx] = visualization_element
         self.poly_idx += 1

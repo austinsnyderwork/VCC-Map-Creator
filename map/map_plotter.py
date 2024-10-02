@@ -66,11 +66,17 @@ class MapPlotter:
         self.iowa_map.drawstates()
         self.iowa_map.drawcounties(linewidth=county_line_width)
         logging.info("Created base Iowa map.")
+        plt.draw()
+        plt.pause(0.1)
+        plt.show(block=False)
 
     def plot_element(self, vis_element: visualization_elements.VisualizationElement, zorder: int,
                      override_coord: tuple = None):
         plot_func = self.visualization_element_plot_funcs[type(vis_element)]
         obj = plot_func(vis_element, zorder, override_coord=override_coord)
+        plt.draw()
+        plt.pause(0.1)
+        plt.show(block=False)
         return obj
 
     def _plot_point(self, scatter: visualization_elements.CityScatter, zorder: int, **kwargs):
