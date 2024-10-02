@@ -43,8 +43,6 @@ class MapPlotter:
             plt.pause(0.1)
             plt.show(block=False)
 
-        self.fig, self.ax = None, None
-
         self.visualization_element_plot_funcs = {
             visualization_elements.Line: self._plot_line,
             visualization_elements.CityScatter: self._plot_point,

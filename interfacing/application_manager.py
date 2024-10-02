@@ -78,36 +78,42 @@ class ApplicationManager:
         self.city_origin_network_handler.fill_city_origin_networks(entities_manager=self.entities_manager)
         logging.info("Finished startup.")
 
-    def _convert_entity_to_vis_elements(self, entity: entities.Entity, conditions_map) \
-            -> Union[list[visualization_elements.VisualizationElement], None]:
+    def _convert_entity(self, entity: entities.Entity, conditions_map) \
+            -> Union[visualization_elements.Line, visualization_elements.CityScatterAndText, None]:
         conditional_vis_element = None
         if type(entity) in conditions_map.entity_types:
             conditional_vis_element = conditions_map.get_visualization_element_for_condition(entity=entity,
-                                                                                             **entity.__dict__)
+                                                                                              **entity.__dict__)
             if not conditional_vis_element:
                 return
 
-        vis_elements = conditional_vis_element if conditional_vis_element else self.thing_converter.convert_thing(
-            entity)
+        vis_element = conditional_vis_element if conditional_vis_element else self.thing_converter.convert_thing(entity)
 
-        for vis_element in vis_elements:
+        if type(vis_element) is visualization_elements.CityScatterAndText:
+            self.thing_converter.fill_in_data(entity=entity, visualization_element=vis_element.city_scatter)
+            self.thing_converter.fill_in_data(entity=entity, visualization_element=vis_element.city_text_box)
+        else:
             self.thing_converter.fill_in_data(entity=entity, visualization_element=vis_element)
 
-        vis_elements = [vis_elements] if not isinstance(vis_elements, list) else vis_elements
-        return vis_elements
+        return vis_element
 
-    def _convert_entities_to_vis_elements(self, entities_: list[entities.Entity], conditions_map):
+    def _convert_entities_to_vis_elements(self, entities_: list[entities.Entity], conditions_map) \
+            -> list[visualization_elements.VisualizationElement]:
         vis_elements = []
         for i, entity in enumerate(entities_):
             logging.info(f"Converting entity number {i} of {len(entities_)}.\n\tEntity type: {str(type(entity))}")
             if type(entity) is entities.ProviderAssignment:
                 logging.info(f"Origin city: {entity.origin_city_name}, Visiting city: {entity.visiting_city_name}")
-            new_vis_elements = self._convert_entity_to_vis_elements(entity, conditions_map=conditions_map)
+            new_vis_element = self._convert_entity(entity, conditions_map=conditions_map)
             # convert_entity returns None when the entity is valid for the conditions map, but doesn't meet any of the
             # conditions
-            if not new_vis_elements:
+            if not new_vis_element:
                 continue
-            vis_elements.extend(new_vis_elements)
+            elif type(new_vis_element) is visualization_elements.CityScatterAndText:
+                vis_elements.append(new_vis_element.city_scatter)
+                vis_elements.append(new_vis_element.city_text_box)
+            else:
+                vis_elements.append(new_vis_element)
         return vis_elements
 
     def _fill_visualization_elements_with_polygons(self, plotter: plotting.PlotManager,
@@ -133,10 +139,16 @@ class ApplicationManager:
 
     def create_highest_volume_line_map(self, number_of_results: int):
         logging.info("Creating highest volume line map.")
-        highest_volume_cities = data_functions.get_top_volume_incoming_cities(df=self.df,
-                                                                              num_results=number_of_results)
+        entities_ = self._create_entities(entities_types=[entities.City, entities.ProviderAssignment],
+                                          filter_same_city_visiting_assignments=True)
+        highest_volume_cities = data_functions.get_top_volume_origin_cities(df=self.df,
+                                                                            num_results=number_of_results)
+        visiting_from_high_vol_city = set(entity.visiting_city_name for entity in entities_ if type(entity) is entities.ProviderAssignment and
+                                        entity.origin_city_name in highest_volume_cities)
+        all_plot_cities = set(highest_volume_cities) | visiting_from_high_vol_city
         conditions_map = plotting.HighestCityVisitingVolumeConditions(
-            highest_volume_cities=highest_volume_cities,
+            origin_cities=highest_volume_cities,
+            all_plot_cities=all_plot_cities,
             config=self.config)
         vis_element_plot_controller = plotting.PlotController(
             config=self.config,
@@ -145,8 +157,6 @@ class ApplicationManager:
                                        map_plotter=self.map_plotter,
                                        plot_controller=vis_element_plot_controller)
 
-        entities_ = self._create_entities(entities_types=[entities.City, entities.ProviderAssignment],
-                                          filter_same_city_visiting_assignments=True)
         vis_elements = self._convert_entities_to_vis_elements(entities_=entities_,
                                                               conditions_map=conditions_map)
         self._fill_visualization_elements_with_polygons(visualization_elements_=vis_elements,
@@ -165,4 +175,37 @@ class ApplicationManager:
                                                                         text_box_element=city_scatter_and_text.city_text_box):
                 plotter.attempt_plot(vis_element=vis_element)
 
+        plt.show(block=True)
 
+    def create_number_of_visiting_providers_map(self):
+        logging.info("Creating number of providers by visiting site map.")
+        entities_ = self._create_entities(entities_types=[entities.City, entities.ProviderAssignment],
+                                          filter_same_city_visiting_assignments=True)
+
+        conditions_map = plotting.NumberOfVisitingProvidersConditions(config=self.config)
+        vis_element_plot_controller = plotting.PlotController(
+            config=self.config,
+            show_line=False,
+            show_visiting_text_boxes=False)
+        plotter = plotting.PlotManager(algorithm_handler=self.algorithm_handler,
+                                       map_plotter=self.map_plotter,
+                                       plot_controller=vis_element_plot_controller)
+
+        vis_elements = self._convert_entities_to_vis_elements(entities_=entities_,
+                                                              conditions_map=conditions_map)
+        self._fill_visualization_elements_with_polygons(visualization_elements_=vis_elements,
+                                                        plotter=plotter)
+        self.visualization_elements_manager.add_visualization_elements(vis_elements)
+
+        non_text_vis_elements = self.visualization_elements_manager.get_all([visualization_elements.CityScatter,
+                                                                             visualization_elements.Line])
+        for vis_element in non_text_vis_elements:
+            plotter.attempt_plot(display_types=['algorithm'],
+                                 vis_element=vis_element)
+
+        for city_scatter_and_text in self.visualization_elements_manager.city_scatter_and_texts:
+            for vis_element in self.algorithm_handler.find_best_polygon(city_element=city_scatter_and_text.city_scatter,
+                                                                        text_box_element=city_scatter_and_text.city_text_box):
+                plotter.attempt_plot(vis_element=vis_element)
+
+        plt.show(block=True)

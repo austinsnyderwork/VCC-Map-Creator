@@ -100,6 +100,18 @@ class PlotController:
 
     def __init__(self,
                  config: config_manager.ConfigManager = None,
+                 show_origin_scatters=True,
+                 show_visiting_scatters=True,
+                 show_dual_text_box=True,
+                 show_origin_text_box=True,
+                 show_visiting_text_box=True,
+                 show_dual_scatters=True,
+                 show_line=True,
+                 show_scan_poly=True,
+                 show_search_area_poly=True,
+                 show_poly_finalist=True,
+                 show_nearby_search_poly=True,
+                 show_intersecting_poly=True,
                  **plot_settings):
         self.map_display_controller = MapDisplayController(**plot_settings)
         self.algorithm_display_controller = AlgorithmDisplayController(**plot_settings)
@@ -108,24 +120,24 @@ class PlotController:
 
         self.master_display_origin_visiting_settings = {
             visualization_elements.CityScatter: {
-                'origin': self.retrieve_setting('show_origin_scatters', True),
-                'visiting': self.retrieve_setting('show_visiting_scatters', True),
-                'dual_origin_visiting': self.retrieve_setting('show_dual_scatters', True)
+                'origin': show_origin_scatters,
+                'visiting': show_visiting_scatters,
+                'dual_origin_visiting': show_dual_scatters
             },
             visualization_elements.CityTextBox: {
-                'origin': self.retrieve_setting('show_origin_text_box', True),
-                'visiting': self.retrieve_setting('show_visiting_text_box', True),
-                'dual_origin_visiting': self.retrieve_setting('show_dual_text_box', True)
+                'origin': show_origin_text_box,
+                'visiting': show_visiting_text_box,
+                'dual_origin_visiting': show_dual_text_box
             }
         }
 
         self.master_display_settings = {
-            visualization_elements.Line: self.retrieve_setting('show_line', True),
-            visualization_elements.CityTextBox: self.retrieve_setting('show_scan_poly', True),
-            visualization_elements.TextBoxScanArea: self.retrieve_setting('show_search_area_poly', True),
-            visualization_elements.TextBoxFinalist: self.retrieve_setting('show_poly_finalist', True),
-            visualization_elements.TextBoxNearbySearchArea: self.retrieve_setting('show_nearby_search_poly', True),
-            visualization_elements.Intersection: self.retrieve_setting('show_intersecting_poly', True)
+            visualization_elements.Line: show_line,
+            visualization_elements.CityTextBox: show_scan_poly,
+            visualization_elements.TextBoxScanArea: show_search_area_poly,
+            visualization_elements.TextBoxFinalist: show_poly_finalist,
+            visualization_elements.TextBoxNearbySearchArea: show_nearby_search_poly,
+            visualization_elements.Intersection: show_intersecting_poly
         }
 
     def retrieve_setting(self, key, default_value):

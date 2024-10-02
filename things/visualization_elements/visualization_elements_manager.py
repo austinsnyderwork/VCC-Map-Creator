@@ -18,19 +18,10 @@ def _generate_key(element_type, **kwargs):
 
 class CityScatterAndText:
 
-    def __init__(self, *args):
-        self.city_scatter = None
-        self.city_text_box = None
-        self.city_name = None
-        for arg in args:
-            if hasattr(arg, 'name'):
-                self.city_name = arg.name
-            if isinstance(arg, visualization_elements.CityScatter):
-                self.city_scatter = arg
-            elif isinstance(arg, visualization_elements.CityTextBox):
-                self.city_text_box = arg
-            else:
-                raise ValueError(f"Received unexpected arg type: {type(arg)}")
+    def __init__(self, city_scatter=None, city_text_box=None, city_name=None, **kwargs):
+        self.city_scatter = city_scatter
+        self.city_text_box = city_text_box
+        self.city_name = city_name
 
         if self.city_scatter is None or self.city_text_box is None:
             raise ValueError("Both 'CityScatter' and 'CityTextBox' instances are required.")

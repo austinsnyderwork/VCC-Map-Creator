@@ -93,3 +93,22 @@ class City(Entity):
             raise RuntimeError(f"Attempted to define site type for city '{self.name}' without any visiting or leaving "
                                f"clinics.")
 
+    @property
+    def visiting_providers(self):
+        visiting_providers = set()
+        for clinic in self.clinics['visiting']:
+            visiting_provider_assignments = clinic.visiting_provider_assignments
+            clinic_visiting_providers = set(
+                visiting_provider_assignment.provider for visiting_provider_assignment in visiting_provider_assignments)
+            visiting_providers.update(clinic_visiting_providers)
+        return visiting_providers
+    
+    @property
+    def leaving_providers(self):
+        leaving_providers = set()
+        for clinic in self.clinics['leaving']:
+            leaving_provider_assignments = clinic.leaving_provider_assignments
+            clinic_leaving_providers = set(leaving_provider_assignment.provider for leaving_provider_assignment in leaving_provider_assignments)
+            leaving_providers.update(clinic_leaving_providers)
+        return leaving_providers
+        

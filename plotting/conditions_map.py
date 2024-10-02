@@ -1,7 +1,9 @@
 from abc import ABC
 from collections.abc import Callable
+import copy
 from functools import wraps
 
+import logging
 from things.entities import entities
 from things.visualization_elements import visualization_elements
 
@@ -33,10 +35,10 @@ class ConditionsMap(ABC):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    def get_visualization_element_for_condition(self, entity, **kwargs) -> list[visualization_elements.VisualizationElement]:
+    def get_visualization_element_for_condition(self, entity, **kwargs):
         for condition in self.conditions:
             if condition.condition(entity=entity, **kwargs):
-                return [condition.visualization_element]
+                return copy.deepcopy(condition.visualization_element)
 
 
 class NumberOfVisitingClinicsConditions(ConditionsMap):
@@ -106,7 +108,7 @@ class NumberOfVisitingClinicsConditions(ConditionsMap):
 
 class HighestCityVisitingVolumeConditions(ConditionsMap):
 
-    def __init__(self, highest_volume_cities: list[str], config, visualization_element_data: dict = None, **kwargs):
+    def __init__(self, all_plot_cities, origin_cities, config, visualization_element_data: dict = None, **kwargs):
         condition_funcs = [self.city_condition, self.line_condition]
         visualization_elements_ = self._create_visualization_elements(config=config,
                                                                       visualization_element_data=visualization_element_data)
@@ -116,7 +118,8 @@ class HighestCityVisitingVolumeConditions(ConditionsMap):
         super().__init__(conditions)
 
         self.conditions = conditions
-        self.highest_volume_cities = highest_volume_cities
+        self.all_plot_cities = all_plot_cities
+        self.origin_cities = origin_cities
         self.config = config
         self.entity_types = [entities.City, entities.ProviderAssignment]
 
@@ -138,45 +141,46 @@ class HighestCityVisitingVolumeConditions(ConditionsMap):
 
     @apply_to_type(entities.City)
     def city_condition(self, entity: entities.Entity, **kwargs):
-        return entity.name in self.highest_volume_cities
+        return entity.name in self.all_plot_cities
 
     @apply_to_type(entities.ProviderAssignment)
     def line_condition(self, entity: entities.Entity, **kwargs):
-        return entity.origin_city_name in self.highest_volume_cities or entity.visiting_city_name in self.highest_volume_cities
+        return entity.origin_city_name in self.origin_cities
 
 
 class NumberOfVisitingProvidersConditions(ConditionsMap):
 
     def __init__(self, config):
-        self.config = config
-        self.entity_types = [entities.City]
         condition_funcs = [self.range_1_condition,
                            self.range_2_condition,
                            self.range_3_condition,
                            self.range_4_condition]
+        visualization_elements_ = self._create_visualization_elements(config=config)
+        conditions = [Condition(condition=condition_func, visualization_element=visualization_element) for
+                      condition_func, visualization_element in
+                      zip(condition_funcs, visualization_elements_)]
+        super().__init__(conditions)
 
-        vis_elements_ = self._create_visualization_elements()
-        conditions = [Condition(condition=condition_func, visualization_element=vis_element) for condition_func, vis_element in
-                      zip(condition_funcs, vis_elements_)]
+        self.conditions = conditions
+        self.config = config
+        self.entity_types = [entities.City]
 
-        super().__init__(conditions=conditions)
-
-    def _create_visualization_elements(self):
+    def _create_visualization_elements(self, config):
         visualization_element_1 = visualization_elements.CityScatter(
-            size=self.config.get_config_value('num_visiting_providers.range_1_scatter_size', int),
-            color=self.config.get_config_value('num_visiting_providers.range_1_color', str)
+            size=config.get_config_value('num_visiting_providers.range_1_scatter_size', int),
+            color=config.get_config_value('num_visiting_providers.range_1_color', str)
         )
         visualization_element_2 = visualization_elements.CityScatter(
-            size=self.config.get_config_value('num_visiting_providers.range_2_scatter_size', int),
-            color=self.config.get_config_value('num_visiting_providers.range_2_color', str)
+            size=config.get_config_value('num_visiting_providers.range_2_scatter_size', int),
+            color=config.get_config_value('num_visiting_providers.range_2_color', str)
         )
         visualization_element_3 = visualization_elements.CityScatter(
-            size=self.config.get_config_value('num_visiting_providers.range_3_scatter_size', int),
-            color=self.config.get_config_value('num_visiting_providers.range_3_color', str)
+            size=config.get_config_value('num_visiting_providers.range_3_scatter_size', int),
+            color=config.get_config_value('num_visiting_providers.range_3_color', str)
         )
         visualization_element_4 = visualization_elements.CityScatter(
-            size=self.config.get_config_value('num_visiting_providers.range_4_scatter_size', int),
-            color=self.config.get_config_value('num_visiting_providers.range_4_color', str)
+            size=config.get_config_value('num_visiting_providers.range_4_scatter_size', int),
+            color=config.get_config_value('num_visiting_providers.range_4_color', str)
         )
         visualization_elements_ = [visualization_element_1, visualization_element_2, visualization_element_3, visualization_element_4]
         return visualization_elements_
@@ -186,6 +190,7 @@ class NumberOfVisitingProvidersConditions(ConditionsMap):
         range_1_min = self.config.get_config_value('num_visiting_providers.range_1_min', int)
         range_1_max = self.config.get_config_value('num_visiting_providers.range_1_max', int)
 
+        logging.info(f"Found {len(entity.visiting_providers)} visiting providers for {entity.name}")
         return range_1_min < len(entity.visiting_providers) < range_1_max
 
     @apply_to_type(entities.City)

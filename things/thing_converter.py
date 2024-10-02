@@ -1,10 +1,10 @@
 import logging
-from typing import Callable
+from typing import Callable, Union
 
 from things import entities
 import config_manager
 import environment_management
-from .visualization_elements import visualization_elements
+from .visualization_elements import CityScatterAndText, visualization_elements
 
 
 def _get_setting(variable: str, default, **kwargs):
@@ -271,12 +271,12 @@ class ThingConverter:
                                                        assignment_entity.visiting_city_name]))] = line_data
         return line_data
 
-    def convert_thing(self, entity: entities.Entity) -> list[visualization_elements.VisualizationElement]:
+    def convert_thing(self, entity: entities.Entity) -> Union[visualization_elements.Line, CityScatterAndText]:
         if type(entity) is entities.ProviderAssignment:
             entity: entities.ProviderAssignment
             line_data = self._produce_line_data(entity)
             line = visualization_elements.Line(**line_data)
-            vis_elements = [line]
+            return line
         elif type(entity) is entities.City:
             entity: entities.City
             scatter_data = self._produce_city_scatter_data(entity)
@@ -285,11 +285,12 @@ class ThingConverter:
             text_box_data = self._produce_city_text_box_data(city_entity=entity)
             text_box = visualization_elements.CityTextBox(city_name=entity.name,
                                                           **text_box_data)
-            vis_elements = [city_scatter, text_box]
+            city_scatter_and_text = CityScatterAndText(city_scatter=city_scatter,
+                                                       city_text_box=text_box,
+                                                       city_name=entity.name)
+            return city_scatter_and_text
         else:
             raise RuntimeError("Unable to convert thing.")
-
-        return vis_elements
 
 
     def convert_entities_to_visualization_elements(self, entities_: list[entities.Entity]) -> list[
