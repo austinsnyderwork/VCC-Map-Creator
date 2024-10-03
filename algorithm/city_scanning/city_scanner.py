@@ -118,22 +118,14 @@ class CityScanner:
 
         return city_text_boxes
 
-    def _determine_best_finalist(self, finalists: list[visualization_elements.TextBoxFinalist], rtree_analyzer_) -> visualization_elements.VisualizationElement:
+    def _determine_best_finalist(self, finalists: list[visualization_elements.TextBoxFinalist], rtree_analyzer_,
+                                 vis_elements_to_ignore: list) -> visualization_elements.VisualizationElement:
         farthest_finalist = None
         farthest_distance = 0.0
         for finalist in finalists:
-            nearest_polys = list(rtree_analyzer_.rtree_idx.nearest(finalist.poly.bounds, 5))
-
-            min_distance = 1e10
-
-            for finalist_idx in nearest_polys:
-                vis_element = rtree_analyzer_.visualization_elements[finalist_idx]
-                poly = vis_element.poly
-                distance = finalist.poly.distance(poly)
-
-                if distance < min_distance:
-                    min_distance = distance
-
+            min_distance, closest_vis_elements = rtree_analyzer_.get_closest_visualization_elements(
+                query_poly=finalist.poly,
+                vis_elements_to_ignore=vis_elements_to_ignore)
             if min_distance > farthest_distance:
                 farthest_distance = min_distance
                 farthest_finalist = finalist
@@ -148,7 +140,8 @@ class CityScanner:
                 finalists.append(vis_element)
 
         best_finalist = self._determine_best_finalist(finalists=finalists,
-                                                      rtree_analyzer_=rtree_analyzer_)
+                                                      rtree_analyzer_=rtree_analyzer_,
+                                                      vis_elements_to_ignore=[self.city_scatter_element])
         best = thing_converter.convert_visualization_element(vis_element=best_finalist,
                                                              desired_type=visualization_elements.Best,
                                                              site_type=self.city_scatter_element.site_type)

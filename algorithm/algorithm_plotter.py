@@ -128,7 +128,7 @@ class AlgorithmPlotter:
         immediately_remove = self._get_plot_value(vis_element, f"{attr_prefix}immediately_remove", 'immediately_remove')
 
         logging.info(f"Plotting visualization element: {vis_element}")
-        polygon_coords = list(vis_element.algorithm_poly.exterior.coords)
+        polygon_coords = list(getattr(vis_element, f"{attr_prefix}poly").exterior.coords)
 
         # Create a Polygon patch
         polygon_patch = patches.Polygon(polygon_coords, closed=True, fill=True, edgecolor=edgecolor,

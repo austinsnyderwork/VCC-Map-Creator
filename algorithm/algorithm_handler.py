@@ -23,11 +23,16 @@ class AlgorithmHandler:
         self.polygon_factory_ = polygon_factory_
 
     def plot_element(self, element: visualization_elements.VisualizationElement):
+        rtree_element_types = [visualization_elements.Line, visualization_elements.CityScatter,
+                               visualization_elements.Best]
+        if type(element) in rtree_element_types:
+            self.add_element_to_algorithm(element)
         self.algorithm_plotter.plot_element(element)
 
     def add_element_to_algorithm(self, element: visualization_elements.VisualizationElement):
+        poly = element.default_poly
         self.rtree_analyzer_.add_visualization_element(visualization_element=element,
-                                                       poly=element.poly)
+                                                       poly=poly)
 
     def find_best_polygon(self, city_element: visualization_elements.CityScatter,
                           text_box_element: visualization_elements.CityTextBox, city_buffer: int, number_of_steps: int):

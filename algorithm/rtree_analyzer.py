@@ -1,6 +1,7 @@
 import shapely
 from rtree import index
 
+from things import visualization_elements
 
 def _should_omit_poly(poly, attributes_to_omit: dict):
     for attribute, value in attributes_to_omit.items():
@@ -44,4 +45,11 @@ class RtreeAnalyzer:
         closest_polys = distances[closest_distance]
         return closest_distance, closest_polys
 
+    def get_closest_visualization_elements(self, query_poly, vis_elements_to_ignore: list):
+        nearest_ids = list(self.rtree_idx.nearest(query_poly.bounds, 8))
+        vis_elements = {idx: self.visualization_elements[idx] for idx in nearest_ids}
+        vis_elements = {idx: vis_element for idx, vis_element in vis_elements.items() if vis_element not in vis_elements_to_ignore}
+        polys = [vis_element.default_poly for vis_element in vis_elements.values()]
+        distances = [nearby_poly.distance(query_poly) for nearby_poly in polys]
+        return min(distances), vis_elements
 

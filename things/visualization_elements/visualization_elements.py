@@ -11,6 +11,10 @@ class VisualizationElement:
         for k, v in kwargs.items():
             self.__setattr__(k, v)
 
+    @property
+    def default_poly(self):
+        return self.poly
+
 
 def which_class(s):
     # Find the position of the first underscore
@@ -42,6 +46,11 @@ class DualVisualizationElement(VisualizationElement):
         for k, v in kwargs.items():
             if not hasattr(self.algorithm_data, k) and not hasattr(self.map_data, k):
                 setattr(self, k, v)
+
+    @property
+    def default_poly(self):
+        return self.algorithm_data.poly
+
 
     @property
     def poly(self):
