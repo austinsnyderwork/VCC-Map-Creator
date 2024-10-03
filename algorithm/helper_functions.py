@@ -9,15 +9,15 @@ from things.visualization_elements import visualization_elements
 
 def get_intersecting_vis_elements(rtree_analyzer_: rtree_analyzer.RtreeAnalyzer, city_text_box: visualization_elements.CityTextBox,
                                   ignore_elements: list[visualization_elements.VisualizationElement] = None) -> list:
-    text_box_poly = city_text_box.algorithm_poly
-    intersection_indices = list(rtree_analyzer_.rtree_idx.intersection(text_box_poly.bounds))
+    intersection_indices = list(rtree_analyzer_.rtree_idx.intersection(city_text_box.algorithm_poly.bounds))
     intersecting_vis_elements = [rtree_analyzer_.visualization_elements[idx] for idx in intersection_indices]
     filtered_vis_elements = []
     for vis_element in intersecting_vis_elements:
         if vis_element in ignore_elements:
             continue
         filtered_vis_elements.append(vis_element)
-    filtered_vis_elements = [vis_element for vis_element in filtered_vis_elements if text_box_poly.intersects(vis_element.poly)]
+
+    filtered_vis_elements = [vis_element for vis_element in filtered_vis_elements if city_text_box.algorithm_poly.intersects(vis_element.poly)]
     return filtered_vis_elements
 
 

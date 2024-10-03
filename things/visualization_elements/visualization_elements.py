@@ -43,6 +43,10 @@ class DualVisualizationElement(VisualizationElement):
             if not hasattr(self.algorithm_data, k) and not hasattr(self.map_data, k):
                 setattr(self, k, v)
 
+    @property
+    def poly(self):
+        return self.algorithm_data.poly
+
     def __setattr__(self, key, value):
         if key == 'algorithm_data':
             self.__dict__['algorithm_data'] = value

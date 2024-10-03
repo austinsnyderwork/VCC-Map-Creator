@@ -59,9 +59,10 @@ class CityScanner:
             elif num_intersections == lowest_intersections_data['lowest_intersections']:
                 lowest_intersections_data['lowest_intersection_vis_elements'].append(city_text_box)
 
-        for intersecting_vis_element in lowest_intersections_data['lowest_intersection_vis_elements']:
-            finalist = thing_converter.convert_visualization_element(vis_element=intersecting_vis_element,
-                                                                     desired_type=TextBoxFinalist)
+        for vis_element in lowest_intersections_data['lowest_intersection_vis_elements']:
+            finalist = thing_converter.convert_visualization_element(vis_element=vis_element,
+                                                                     desired_type=TextBoxFinalist,
+                                                                     poly=vis_element.poly)
             yield finalist
 
     def _create_city_text_boxes_surrounding_city(self) -> list[CityTextBox]:
@@ -83,7 +84,8 @@ class CityScanner:
             scan_poly = self.poly_factory.create_poly(box=self.text_box,
                                                       vis_element_type=CityTextBox)
             city_text_box = CityTextBox(algorithm_poly=scan_poly,
-                                        city_name=self.city_name)
+                                        city_name=self.city_name,
+                                        site_type=self.city_scatter_element.site_type)
             polygons.move_poly('right', min(perimeter_movement_amount, box_width), dimensions=self.text_box.dimensions)
             city_text_boxes.append(city_text_box)
 
@@ -91,7 +93,8 @@ class CityScanner:
             scan_poly = self.poly_factory.create_poly(box=self.text_box,
                                                       vis_element_type=CityTextBox)
             city_text_box = CityTextBox(algorithm_poly=scan_poly,
-                                        city_name=self.city_name)
+                                        city_name=self.city_name,
+                                        site_type=self.city_scatter_element.site_type)
             polygons.move_poly('up', min(perimeter_movement_amount, box_height), dimensions=self.text_box.dimensions)
             city_text_boxes.append(city_text_box)
 
@@ -99,7 +102,8 @@ class CityScanner:
             scan_poly = self.poly_factory.create_poly(box=self.text_box,
                                                       vis_element_type=CityTextBox)
             city_text_box = CityTextBox(algorithm_poly=scan_poly,
-                                        city_name=self.city_name)
+                                        city_name=self.city_name,
+                                        site_type=self.city_scatter_element.site_type)
             polygons.move_poly('left', min(perimeter_movement_amount, box_width), dimensions=self.text_box.dimensions)
             city_text_boxes.append(city_text_box)
 
@@ -107,23 +111,24 @@ class CityScanner:
             scan_poly = self.poly_factory.create_poly(box=self.text_box,
                                                       vis_element_type=CityTextBox)
             city_text_box = CityTextBox(algorithm_poly=scan_poly,
-                                        city_name=self.city_name)
+                                        city_name=self.city_name,
+                                        site_type=self.city_scatter_element.site_type)
             polygons.move_poly('down', min(perimeter_movement_amount, box_height), dimensions=self.text_box.dimensions)
             city_text_boxes.append(city_text_box)
 
         return city_text_boxes
 
-    def _determine_best_finalist(self, finalists: list[visualization_elements.TextBoxFinalist], rtree_idx,
-                                 polygons) -> visualization_elements.VisualizationElement:
+    def _determine_best_finalist(self, finalists: list[visualization_elements.TextBoxFinalist], rtree_analyzer_) -> visualization_elements.VisualizationElement:
         farthest_finalist = None
         farthest_distance = 0.0
         for finalist in finalists:
-            nearest_polys = list(rtree_idx.nearest(finalist.poly.bounds, 5))
+            nearest_polys = list(rtree_analyzer_.rtree_idx.nearest(finalist.poly.bounds, 5))
 
             min_distance = 1e10
 
             for finalist_idx in nearest_polys:
-                poly = polygons[finalist_idx]
+                vis_element = rtree_analyzer_.visualization_elements[finalist_idx]
+                poly = vis_element.poly
                 distance = finalist.poly.distance(poly)
 
                 if distance < min_distance:
@@ -145,5 +150,6 @@ class CityScanner:
         best_finalist = self._determine_best_finalist(finalists=finalists,
                                                       rtree_analyzer_=rtree_analyzer_)
         best = thing_converter.convert_visualization_element(vis_element=best_finalist,
-                                                             desired_type=visualization_elements.Best)
+                                                             desired_type=visualization_elements.Best,
+                                                             site_type=self.city_scatter_element.site_type)
         yield best

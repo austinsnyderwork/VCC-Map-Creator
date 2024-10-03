@@ -14,8 +14,9 @@ def _get_setting(variable: str, default, **kwargs):
         return default
 
 
-def convert_visualization_element(vis_element: visualization_elements.VisualizationElement, desired_type):
-    new_data = {}
+def convert_visualization_element(vis_element: visualization_elements.VisualizationElement, desired_type,
+                                  **extra_vis_element_data):
+    new_data = extra_vis_element_data
     vis_element_is_dual_vis_element = issubclass(desired_type, visualization_elements.DualVisualizationElement)
     algo_data_substring = 'algorithm_' if vis_element_is_dual_vis_element else ''
     map_data_substring = 'map_' if vis_element_is_dual_vis_element else ''

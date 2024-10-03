@@ -13,7 +13,7 @@ class AlgorithmHandler:
 
     def __init__(self, config: config_manager.ConfigManager, polygon_factory_: polygon_factory.PolygonFactory):
         self.config = config
-        self.algo_map_plotter = AlgorithmPlotter(
+        self.algorithm_plotter = AlgorithmPlotter(
             display_fig_size=(self.config.get_config_value('display.fig_size_x', int), self.config.get_config_value('display.fig_size_y', int)),
             county_line_width=self.config.get_config_value('display.county_line_width', float),
             show_display=self.config.get_config_value('algo_display.show_display', bool),
@@ -22,13 +22,11 @@ class AlgorithmHandler:
         self.polygon_factory_ = polygon_factory_
 
     def plot_element(self, element: visualization_elements.VisualizationElement):
-        self.algo_map_plotter.plot_element(element)
-        if issubclass(type(element), visualization_elements.DualVisualizationElement):
-            self.rtree_analyzer_.add_visualization_element(visualization_element=element,
-                                                          poly=element.algorithm_poly)
-        else:
-            self.rtree_analyzer_.add_visualization_element(visualization_element=element,
-                                                          poly=element.poly)
+        self.algorithm_plotter.plot_element(element)
+
+    def add_element_to_algorithm(self, element: visualization_elements.VisualizationElement):
+        self.rtree_analyzer_.add_visualization_element(visualization_element=element,
+                                                       poly=element.poly)
 
     def find_best_polygon(self, city_element: visualization_elements.CityScatter,
                           text_box_element: visualization_elements.CityTextBox, city_buffer: int, number_of_steps: int):
@@ -53,5 +51,5 @@ class AlgorithmHandler:
                 best = vis_element
         logging.info(f"Found best poly for {city_element.city_name}.")
 
-        self.rtree_analyzer_.add_visualization_element(visualization_element=best,
-                                                       poly=best.poly)
+        self.add_element_to_algorithm(element=best)
+        self.plot_element(element=best)
