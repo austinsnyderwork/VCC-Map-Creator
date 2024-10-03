@@ -1,7 +1,7 @@
 import logging
 
 import algorithm
-from algorithm import rtree_analyzer
+from algorithm import algorithm_functions, rtree_analyzer
 import config_manager
 import polygons
 from polygons import city_text_box_manager, polygon_functions, polygon_factory
@@ -28,38 +28,54 @@ class CityScanner:
 
         self.intersecting_polygon_patches = []
 
+    @staticmethod
+    def _fill_intersections_data(intersections_data, intersecting_vis_elements, city_text_box):
+        num_intersections = len(intersecting_vis_elements)
+        if num_intersections < intersections_data['lowest_intersections']:
+            intersections_data['lowest_intersections'] = num_intersections
+            intersections_data['lowest_intersection_vis_elements'] = [city_text_box]
+        elif num_intersections == intersections_data['lowest_intersections']:
+            intersections_data['lowest_intersection_vis_elements'].append(city_text_box)
+
     def _run_initial_scan(self, rtree_analyzer_: rtree_analyzer.RtreeAnalyzer):
         city_text_boxes = self._create_city_text_boxes_surrounding_city()
-        lowest_intersections_data = {
+        ideal_lowest_intersections_data = {
+            'lowest_intersections': 100,
+            'lowest_intersection_vis_elements': []
+        }
+        all_lowest_intersections_data = {
             'lowest_intersections': 100,
             'lowest_intersection_vis_elements': []
         }
         for city_text_box in city_text_boxes:
-            intersecting_vis_elements = algorithm.helper_functions.get_intersecting_vis_elements(
+            intersecting_vis_elements = algorithm_functions.get_intersecting_vis_elements(
                 rtree_analyzer_=rtree_analyzer_,
                 city_text_box=city_text_box,
                 ignore_elements=[
                     self.city_scatter_element])
             nonstarter_intersections = [vis_element for vis_element in intersecting_vis_elements
                                         if type(vis_element) is Best or type(vis_element) is CityScatter]
-            if len(nonstarter_intersections) > 0:
-                continue
+            ideal = len(nonstarter_intersections) == 0
 
             yield city_text_box
 
             for vis_element in intersecting_vis_elements:
                 intersection = thing_converter.convert_visualization_element(vis_element=vis_element,
-                                                                             desired_type=Intersection)
+                                                                             desired_type=Intersection,
+                                                                             default_poly=vis_element.default_poly)
                 yield intersection
 
-            num_intersections = len(intersecting_vis_elements)
-            if num_intersections < lowest_intersections_data['lowest_intersections']:
-                lowest_intersections_data['lowest_intersections'] = num_intersections
-                lowest_intersections_data['lowest_intersection_vis_elements'] = [city_text_box]
-            elif num_intersections == lowest_intersections_data['lowest_intersections']:
-                lowest_intersections_data['lowest_intersection_vis_elements'].append(city_text_box)
+            self._fill_intersections_data(all_lowest_intersections_data, intersecting_vis_elements,
+                                          city_text_box)
+            if ideal:
+                self._fill_intersections_data(ideal_lowest_intersections_data, intersecting_vis_elements,
+                                              city_text_box)
 
-        for vis_element in lowest_intersections_data['lowest_intersection_vis_elements']:
+        if len(ideal_lowest_intersections_data['lowest_intersection_vis_elements']) > 0:
+            lowest_intersections_vis_eles = ideal_lowest_intersections_data['lowest_intersection_vis_elements']
+        else:
+            lowest_intersections_vis_eles = all_lowest_intersections_data['lowest_intersection_vis_elements']
+        for vis_element in lowest_intersections_vis_eles:
             finalist = thing_converter.convert_visualization_element(vis_element=vis_element,
                                                                      desired_type=TextBoxFinalist,
                                                                      poly=vis_element.poly)
@@ -70,7 +86,7 @@ class CityScanner:
         city_box = box_geometry.BoxGeometry(dimensions=city_scatter_bounds)
         city_box.add_buffer(self.city_buffer)
 
-        algorithm.helper_functions.move_text_box_to_bottom_left_city_box_corner(text_box=self.text_box,
+        algorithm_functions.move_text_box_to_bottom_left_city_box_corner(text_box=self.text_box,
                                                                                 city_box=city_box)
         city_perimeter = (2 * city_box.height) + (2 * city_box.width)
         perimeter_movement_amount = city_perimeter / self.number_of_search_steps
@@ -120,17 +136,15 @@ class CityScanner:
 
     def _determine_best_finalist(self, finalists: list[visualization_elements.TextBoxFinalist], rtree_analyzer_,
                                  vis_elements_to_ignore: list) -> visualization_elements.VisualizationElement:
-        farthest_finalist = None
-        farthest_distance = 0.0
+        vis_element_distances = {}
         for finalist in finalists:
             min_distance, closest_vis_elements = rtree_analyzer_.get_closest_visualization_elements(
                 query_poly=finalist.poly,
                 vis_elements_to_ignore=vis_elements_to_ignore)
-            if min_distance > farthest_distance:
-                farthest_distance = min_distance
-                farthest_finalist = finalist
-
-        return farthest_finalist
+            vis_element_distances[min_distance] = finalist
+        farthest_distance = max(list(vis_element_distances.keys()))
+        best_finalist = vis_element_distances[farthest_distance]
+        return best_finalist
 
     def find_best_poly(self, rtree_analyzer_: rtree_analyzer.RtreeAnalyzer):
         finalists = []

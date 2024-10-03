@@ -49,13 +49,37 @@ def _add_coords(coord1, coord2):
 
 
 def shorten_line(x_data, y_data, line_length_reduction_percent=15.0):
+    # Ensure we have exactly two points
+    if len(x_data) != 2 or len(y_data) != 2:
+        raise ValueError("x_data and y_data must contain exactly two points.")
 
-    coord_1 = x_data[0], y_data[0]
-    coord_2 = x_data[1], y_data[1]
-    new_coord_1 = _add_coords(_mult_coord(1 - line_length_reduction_percent, coord_1), _mult_coord(line_length_reduction_percent, coord_2))
-    new_coord_2 = _add_coords(_mult_coord(line_length_reduction_percent, coord_1), _mult_coord(1 - line_length_reduction_percent, coord_2))
+    # Extract the coordinates
+    x1, y1 = x_data[0], y_data[0]
+    x2, y2 = x_data[1], y_data[1]
 
-    x_data = new_coord_1[0], new_coord_2[0]
-    y_data = new_coord_1[1], new_coord_2[1]
-    return x_data, y_data
+    # Calculate the length of the line
+    length = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+
+    # Calculate the reduction length
+    reduction_length = length * (100 - line_length_reduction_percent) / 100
+
+    # Calculate the new length
+    new_length = length - reduction_length
+
+    # Calculate the direction vector
+    dx = x2 - x1
+    dy = y2 - y1
+
+    # Normalize the direction vector
+    norm = math.sqrt(dx ** 2 + dy ** 2)
+    dx /= norm
+    dy /= norm
+
+    # Calculate the new endpoints
+    new_x1 = x1 + dx * (new_length / 2)
+    new_y1 = y1 + dy * (new_length / 2)
+    new_x2 = x2 - dx * (new_length / 2)
+    new_y2 = y2 - dy * (new_length / 2)
+
+    return [new_x1, new_x2], [new_y1, new_y2]
 

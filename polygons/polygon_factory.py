@@ -45,19 +45,20 @@ class PolygonFactory:
                     **kwargs)
         return poly
 
-    def _create_line_polygon(self, vis_element: visualization_elements.Line,
-                             **kwargs) -> Polygon:
-        x_data = vis_element.x_data
-        y_data = vis_element.y_data
+    def _create_line_polygon(self, vis_element: visualization_elements.Line, x_data: tuple = None, y_data: tuple = None,
+                             linewidth = None, **kwargs) -> Polygon:
+        x_data = x_data if x_data else vis_element.x_data
+        y_data = y_data if y_data else vis_element.y_data
+        linewidth = linewidth if linewidth else vis_element.map_linewidth
         slope = (y_data[1] - y_data[0]) / (x_data[1] - x_data[0])
         perpendicular_slope = -1 / slope
 
         poly_coords = []
         for coord in zip(x_data, y_data):
             new_coord_0 = polygon_functions.move_coordinate(coord[0], coord[1], slope=perpendicular_slope,
-                                                            distance=vis_element.map_linewidth / 2)
+                                                            distance=linewidth / 2)
             new_coord_1 = polygon_functions.move_coordinate(coord[0], coord[1], slope=-perpendicular_slope,
-                                                            distance=vis_element.map_linewidth / 2)
+                                                            distance=linewidth / 2)
             poly_coords.append(new_coord_0)
             poly_coords.append(new_coord_1)
 

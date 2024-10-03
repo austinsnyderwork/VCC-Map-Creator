@@ -6,7 +6,6 @@ from things import box_geometry
 from things.visualization_elements import visualization_elements
 
 
-
 def get_intersecting_vis_elements(rtree_analyzer_: rtree_analyzer.RtreeAnalyzer, city_text_box: visualization_elements.CityTextBox,
                                   ignore_elements: list[visualization_elements.VisualizationElement] = None) -> list:
     intersection_indices = list(rtree_analyzer_.rtree_idx.intersection(city_text_box.algorithm_poly.bounds))

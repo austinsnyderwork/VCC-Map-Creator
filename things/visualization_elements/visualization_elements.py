@@ -11,6 +11,9 @@ class VisualizationElement:
         for k, v in kwargs.items():
             self.__setattr__(k, v)
 
+    def get_map_attributes(self):
+        return self.__dict__
+
     @property
     def default_poly(self):
         return self.poly
@@ -50,6 +53,12 @@ class DualVisualizationElement(VisualizationElement):
         for k, v in kwargs.items():
             if not hasattr(self.algorithm_data, k) and not hasattr(self.map_data, k):
                 setattr(self, k, v)
+
+    def get_map_attributes(self):
+        data = self.__dict__
+        for k, v in self.map_data.__dict__.items():
+            data[k] = v
+        return data
 
     @property
     def default_poly(self):
@@ -122,6 +131,10 @@ class Line(DualVisualizationElement):
                          map_data_class=LineMapData,
                          **kwargs)
 
+    @property
+    def class_string(self):
+        return "Line"
+
 
 class CityScatterAlgorithmData:
 
@@ -147,6 +160,10 @@ class CityScatter(DualVisualizationElement):
                          **kwargs)
         self.city_name = get_kwarg(kwargs, 'city_name', None)
         self.site_type = get_kwarg(kwargs, 'site_type', None)
+
+    @property
+    def class_string(self):
+        return "CityScatter"
 
 
 class CityTextBoxAlgorithmData:
@@ -202,7 +219,7 @@ class TextBoxNearbySearchArea(VisualizationElement):
 
 class TextBoxFinalist(VisualizationElement):
 
-    def __init__(self, poly, **kwargs):
+    def __init__(self, poly=None, **kwargs):
         super().__init__(**kwargs)
         self.poly = poly
 
@@ -211,6 +228,10 @@ class Best(VisualizationElement):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+    @property
+    def class_string(self):
+        return "Best"
 
 
 class Intersection(VisualizationElement):

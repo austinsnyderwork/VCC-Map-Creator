@@ -3,7 +3,7 @@ from typing import Union
 import algorithm
 import config_manager
 from . import PlotController
-from things.visualization_elements import visualization_elements
+from things.visualization_elements import Line, CityScatter, Best, visualization_elements
 import map
 
 
@@ -15,16 +15,21 @@ class PlotManager:
         self.map_plotter = map_plotter
         self.plot_controller = plot_controller
 
+        self.plotted_elements = []
+
     def _get_zorder(self, vis_element_type):
         type_zorder_map = {
             visualization_elements.CityScatter: self.config.get_config_value('map_display.scatter_zorder', int),
             visualization_elements.Line: self.config.get_config_value('map_display.line_zorder', int),
-            visualization_elements.TextBoxScan: self.config.get_config_value('map_display.text_zorder', int)
+            visualization_elements.Best: self.config.get_config_value('map_display.text_zorder', int)
         }
 
         return type_zorder_map[vis_element_type]
 
     def attempt_plot(self, vis_element: visualization_elements.VisualizationElement, display_types: list[str] = ['algorithm', 'map']):
+        final_ele_types = [Line, CityScatter, Best]
+        if type(vis_element) in final_ele_types:
+            self.plotted_elements.append(vis_element)
         if 'algorithm' in display_types and self.plot_controller.should_display(
                 visualization_element=vis_element,
                 display_type='algorithm'):

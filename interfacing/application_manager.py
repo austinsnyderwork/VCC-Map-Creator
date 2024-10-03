@@ -78,12 +78,23 @@ class ApplicationManager:
         self.city_origin_network_handler.fill_city_origin_networks(entities_manager=self.entities_manager)
         logging.info("Finished startup.")
 
+    def get_powerbi_output(self):
+        vis_elements = self.algorithm_handler.plotted_vis_elements
+        all_column_names = {vis_element_type: set() for vis_element_type in vis_elements.keys()}
+        for vis_element_type, typed_elements in vis_elements.items():
+            col_names = set()
+            for ele in typed_elements:
+                new_cols = set(ele.__dict__.keys())
+                col_names.update(new_cols)
+            all_column_names[vis_element_type].update(col_names)
+
+
     def _convert_entity(self, entity: entities.Entity, conditions_map) \
             -> Union[visualization_elements.Line, visualization_elements.CityScatterAndText, None]:
         conditional_vis_element = None
         if type(entity) in conditions_map.entity_types:
             conditional_vis_element = conditions_map.get_visualization_element_for_condition(entity=entity,
-                                                                                              **entity.__dict__)
+                                                                                             **entity.__dict__)
             if not conditional_vis_element:
                 return
 
@@ -171,11 +182,16 @@ class ApplicationManager:
 
         # Now we search for the best coordinate for each CityTextBox visualization element
         for city_scatter_and_text in self.visualization_elements_manager.city_scatter_and_texts.values():
-            for vis_element in self.algorithm_handler.find_best_polygon(city_element=city_scatter_and_text.city_scatter,
-                                                                        text_box_element=city_scatter_and_text.city_text_box):
+            for vis_element in self.algorithm_handler.find_best_polygon(
+                    city_element=city_scatter_and_text.city_scatter,
+                    text_box_element=city_scatter_and_text.city_text_box,
+                    city_buffer=self.config.get_config_value('algorithm.city_to_text_box_buffer', int),
+                    number_of_steps=self.config.get_config_value('algorithm.search_steps', int)):
                 plotter.attempt_plot(vis_element=vis_element)
 
         plt.show(block=True)
+
+        return plotter.plotted_elements
 
     def create_number_of_visiting_providers_map(self):
         logging.info("Creating number of providers by visiting site map.")
@@ -211,3 +227,5 @@ class ApplicationManager:
                 plotter.attempt_plot(vis_element=vis_element)
 
         plt.show(block=True)
+
+        return plotter.plotted_elements

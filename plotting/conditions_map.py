@@ -125,19 +125,22 @@ class HighestCityVisitingVolumeConditions(ConditionsMap):
         self.entity_types = [entities.City, entities.ProviderAssignment]
 
     def _create_visualization_elements(self, config, visualization_element_data: dict):
-        visualization_element_1 = visualization_elements.CityScatter(
+        visualization_element_1a = visualization_elements.CityScatter(
             size=config.get_config_value('num_visiting_providers.range_1_scatter_size', int),
             color=config.get_config_value('num_visiting_providers.range_1_color', str)
         )
         if visualization_element_data and visualization_elements.CityScatter in visualization_element_data:
             for k, v in visualization_element_data[visualization_elements.CityScatter].items():
-                setattr(visualization_element_1, k, v)
+                setattr(visualization_element_1a, k, v)
+        visualization_element_1b = visualization_elements.CityTextBox()
+        vis_element_1 = CityScatterAndText(city_scatter=visualization_element_1a,
+                                           city_text_box=visualization_element_1b)
 
         visualization_element_2 = visualization_elements.Line()
         if visualization_element_data and visualization_elements.Line in visualization_element_data:
             for k, v in visualization_element_data[visualization_elements.Line].items():
                 setattr(visualization_element_2, k, v)
-        visualization_elements_ = [visualization_element_1, visualization_element_2]
+        visualization_elements_ = [vis_element_1, visualization_element_2]
         return visualization_elements_
 
     @apply_to_type(entities.City)

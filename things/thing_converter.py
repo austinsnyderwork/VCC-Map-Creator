@@ -16,18 +16,23 @@ def _get_setting(variable: str, default, **kwargs):
 
 def convert_visualization_element(vis_element: visualization_elements.VisualizationElement, desired_type,
                                   **extra_vis_element_data):
-    new_data = extra_vis_element_data
-    vis_element_is_dual_vis_element = issubclass(desired_type, visualization_elements.DualVisualizationElement)
-    algo_data_substring = 'algorithm_' if vis_element_is_dual_vis_element else ''
-    map_data_substring = 'map_' if vis_element_is_dual_vis_element else ''
+    new_vis_element = desired_type()
+    for k, v in extra_vis_element_data.items():
+        setattr(new_vis_element, k, v)
+    vis_element_is_dual_vis_element = issubclass(type(vis_element), visualization_elements.DualVisualizationElement)
+    desired_type_is_dual_vis_element = issubclass(desired_type, visualization_elements.DualVisualizationElement)
     for k, v in vis_element.__dict__.items():
-        new_data[k] = v
+        if k in ('algorithm_data', 'map_data') and not desired_type_is_dual_vis_element:
+            continue
+        setattr(new_vis_element, k, v)
     if vis_element_is_dual_vis_element:
-        for k, v in vis_element.algorithm_data.__dict__.items():
-            new_data[f"{algo_data_substring}{k}"] = v
-        for k, v in vis_element.map_data.__dict__.items():
-            new_data[f"{map_data_substring}{k}"] = v
-    new_vis_element = desired_type(**new_data)
+        if not desired_type_is_dual_vis_element:
+            for k, v in vis_element.algorithm_data.__dict__.items():
+                k = k.replace('algorithm_', '')
+                setattr(new_vis_element, k, v)
+            for k, v in vis_element.map_data.__dict__.items():
+                k = k.replace('map_', '')
+                setattr(new_vis_element, k, v)
     return new_vis_element
 
 
