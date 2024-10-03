@@ -29,3 +29,23 @@ class ConfigManager:
             list_ = [item.strip() for item in value.split(',')]
             return list_
         return cast_type(value)
+
+    def get_config_values(self, key, subkeys, cast_types):
+        if not ConfigManager._instance:
+            ConfigManager()
+
+        nest = self.config[key]
+
+        outputs = []
+        for subkey, cast_type in zip(subkeys, cast_types):
+            value = nest[subkey]
+
+            if cast_type is bool:
+                outputs.append(True if value == 'True' else False)
+            elif cast_type is list:
+                list_ = [item.strip() for item in value.split(',')]
+                outputs.append(list_)
+            else:
+                outputs.append(cast_type(value))
+        return outputs
+

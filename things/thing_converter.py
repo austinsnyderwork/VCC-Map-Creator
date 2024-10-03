@@ -266,7 +266,7 @@ class ThingConverter:
             'map_edgecolor': map_color,
             'algorithm_color': algorithm_color,
             'algorithm_edgecolor': algorithm_color,
-            'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_line_poly', bool)
+            'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_line', bool)
         }
         self.provider_assignments_data_agg[(frozenset([assignment_entity.origin_city_name,
                                                        assignment_entity.visiting_city_name]))] = line_data

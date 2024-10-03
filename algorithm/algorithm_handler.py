@@ -14,6 +14,7 @@ class AlgorithmHandler:
     def __init__(self, config: config_manager.ConfigManager, polygon_factory_: polygon_factory.PolygonFactory):
         self.config = config
         self.algorithm_plotter = AlgorithmPlotter(
+            config=config,
             display_fig_size=(self.config.get_config_value('display.fig_size_x', int), self.config.get_config_value('display.fig_size_y', int)),
             county_line_width=self.config.get_config_value('display.county_line_width', float),
             show_display=self.config.get_config_value('algo_display.show_display', bool),

@@ -47,10 +47,23 @@ def reduce_line_length(x_data, y_data, line_reduction_units) -> tuple[tuple, tup
 
 def move_text_box_to_bottom_left_city_box_corner(text_box: box_geometry.BoxGeometry,
                                                  city_box: box_geometry.BoxGeometry):
-    x_distance = city_box.width + (text_box.x_max - city_box.x_max)
-    y_distance = city_box.height - (text_box.y_max - city_box.y_max)
-    text_box.move_box('left', x_distance)
-    text_box.move_box('down', y_distance)
+    # Text box to the right of city box
+    if text_box.x_max > city_box.x_max:
+        x_distance = text_box.x_max - city_box.x_min
+        text_box.move_box('left', x_distance)
+    # Text box to the left of city box
+    else:
+        x_distance = city_box.x_min - text_box.x_max
+        text_box.move_box('right', x_distance)
+
+    # Text box above city box
+    if text_box.y_max > city_box.y_max:
+        y_distance = text_box.y_max - city_box.y_min
+        text_box.move_box('down', y_distance)
+    else:
+        # Text box below city box
+        y_distance = city_box.y_min - text_box.y_max
+        text_box.move_box('up', y_distance)
 
 
 def verify_poly_validity(poly, name):
