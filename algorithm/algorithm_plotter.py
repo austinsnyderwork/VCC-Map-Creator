@@ -117,7 +117,7 @@ class AlgorithmPlotter:
         value = getattr(vis_element, f'{variable}') if hasattr(vis_element, f'{variable}') else default_plot_values[plot_key]
         return value
     @check_show_display
-    def plot_element(self, vis_element: visualization_elements.VisualizationElement):
+    def plot_element(self, vis_element: visualization_elements.VisualizationElement, poly_override=None):
         attr_prefix = 'algorithm_' if issubclass(type(vis_element),
                                                  visualization_elements.DualVisualizationElement) else ''
         edgecolor = self._get_plot_value(vis_element, f"{attr_prefix}edgecolor", 'color')
@@ -128,7 +128,10 @@ class AlgorithmPlotter:
         immediately_remove = self._get_plot_value(vis_element, f"{attr_prefix}immediately_remove", 'immediately_remove')
 
         logging.info(f"Plotting visualization element: {vis_element}")
-        polygon_coords = list(getattr(vis_element, f"{attr_prefix}poly").exterior.coords)
+        if poly_override:
+            polygon_coords = list(poly_override.exterior.coords)
+        else:
+            polygon_coords = list(vis_element.default_poly.exterior.coords)
 
         # Create a Polygon patch
         polygon_patch = patches.Polygon(polygon_coords, closed=True, fill=True, edgecolor=edgecolor,

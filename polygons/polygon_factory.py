@@ -4,7 +4,8 @@ import numpy as np
 from shapely.geometry import Polygon
 from typing import Type
 
-from polygons import helper_functions
+from .polygon_functions import shorten_line
+from polygons import polygon_functions
 from things import box_geometry
 from things.visualization_elements import visualization_elements
 
@@ -44,19 +45,19 @@ class PolygonFactory:
                     **kwargs)
         return poly
 
-    def _create_line_polygon(self, vis_element: visualization_elements.Line, **kwargs) -> Polygon:
+    def _create_line_polygon(self, vis_element: visualization_elements.Line,
+                             **kwargs) -> Polygon:
         x_data = vis_element.x_data
         y_data = vis_element.y_data
-
         slope = (y_data[1] - y_data[0]) / (x_data[1] - x_data[0])
         perpendicular_slope = -1 / slope
 
         poly_coords = []
         for coord in zip(x_data, y_data):
-            new_coord_0 = helper_functions.move_coordinate(coord[0], coord[1], slope=perpendicular_slope,
-                                                           distance=vis_element.map_linewidth / 2)
-            new_coord_1 = helper_functions.move_coordinate(coord[0], coord[1], slope=-perpendicular_slope,
-                                                           distance=vis_element.map_linewidth / 2)
+            new_coord_0 = polygon_functions.move_coordinate(coord[0], coord[1], slope=perpendicular_slope,
+                                                            distance=vis_element.map_linewidth / 2)
+            new_coord_1 = polygon_functions.move_coordinate(coord[0], coord[1], slope=-perpendicular_slope,
+                                                            distance=vis_element.map_linewidth / 2)
             poly_coords.append(new_coord_0)
             poly_coords.append(new_coord_1)
 
@@ -99,7 +100,8 @@ class PolygonFactory:
             elif _has_attributes(vis_element, attributes_3):
                 x_min, y_min, x_max, y_max = _get_attributes(vis_element, attributes_3)
             else:
-                raise ValueError(f"Could not find attributes in this visualization element to create a rectangle polygon")
+                raise ValueError(
+                    f"Could not find attributes in this visualization element to create a rectangle polygon")
         elif box:
             x_min = box.x_min
             y_min = box.y_min

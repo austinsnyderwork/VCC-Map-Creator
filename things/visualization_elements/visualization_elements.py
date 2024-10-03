@@ -15,6 +15,10 @@ class VisualizationElement:
     def default_poly(self):
         return self.poly
 
+    @default_poly.setter
+    def default_poly(self, value):
+        self.poly = value
+
 
 def which_class(s):
     # Find the position of the first underscore
@@ -50,6 +54,10 @@ class DualVisualizationElement(VisualizationElement):
     @property
     def default_poly(self):
         return self.algorithm_data.poly
+
+    @default_poly.setter
+    def default_poly(self, value):
+        self.algorithm_data.poly = value
 
 
     @property

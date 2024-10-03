@@ -38,3 +38,24 @@ def get_poly_bounds(poly):
         'x_max': x_max,
         'y_max': y_max
     }
+
+
+def _mult_coord(num, coord):
+    return coord[0] * num, coord[1] * num
+
+
+def _add_coords(coord1, coord2):
+    return coord1[0] + coord2[0], coord1[1] + coord2[1]
+
+
+def shorten_line(x_data, y_data, line_length_reduction_percent=15.0):
+
+    coord_1 = x_data[0], y_data[0]
+    coord_2 = x_data[1], y_data[1]
+    new_coord_1 = _add_coords(_mult_coord(1 - line_length_reduction_percent, coord_1), _mult_coord(line_length_reduction_percent, coord_2))
+    new_coord_2 = _add_coords(_mult_coord(line_length_reduction_percent, coord_1), _mult_coord(1 - line_length_reduction_percent, coord_2))
+
+    x_data = new_coord_1[0], new_coord_2[0]
+    y_data = new_coord_1[1], new_coord_2[1]
+    return x_data, y_data
+

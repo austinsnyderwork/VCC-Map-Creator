@@ -4,7 +4,7 @@ import algorithm
 from algorithm import rtree_analyzer
 import config_manager
 import polygons
-from polygons import city_text_box_manager, helper_functions, polygon_factory
+from polygons import city_text_box_manager, polygon_functions, polygon_factory
 from things import box_geometry, thing_converter
 from things.visualization_elements import CityScatter, CityTextBox, Intersection, \
     TextBoxFinalist, TextBoxNearbySearchArea, Best
@@ -66,7 +66,7 @@ class CityScanner:
             yield finalist
 
     def _create_city_text_boxes_surrounding_city(self) -> list[CityTextBox]:
-        city_scatter_bounds = helper_functions.get_poly_bounds(self.city_scatter_element.algorithm_poly)
+        city_scatter_bounds = polygon_functions.get_poly_bounds(self.city_scatter_element.algorithm_poly)
         city_box = box_geometry.BoxGeometry(dimensions=city_scatter_bounds)
         city_box.add_buffer(self.city_buffer)
 

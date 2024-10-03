@@ -129,10 +129,7 @@ class ApplicationManager:
             poly = self.polygon_factory_.create_poly(vis_element=visualization_element,
                                                      **extra_args)
 
-            if issubclass(type(visualization_element), visualization_elements.DualVisualizationElement):
-                visualization_element.algorithm_poly = poly
-            else:
-                visualization_element.poly = poly
+            visualization_element.default_poly = poly
 
     def _create_entities(self, entities_types: list, filter_same_city_visiting_assignments: bool = False):
         entities_ = self.entities_manager.get_all_entities(entities_types)
