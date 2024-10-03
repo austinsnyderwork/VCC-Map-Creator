@@ -65,7 +65,7 @@ class MapPlotter:
         return obj
 
     def _plot_point(self, scatter: visualization_elements.CityScatter, zorder: int, **kwargs):
-        scatter_obj = self.ax.scatter(scatter.coord[0], scatter.coord[1], marker=scatter.marker, color=scatter.color,
+        scatter_obj = self.ax.scatter(scatter.city_coord[0], scatter.city_coord[1], marker=scatter.marker, color=scatter.color,
                                       edgecolor=scatter.edgecolor, s=scatter.size, label=scatter.label, zorder=zorder,
                                       **kwargs)
 
@@ -97,7 +97,7 @@ class MapPlotter:
 
     def get_text_box_dimensions(self, city: entities.City, font_size: int, font: str, font_weight: str) -> dict:
         # We don't want Iowa cities to have the state abbreviation
-        city_name = city.name.replace(', IA', '')
+        city_name = city.city_name.replace(', IA', '')
         city_text = plt.text(0, 0, city_name, fontsize=font_size, font=font, ha='center', va='center',
                              color='black', fontweight=font_weight)
         self.fig.canvas.draw()

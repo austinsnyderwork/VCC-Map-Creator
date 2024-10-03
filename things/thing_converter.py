@@ -14,25 +14,34 @@ def _get_setting(variable: str, default, **kwargs):
         return default
 
 
-def convert_visualization_element(vis_element: visualization_elements.VisualizationElement, desired_type,
-                                  **extra_vis_element_data):
-    new_vis_element = desired_type()
+def _set_attr(obj, k, v):
+    if not hasattr(obj, k) or getattr(obj, k) is None:
+        setattr(obj, k, v)
+
+
+def convert_visualization_element(vis_element: visualization_elements.VisualizationElement, desired_type=None,
+                                  new_vis_element=None, **extra_vis_element_data):
+    if new_vis_element:
+        desired_type = type(new_vis_element)
+    else:
+        new_vis_element = desired_type()
+
     for k, v in extra_vis_element_data.items():
-        setattr(new_vis_element, k, v)
+        _set_attr(new_vis_element, k, v)
     vis_element_is_dual_vis_element = issubclass(type(vis_element), visualization_elements.DualVisualizationElement)
     desired_type_is_dual_vis_element = issubclass(desired_type, visualization_elements.DualVisualizationElement)
     for k, v in vis_element.__dict__.items():
         if k in ('algorithm_data', 'map_data') and not desired_type_is_dual_vis_element:
             continue
-        setattr(new_vis_element, k, v)
+        _set_attr(new_vis_element, k, v)
     if vis_element_is_dual_vis_element:
         if not desired_type_is_dual_vis_element:
             for k, v in vis_element.algorithm_data.__dict__.items():
                 k = k.replace('algorithm_', '')
-                setattr(new_vis_element, k, v)
+                _set_attr(new_vis_element, k, v)
             for k, v in vis_element.map_data.__dict__.items():
                 k = k.replace('map_', '')
-                setattr(new_vis_element, k, v)
+                _set_attr(new_vis_element, k, v)
     return new_vis_element
 
 
@@ -64,47 +73,47 @@ class DataConvertMap:
             'algorithm': self.config.get_config_value('algo_display.line_color', str)
         }
 
-        self._entity_to_vis_element_variables_conversion = {
-            visualization_elements.CityScatter: {
-                'name': 'city_name',
-                'coord': 'coord'
-            },
-            visualization_elements.CityTextBox: {
-                'name': 'city_name',
-                'coord': 'coord'
-            }
-        }
-
         self._vis_element_algo_configs = {
             visualization_elements.CityScatter: {
-                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_scatter', bool)
+                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_scatter',
+                                                                             bool)
             },
             visualization_elements.Line: {
-                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_line', bool)
+                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_line',
+                                                                             bool)
             },
             visualization_elements.CityTextBox: {
-                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_scan_poly', bool),
+                'algorithm_immediately_remove': self.config.get_config_value(
+                    'algo_display.immediately_remove_scan_poly', bool),
                 'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_scan_poly', bool)
             },
             visualization_elements.TextBoxScanArea: {
-                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_scan_area_poly', bool),
-                'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_scan_area_poly', bool)
+                'algorithm_immediately_remove': self.config.get_config_value(
+                    'algo_display.immediately_remove_scan_area_poly', bool),
+                'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_scan_area_poly',
+                                                                      bool)
             },
             visualization_elements.Intersection: {
-                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_intersecting_poly', bool),
-                'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_intersecting_poly', bool)
+                'algorithm_immediately_remove': self.config.get_config_value(
+                    'algo_display.immediately_remove_intersecting_poly', bool),
+                'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_intersecting_poly',
+                                                                      bool)
             },
             visualization_elements.Best: {
-                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_best_poly', bool),
+                'algorithm_immediately_remove': self.config.get_config_value(
+                    'algo_display.immediately_remove_best_poly', bool),
                 'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_best_poly', bool)
             },
             visualization_elements.TextBoxFinalist: {
-                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_poly_finalist', bool),
+                'algorithm_immediately_remove': self.config.get_config_value(
+                    'algo_display.immediately_remove_poly_finalist', bool),
                 'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_poly_finalist', bool)
             },
             visualization_elements.TextBoxNearbySearchArea: {
-                'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_nearby_search_poly', bool),
-                'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_nearby_search_poly', bool)
+                'algorithm_immediately_remove': self.config.get_config_value(
+                    'algo_display.immediately_remove_nearby_search_poly', bool),
+                'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_nearby_search_poly',
+                                                                      bool)
             }
         }
 
@@ -121,12 +130,6 @@ class DataConvertMap:
             color_output = self._line_color_map[display_type]
         return color_output
 
-    def get_variable_conversions(self, entity_type):
-        if entity_type in self._entity_to_vis_element_variables_conversion:
-            return self._entity_to_vis_element_variables_conversion[entity_type]
-        else:
-            return {}
-        
     def get_algorithm_config_data(self, visualization_element: visualization_elements.VisualizationElement):
         return self._vis_element_algo_configs[type(visualization_element)]
 
@@ -155,22 +158,27 @@ class ThingConverter:
             visualization_elements.Line: self._produce_line_data
         }
 
+        self.variables_to_pull = {
+            entities.City: ['city_coord', 'city_name'],
+            entities.ProviderAssignment: ['origin_city_name', 'visiting_city_name']
+        }
+
         self.provider_assignments_data_agg = {}
 
     def fill_in_data(self, visualization_element: visualization_elements.VisualizationElement, entity: entities.Entity,
                      **kwargs):
-        entity_to_vis_ele_variables = self.data_converter_map.get_variable_conversions(type(visualization_element))
-        for entity_variable, visualization_variable in entity_to_vis_ele_variables.items():
-            new_value = getattr(entity, entity_variable)
-            setattr(visualization_element, visualization_variable, new_value)
+        variables_to_pull = self.variables_to_pull[type(entity)]
+        for variable in variables_to_pull:
+            setattr(visualization_element, variable, getattr(entity, variable))
 
         vis_element_data_func = self.vis_element_data_func_map[type(visualization_element)]
         vis_element_data = vis_element_data_func(entity, **kwargs)
         for key, value in vis_element_data.items():
             if not hasattr(visualization_element, key) or getattr(visualization_element, key) is None:
                 setattr(visualization_element, key, value)
-                
-        vis_element_algo_configs = self.data_converter_map.get_algorithm_config_data(visualization_element=visualization_element)
+
+        vis_element_algo_configs = self.data_converter_map.get_algorithm_config_data(
+            visualization_element=visualization_element)
         for key, value in vis_element_algo_configs.items():
             if not hasattr(visualization_element, key) or getattr(visualization_element, key) is None:
                 setattr(visualization_element, key, value)
@@ -182,9 +190,10 @@ class ThingConverter:
                                            default=self.config.get_config_value('algo_display.show_scatter', bool),
                                            kwargs=kwargs),
             'algorithm_center_view': _get_setting(variable='center_view',
-                                                  default=self.config.get_config_value('algo_display.center_view_on_scatter', bool),
+                                                  default=self.config.get_config_value(
+                                                      'algo_display.center_view_on_scatter', bool),
                                                   kwargs=kwargs),
-            'city_name': city_entity.name,
+            'city_name': city_entity.city_name,
             'site_type': city_entity.site_type,
             'map_color': _get_setting(variable='color',
                                       default=self.data_converter_map.get_scatter_color(city_type,
@@ -213,7 +222,7 @@ class ThingConverter:
                                       default=city_entity.site_type,
                                       kwargs=kwargs),
             'algorithm_coord': _get_setting(variable='coord',
-                                            default=city_entity.coord,
+                                            default=city_entity.city_coord,
                                             kwargs=kwargs),
             'algorithm_transparency': _get_setting(variable='transparency',
                                                    default=self.config.get_config_value(
@@ -243,15 +252,17 @@ class ThingConverter:
         return text_box_data
 
     def _produce_line_data(self, assignment_entity: entities.ProviderAssignment, **kwargs):
-        if frozenset([assignment_entity.origin_city_name, assignment_entity.visiting_city_name]) in self.provider_assignments_data_agg:
-            line_data = self.provider_assignments_data_agg[frozenset([assignment_entity.origin_city_name, assignment_entity.visiting_city_name])]
+        if frozenset([assignment_entity.origin_city_name,
+                      assignment_entity.visiting_city_name]) in self.provider_assignments_data_agg:
+            line_data = self.provider_assignments_data_agg[
+                frozenset([assignment_entity.origin_city_name, assignment_entity.visiting_city_name])]
             return line_data
 
         origin_city_obj = self.entities_manager.get_city(assignment_entity.origin_city_name)
         visiting_city_obj = self.entities_manager.get_city(assignment_entity.visiting_city_name)
 
-        x_data = origin_city_obj.coord[0], visiting_city_obj.coord[0]
-        y_data = origin_city_obj.coord[1], visiting_city_obj.coord[1]
+        x_data = origin_city_obj.city_coord[0], visiting_city_obj.city_coord[0]
+        y_data = origin_city_obj.city_coord[1], visiting_city_obj.city_coord[1]
 
         map_color = self.data_converter_map.get_line_color(entity=assignment_entity,
                                                            display_type='map')
@@ -289,15 +300,14 @@ class ThingConverter:
             city_scatter = visualization_elements.CityScatter(**scatter_data)
 
             text_box_data = self._produce_city_text_box_data(city_entity=entity)
-            text_box = visualization_elements.CityTextBox(city_name=entity.name,
+            text_box = visualization_elements.CityTextBox(city_name=entity.city_name,
                                                           **text_box_data)
             city_scatter_and_text = CityScatterAndText(city_scatter=city_scatter,
                                                        city_text_box=text_box,
-                                                       city_name=entity.name)
+                                                       city_name=entity.city_name)
             return city_scatter_and_text
         else:
             raise RuntimeError("Unable to convert thing.")
-
 
     def convert_entities_to_visualization_elements(self, entities_: list[entities.Entity]) -> list[
         visualization_elements.VisualizationElement]:

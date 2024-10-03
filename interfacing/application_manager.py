@@ -189,8 +189,6 @@ class ApplicationManager:
                     number_of_steps=self.config.get_config_value('algorithm.search_steps', int)):
                 plotter.attempt_plot(vis_element=vis_element)
 
-        plt.show(block=True)
-
         return plotter.plotted_elements
 
     def create_number_of_visiting_providers_map(self):
@@ -225,7 +223,5 @@ class ApplicationManager:
                                                                         city_buffer=self.config.get_config_value('algorithm.city_to_text_box_buffer', int),
                                                                         number_of_steps=self.config.get_config_value('algorithm.search_steps', int)):
                 plotter.attempt_plot(vis_element=vis_element)
-
-        plt.show(block=True)
 
         return plotter.plotted_elements

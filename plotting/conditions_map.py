@@ -145,7 +145,7 @@ class HighestCityVisitingVolumeConditions(ConditionsMap):
 
     @apply_to_type(entities.City)
     def city_condition(self, entity: entities.Entity, **kwargs):
-        return entity.name in self.all_plot_cities
+        return entity.city_name in self.all_plot_cities
 
     @apply_to_type(entities.ProviderAssignment)
     def line_condition(self, entity: entities.Entity, **kwargs):
@@ -210,7 +210,7 @@ class NumberOfVisitingProvidersConditions(ConditionsMap):
         range_1_min = self.config.get_config_value('num_visiting_providers.range_1_min', int)
         range_1_max = self.config.get_config_value('num_visiting_providers.range_1_max', int)
 
-        logging.info(f"Found {len(entity.visiting_providers)} visiting providers for {entity.name}")
+        logging.info(f"Found {len(entity.visiting_providers)} visiting providers for {entity.city_name}")
         return range_1_min < len(entity.visiting_providers) < range_1_max
 
     @apply_to_type(entities.City)

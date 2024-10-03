@@ -9,13 +9,13 @@ def generate_key(entity_type=None, entity: entities.Entity = None, **kwargs):
         entity_type = type(entity)
 
     if entity_type is entities.City:
-        return entities.City, kwargs['name']
+        return entities.City, kwargs['city_name']
     elif entity_type is entities.ProviderAssignment:
         return entities.ProviderAssignment, kwargs['origin_site_name'], kwargs['visiting_site_name']
     elif entity_type is entities.VccClinicSite:
-        return entities.VccClinicSite, kwargs['city_name'], kwargs['name']
+        return entities.VccClinicSite, kwargs['city_name'], kwargs['site_name']
     elif entity_type is entities.Provider:
-        return entities.Provider, kwargs['name']
+        return entities.Provider, kwargs['provider_name']
     else:
         raise ValueError(f"Could not generate key for entity.\nKwargs: {kwargs}")
 
@@ -54,15 +54,15 @@ class EntitiesManager:
 
     def get_city(self, name: str):
         container = self.entities_containers[entities.City]
-        return container.get_thing(entities.City, name=name)
+        return container.get_thing(entities.City, city_name=name)
 
     def get_vcc_clinic_site(self, name: str, city_name: str):
         container = self.entities_containers[entities.VccClinicSite]
-        return container.get_thing(entities.VccClinicSite, name=name, city_name=city_name)
+        return container.get_thing(entities.VccClinicSite, site_name=name, city_name=city_name)
 
     def get_provider(self, name: str):
         container = self.entities_containers[entities.Provider]
-        return container.get_thing(entities.VccClinicSite, name=name)
+        return container.get_thing(entities.VccClinicSite, provider_name=name)
 
     def contains_entity(self, entity_type, **kwargs):
         key = generate_key(entity_type=entity_type, **kwargs)

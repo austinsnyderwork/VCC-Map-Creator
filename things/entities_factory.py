@@ -8,17 +8,17 @@ from .entities import entities_manager
 def _apply_create_cities(row, coord_converter, cities: dict):
     origin_city_name = row['origin_city']
     origin_lon, origin_lat = coord_converter(coord=(row['origin_lon'], row['origin_lat']))
-    origin_key = entities_manager.generate_key(entity_type=entities.City, name=origin_city_name)
+    origin_key = entities_manager.generate_key(entity_type=entities.City, city_name=origin_city_name)
     if origin_key not in cities:
-        origin_city = entities.City(name=origin_city_name,
+        origin_city = entities.City(city_name=origin_city_name,
                                     coord=(origin_lon, origin_lat))
         cities[origin_key] = origin_city
 
     visiting_city_name = row['visiting_city']
     visiting_lon, visiting_lat = coord_converter(coord=(row['visiting_lon'], row['visiting_lat']))
-    visiting_key = entities_manager.generate_key(entity_type=entities.City, name=visiting_city_name)
+    visiting_key = entities_manager.generate_key(entity_type=entities.City, city_name=visiting_city_name)
     if visiting_key not in cities:
-        visiting_city = entities.City(name=visiting_city_name,
+        visiting_city = entities.City(city_name=visiting_city_name,
                                       coord=(visiting_lon, visiting_lat))
         cities[visiting_key] = visiting_city
 
@@ -29,10 +29,10 @@ def _apply_create_clinic_sites(row, clinics: dict):
     origin_city_coord = row['origin_lon'], row['origin_lat']
 
     key = entities_manager.generate_key(entity_type=entities.VccClinicSite,
-                                        name=origin_clinic_name,
+                                        site_name=origin_clinic_name,
                                         city_name=origin_city_name)
     if key not in clinics:
-        origin_clinic = entities.VccClinicSite(name=origin_clinic_name,
+        origin_clinic = entities.VccClinicSite(site_name=origin_clinic_name,
                                                city_name=origin_city_name,
                                                city_coord=origin_city_coord)
         clinics[key] = origin_clinic
@@ -41,10 +41,10 @@ def _apply_create_clinic_sites(row, clinics: dict):
     visiting_city_name = row['visiting_city']
     visiting_city_coord = row['visiting_lon'], row['visiting_lat']
     key = entities_manager.generate_key(entity_type=entities.VccClinicSite,
-                                        name=visiting_clinic_name,
+                                        site_name=visiting_clinic_name,
                                         city_name=visiting_city_name)
     if key not in clinics:
-        visiting_clinic = entities.VccClinicSite(name=visiting_clinic_name,
+        visiting_clinic = entities.VccClinicSite(site_name=visiting_clinic_name,
                                                  city_name=visiting_city_name,
                                                  city_coord=visiting_city_coord)
         clinics[key] = visiting_clinic

@@ -16,7 +16,7 @@ class EntityRelationshipManager:
     def _fill_clinics_with_provider_assignments(self):
         clinics_dict = {}
         for clinic in self.clinics:
-            clinics_dict[clinic.name] = clinic
+            clinics_dict[clinic.site_name] = clinic
 
         for provider_assignment in self.provider_assignments:
             origin_site = clinics_dict[provider_assignment.origin_site_name]
@@ -28,7 +28,7 @@ class EntityRelationshipManager:
     def _fill_cities_with_clinics(self):
         cities_dict = {}
         for city in self.cities:
-            cities_dict[city.name] = city
+            cities_dict[city.city_name] = city
 
         for clinic in self.clinics:
             for visiting_city_name in clinic.visiting_cities:

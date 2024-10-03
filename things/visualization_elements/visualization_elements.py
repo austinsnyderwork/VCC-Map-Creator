@@ -55,6 +55,17 @@ class DualVisualizationElement(VisualizationElement):
                 setattr(self, k, v)
 
     def get_map_attributes(self):
+        data = {}
+        for attr in dir(self):
+            # Filter out special methods and attributes
+            if not attr.startswith("__"):
+                try:
+                    # Retrieve the value using getattr()
+                    value = getattr(self, attr)
+                    data[attr] = value
+                except AttributeError:
+                    # In case we can't get the attribute, ignore it
+                    pass
         data = self.__dict__
         for k, v in self.map_data.__dict__.items():
             data[k] = v
@@ -139,7 +150,7 @@ class Line(DualVisualizationElement):
 class CityScatterAlgorithmData:
 
     def __init__(self, **kwargs):
-        self.coord = get_kwarg(kwargs, 'coord', None)
+        self.city_coord = get_kwarg(kwargs, 'city_coord', None)
 
 
 class CityScatterMapData:
@@ -204,6 +215,10 @@ class CityTextBox(DualVisualizationElement):
     def bounds(self):
         return self.poly.bounds
 
+    @property
+    def coord(self):
+        return self.poly.centroid
+
 
 class TextBoxScanArea(VisualizationElement):
 
@@ -233,6 +248,9 @@ class Best(VisualizationElement):
     def class_string(self):
         return "Best"
 
+    @property
+    def coord(self):
+        return self.poly.centroid
 
 class Intersection(VisualizationElement):
 

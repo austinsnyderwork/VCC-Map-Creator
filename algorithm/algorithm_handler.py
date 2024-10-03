@@ -6,7 +6,7 @@ import config_manager
 from algorithm.city_scanning.city_scanner import CityScanner
 from .algorithm_plotter import AlgorithmPlotter
 from polygons import polygon_functions, polygon_factory
-from things import box_geometry
+from things import box_geometry, thing_converter
 from things.visualization_elements import visualization_elements
 
 
@@ -64,6 +64,9 @@ class AlgorithmHandler:
             yield vis_element
             if type(vis_element) is visualization_elements.Best:
                 best = vis_element
+                thing_converter.convert_visualization_element(vis_element=text_box_element,
+                                                              new_vis_element=best,
+                                                              city_name=city_element.city_name)
         logging.info(f"Found best poly for {city_element.city_name}.")
 
         self.add_element_to_algorithm(element=best)

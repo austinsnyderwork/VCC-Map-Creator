@@ -8,7 +8,7 @@ class Entity(ABC):
 class Provider(Entity):
 
     def __init__(self, name: str):
-        self.name = name
+        self.provider_name = name
 
 
 class ProviderAssignment:
@@ -25,8 +25,8 @@ class ProviderAssignment:
 
 class VccClinicSite(Entity):
 
-    def __init__(self, name: str, city_name: str, city_coord: tuple):
-        self.name = name
+    def __init__(self, site_name: str, city_name: str, city_coord: tuple):
+        self.site_name = site_name
         self.city_name = city_name
         self.city_coord = city_coord
 
@@ -65,9 +65,9 @@ class VccClinicSite(Entity):
 
 class City(Entity):
 
-    def __init__(self, name: str, coord: tuple):
-        self.name = name
-        self.coord = coord
+    def __init__(self, city_name: str, coord: tuple):
+        self.city_name = city_name
+        self.city_coord = coord
 
         self.clinics = {
             'visiting': set(),
@@ -90,7 +90,7 @@ class City(Entity):
         elif len(self.clinics['visiting']):
             return 'origin'
         else:
-            raise RuntimeError(f"Attempted to define site type for city '{self.name}' without any visiting or leaving "
+            raise RuntimeError(f"Attempted to define site type for city '{self.city_name}' without any visiting or leaving "
                                f"clinics.")
 
     @property
