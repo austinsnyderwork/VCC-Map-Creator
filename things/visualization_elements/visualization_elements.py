@@ -55,17 +55,6 @@ class DualVisualizationElement(VisualizationElement):
                 setattr(self, k, v)
 
     def get_map_attributes(self):
-        data = {}
-        for attr in dir(self):
-            # Filter out special methods and attributes
-            if not attr.startswith("__"):
-                try:
-                    # Retrieve the value using getattr()
-                    value = getattr(self, attr)
-                    data[attr] = value
-                except AttributeError:
-                    # In case we can't get the attribute, ignore it
-                    pass
         data = self.__dict__
         for k, v in self.map_data.__dict__.items():
             data[k] = v
@@ -78,7 +67,6 @@ class DualVisualizationElement(VisualizationElement):
     @default_poly.setter
     def default_poly(self, value):
         self.algorithm_data.poly = value
-
 
     @property
     def poly(self):

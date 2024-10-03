@@ -64,9 +64,11 @@ class AlgorithmHandler:
             yield vis_element
             if type(vis_element) is visualization_elements.Best:
                 best = vis_element
+                centroid = vis_element.default_poly.centroid
                 thing_converter.convert_visualization_element(vis_element=text_box_element,
                                                               new_vis_element=best,
-                                                              city_name=city_element.city_name)
+                                                              city_name=city_element.city_name,
+                                                              poly_coord=(centroid.x, centroid.y))
         logging.info(f"Found best poly for {city_element.city_name}.")
 
         self.add_element_to_algorithm(element=best)

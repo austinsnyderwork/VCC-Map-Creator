@@ -279,6 +279,7 @@ class ThingConverter:
             'map_linewidth': self.config.get_config_value('map_display.linewidth', int),
             'algorithm_transparency': self.config.get_config_value('algo_display.line_transparency', float),
             'map_color': map_color,
+            'map_linestyle': '-',
             'map_edgecolor': map_color,
             'algorithm_color': algorithm_color,
             'algorithm_edgecolor': algorithm_color,
