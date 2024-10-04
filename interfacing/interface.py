@@ -21,11 +21,11 @@ class Interface:
     def create_line_map(self, **kwargs):
         self.application_manager.create_line_map(**kwargs)
 
-    def create_number_of_visiting_providers_map(self, **kwargs):
+    def create_number_of_visiting_providers_map(self, output_path: str, **kwargs):
         vis_elements = self.application_manager.create_number_of_visiting_providers_map(**kwargs)
         self.pbif.add_visualization_elements(vis_elements)
         df = self.pbif.create_df()
-        df.to_excel("C:/Users/austisnyder/programming/programming_i_o_files/visiting_providers.xlsx")
+        df.to_excel(output_path)
 
     def create_highest_volume_line_map(self, results: int):
         self.application_manager.create_highest_volume_line_map(number_of_results=results)

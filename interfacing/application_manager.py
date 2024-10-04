@@ -1,18 +1,17 @@
 import logging
-import matplotlib.pyplot as plt
 import pandas as pd
 from typing import Union
 
 from . import data_functions, helper_functions
 import algorithm
 import config_manager
-import environment_management
 from environment_management import entity_relationship_manager
 from environment_management import CityOriginNetworkHandler
 import plotting
 from polygons import polygon_factory
 import things
-from things import visualization_elements, entities_factory
+from things import visualization_elements
+from things.entities import entities_factory
 from things import entities
 import map
 
@@ -35,7 +34,7 @@ class ApplicationManager:
         self.df = df
         self.config = config_manager.ConfigManager()
         self.entities_manager = entities.EntitiesManager()
-        self.visualization_elements_manager = visualization_elements.VisualizationElementsManager()
+        self.visualization_elements_manager = visualization_elements.VisualizationElementsManager(config=self.config)
         self.polygon_factory_ = polygon_factory.PolygonFactory(
             radius_per_scatter_size=self.config.get_config_value('dimensions.units_radius_per_1_scatter_size', int),
             units_per_line_width=self.config.get_config_value('dimensions.units_per_1_linewidth', int)
@@ -222,6 +221,8 @@ class ApplicationManager:
                                                                         text_box_element=city_scatter_and_text.city_text_box,
                                                                         city_buffer=self.config.get_config_value('algorithm.city_to_text_box_buffer', int),
                                                                         number_of_steps=self.config.get_config_value('algorithm.search_steps', int)):
+                self.visualization_elements_manager.fill_element(vis_element)
                 plotter.attempt_plot(vis_element=vis_element)
 
-        return plotter.plotted_elements
+        plotted_elements = [self.visualization_elements_manager.fill_element(element) for element in plotter.plotted_elements]
+        return plotted_elements

@@ -11,7 +11,7 @@ class PowerBiOutputFormatter:
 
         self.vis_element_columns = {
             Line: ['x_data', 'y_data', 'color', 'linestyle', 'linewidth', 'zorder'],
-            CityScatter: ['coord', 'marker', 'color', 'edgecolor', 'size', 'label', 'zorder'],
+            CityScatter: ['city_coord', 'marker', 'color', 'edgecolor', 'size', 'label', 'zorder'],
             Best: ['poly_coord', 'city_name', 'fontsize', 'font', 'color', 'fontweight', 'zorder']
         }
 
