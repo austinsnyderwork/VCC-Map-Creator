@@ -2,7 +2,7 @@ import logging
 
 from things.thing_container import ThingContainer
 from .visualization_element_filler import VisualizationElementFiller
-from .visualization_elements import CityScatter, CityTextBox, Line
+from .vis_element_classes import CityScatter, CityTextBox, Line
 
 
 class CityScatterAndText:

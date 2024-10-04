@@ -4,7 +4,9 @@ from typing import Callable, Union
 from things import entities
 import config_manager
 import environment_management
-from .visualization_elements import CityScatterAndText, visualization_elements
+from .visualization_elements import (VisualizationElement, DualVisualizationElement, CityScatterAndText, Line, CityScatter,
+                                        CityTextBox, TextBoxScanArea, TextBoxNearbySearchArea, TextBoxFinalist, Intersection,
+                                        Best)
 
 
 def _get_setting(variable: str, default, **kwargs):
@@ -19,7 +21,7 @@ def _set_attr(obj, k, v):
         setattr(obj, k, v)
 
 
-def convert_visualization_element(vis_element: visualization_elements.VisualizationElement, desired_type=None,
+def convert_visualization_element(vis_element: VisualizationElement, desired_type=None,
                                   new_vis_element=None, **extra_vis_element_data):
     if new_vis_element:
         desired_type = type(new_vis_element)
@@ -28,8 +30,8 @@ def convert_visualization_element(vis_element: visualization_elements.Visualizat
 
     for k, v in extra_vis_element_data.items():
         _set_attr(new_vis_element, k, v)
-    vis_element_is_dual_vis_element = issubclass(type(vis_element), visualization_elements.DualVisualizationElement)
-    desired_type_is_dual_vis_element = issubclass(desired_type, visualization_elements.DualVisualizationElement)
+    vis_element_is_dual_vis_element = issubclass(type(vis_element), DualVisualizationElement)
+    desired_type_is_dual_vis_element = issubclass(desired_type, DualVisualizationElement)
     for k, v in vis_element.__dict__.items():
         if k in ('algorithm_data', 'map_data') and not desired_type_is_dual_vis_element:
             continue
@@ -74,42 +76,42 @@ class DataConvertMap:
         }
 
         self._vis_element_algo_configs = {
-            visualization_elements.CityScatter: {
+            CityScatter: {
                 'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_scatter',
                                                                              bool)
             },
-            visualization_elements.Line: {
+            Line: {
                 'algorithm_immediately_remove': self.config.get_config_value('algo_display.immediately_remove_line',
                                                                              bool)
             },
-            visualization_elements.CityTextBox: {
+            CityTextBox: {
                 'algorithm_immediately_remove': self.config.get_config_value(
                     'algo_display.immediately_remove_scan_poly', bool),
                 'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_scan_poly', bool)
             },
-            visualization_elements.TextBoxScanArea: {
+            TextBoxScanArea: {
                 'algorithm_immediately_remove': self.config.get_config_value(
                     'algo_display.immediately_remove_scan_area_poly', bool),
                 'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_scan_area_poly',
                                                                       bool)
             },
-            visualization_elements.Intersection: {
+            Intersection: {
                 'algorithm_immediately_remove': self.config.get_config_value(
                     'algo_display.immediately_remove_intersecting_poly', bool),
                 'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_intersecting_poly',
                                                                       bool)
             },
-            visualization_elements.Best: {
+            Best: {
                 'algorithm_immediately_remove': self.config.get_config_value(
                     'algo_display.immediately_remove_best_poly', bool),
                 'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_best_poly', bool)
             },
-            visualization_elements.TextBoxFinalist: {
+            TextBoxFinalist: {
                 'algorithm_immediately_remove': self.config.get_config_value(
                     'algo_display.immediately_remove_poly_finalist', bool),
                 'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_poly_finalist', bool)
             },
-            visualization_elements.TextBoxNearbySearchArea: {
+            TextBoxNearbySearchArea: {
                 'algorithm_immediately_remove': self.config.get_config_value(
                     'algo_display.immediately_remove_nearby_search_poly', bool),
                 'algorithm_center_view': self.config.get_config_value('algo_display.center_view_on_nearby_search_poly',
@@ -130,7 +132,7 @@ class DataConvertMap:
             color_output = self._line_color_map[display_type]
         return color_output
 
-    def get_algorithm_config_data(self, visualization_element: visualization_elements.VisualizationElement):
+    def get_algorithm_config_data(self, visualization_element: VisualizationElement):
         return self._vis_element_algo_configs[type(visualization_element)]
 
 
@@ -148,14 +150,14 @@ class ThingConverter:
                                                  city_origin_network_handler=city_origin_network_handler)
 
         self.entity_to_vis_element_map = {
-            entities.City: [visualization_elements.CityScatter, visualization_elements.CityTextBox],
-            entities.ProviderAssignment: visualization_elements.Line
+            entities.City: [CityScatter, CityTextBox],
+            entities.ProviderAssignment: Line
         }
 
         self.vis_element_data_func_map = {
-            visualization_elements.CityScatter: self._produce_city_scatter_data,
-            visualization_elements.CityTextBox: self._produce_city_text_box_data,
-            visualization_elements.Line: self._produce_line_data
+            CityScatter: self._produce_city_scatter_data,
+            CityTextBox: self._produce_city_text_box_data,
+            Line: self._produce_line_data
         }
 
         self.variables_to_pull = {
@@ -165,7 +167,7 @@ class ThingConverter:
 
         self.provider_assignments_data_agg = {}
 
-    def fill_in_data(self, visualization_element: visualization_elements.VisualizationElement, entity: entities.Entity,
+    def fill_in_data(self, visualization_element: VisualizationElement, entity: entities.Entity,
                      **kwargs):
         variables_to_pull = self.variables_to_pull[type(entity)]
         for variable in variables_to_pull:
@@ -289,19 +291,19 @@ class ThingConverter:
                                                        assignment_entity.visiting_city_name]))] = line_data
         return line_data
 
-    def convert_thing(self, entity: entities.Entity) -> Union[visualization_elements.Line, CityScatterAndText]:
+    def convert_thing(self, entity: entities.Entity) -> Union[Line, CityScatterAndText]:
         if type(entity) is entities.ProviderAssignment:
             entity: entities.ProviderAssignment
             line_data = self._produce_line_data(entity)
-            line = visualization_elements.Line(**line_data)
+            line = Line(**line_data)
             return line
         elif type(entity) is entities.City:
             entity: entities.City
             scatter_data = self._produce_city_scatter_data(entity)
-            city_scatter = visualization_elements.CityScatter(**scatter_data)
+            city_scatter = CityScatter(**scatter_data)
 
             text_box_data = self._produce_city_text_box_data(city_entity=entity)
-            text_box = visualization_elements.CityTextBox(city_name=entity.city_name,
+            text_box = CityTextBox(city_name=entity.city_name,
                                                           **text_box_data)
             city_scatter_and_text = CityScatterAndText(city_scatter=city_scatter,
                                                        city_text_box=text_box,
@@ -311,7 +313,7 @@ class ThingConverter:
             raise RuntimeError("Unable to convert thing.")
 
     def convert_entities_to_visualization_elements(self, entities_: list[entities.Entity]) -> list[
-        visualization_elements.VisualizationElement]:
+        VisualizationElement]:
         vis_elements = []
         for entity in entities_:
             visualization_element = self.convert_thing(entity)

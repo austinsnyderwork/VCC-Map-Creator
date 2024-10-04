@@ -8,9 +8,11 @@ import config_manager
 from environment_management import entity_relationship_manager
 from environment_management import CityOriginNetworkHandler
 import plotting
+from plotting import VisualizationElementResult
 from polygons import polygon_factory
 import things
 from things import visualization_elements
+from things.visualization_elements import CityScatter, Best, Line
 from things.entities import entities_factory
 from things import entities
 import map
@@ -108,34 +110,41 @@ class ApplicationManager:
 
         return vis_element
 
-    def _convert_entities_to_vis_elements(self, entities_: list[entities.Entity], conditions_map) \
+    def _convert_entities_to_vis_elements(self, entities_: list[entities.Entity], plot_controller, conditions_map) \
             -> list[visualization_elements.VisualizationElement]:
         vis_elements = []
         for i, entity in enumerate(entities_):
             logging.info(f"Converting entity number {i} of {len(entities_)}.\n\tEntity type: {str(type(entity))}")
-            if type(entity) is entities.ProviderAssignment:
-                logging.info(f"Origin city: {entity.origin_city_name}, Visiting city: {entity.visiting_city_name}")
             new_vis_element = self._convert_entity(entity, conditions_map=conditions_map)
 
             # convert_entity returns None when the entity is valid for the conditions map, but doesn't meet any of the
             # conditions
             if not new_vis_element:
                 continue
-            elif type(new_vis_element) is visualization_elements.CityScatterAndText:
+
+            if type(new_vis_element) is visualization_elements.CityScatterAndText:
+                if plot_controller.should_display(new_vis_element.city_scatter, display_type='map'):
+                    vis_elements.append(new_vis_element.city_scatter)
+                else:
+                    continue
+                if plot_controller.should_display(new_vis_element.city_text_box, display_type='map'):
+                    vis_elements.append(new_vis_element.city_text_box)
+                else:
+                    continue
+                # We only add this CityScatterAndText if we are going to be displaying both the city scatter and the
+                # text box
                 self.visualization_elements_manager.add_city_scatter_and_text(new_vis_element)
-                vis_elements.append(new_vis_element.city_scatter)
-                vis_elements.append(new_vis_element.city_text_box)
-            else:
+                continue
+
+            if plot_controller.should_display(vis_element=new_vis_element, display_type='map'):
                 vis_elements.append(new_vis_element)
         return vis_elements
 
-    def _fill_visualization_elements_with_polygons(self, plotter: plotting.PlotManager,
-                                                   visualization_elements_: list[visualization_elements.VisualizationElement]):
+    def _fill_visualization_elements_with_polygons(self, visualization_elements_: list[visualization_elements.VisualizationElement]):
         for i, visualization_element in enumerate(visualization_elements_):
             logging.info(f"\tFilling visualization element {visualization_element} "
                          f"\n\t\tNumber {i} of {len(visualization_elements_)}")
-            extra_args = plotter.get_text_box_bounds(visualization_element) \
-                if (type(visualization_element) is visualization_elements.CityTextBox) else visualization_element.__dict__
+            extra_args = visualization_element.__dict__
             poly = self.polygon_factory_.create_poly(vis_element=visualization_element,
                                                      **extra_args)
 
@@ -170,27 +179,33 @@ class ApplicationManager:
                                        plot_controller=vis_element_plot_controller)
 
         vis_elements = self._convert_entities_to_vis_elements(entities_=entities_,
+                                                              plot_controller=vis_element_plot_controller,
                                                               conditions_map=conditions_map)
-        self._fill_visualization_elements_with_polygons(visualization_elements_=vis_elements,
-                                                        plotter=plotter)
+        self._fill_visualization_elements_with_polygons(visualization_elements_=vis_elements)
         self.visualization_elements_manager.add_visualization_elements(vis_elements)
 
         non_text_vis_elements = self.visualization_elements_manager.get_all([visualization_elements.CityScatter,
                                                                              visualization_elements.Line])
-        for vis_element in non_text_vis_elements:
-            plotter.attempt_plot(display_types=['algorithm'],
-                                 vis_element=vis_element)
-
-        # Now we search for the best coordinate for each CityTextBox visualization element
+        non_text_results = [VisualizationElementResult(vis_element=non_text_vis_element) for non_text_vis_element in
+                            non_text_vis_elements]
+        plotted_elements = []
+        for result in non_text_results:
+            plotted = plotter.attempt_plot_algorithm_element(vis_element_result=result)
+            if plotted:
+                self.algorithm_handler.add_element_to_algorithm(element=result.vis_element)
+                plotted_elements.append(result.vis_element)
         for city_scatter_and_text in self.visualization_elements_manager.city_scatter_and_texts.values():
-            for vis_element in self.algorithm_handler.find_best_polygon(
+            for vis_element_result in self.algorithm_handler.find_best_polygon(
                     city_element=city_scatter_and_text.city_scatter,
                     text_box_element=city_scatter_and_text.city_text_box,
                     city_buffer=self.config.get_config_value('algorithm.city_to_text_box_buffer', int),
                     number_of_steps=self.config.get_config_value('algorithm.search_steps', int)):
-                plotter.attempt_plot(vis_element=vis_element)
+                self.visualization_elements_manager.fill_element(vis_element_result.vis_element)
+                plotted = plotter.attempt_plot_algorithm_element(vis_element_result=vis_element_result)
+                if plotted and type(vis_element_result.vis_element) in [CityScatter, Best, Line]:
+                    plotted_elements.append(vis_element_result.vis_element)
 
-        return plotter.plotted_elements
+        return plotted_elements
 
     def create_number_of_visiting_providers_map(self):
         logging.info("Creating number of providers by visiting site map.")
@@ -201,29 +216,39 @@ class ApplicationManager:
         vis_element_plot_controller = plotting.PlotController(
             config=self.config,
             show_line=False,
-            show_visiting_text_boxes=False)
+            show_visiting_text_box=False)
         plotter = plotting.PlotManager(algorithm_handler=self.algorithm_handler,
                                        map_plotter=self.map_plotter,
                                        plot_controller=vis_element_plot_controller)
 
         vis_elements = self._convert_entities_to_vis_elements(entities_=entities_,
+                                                              plot_controller=vis_element_plot_controller,
                                                               conditions_map=conditions_map)
-        self._fill_visualization_elements_with_polygons(visualization_elements_=vis_elements,
-                                                        plotter=plotter)
+        self._fill_visualization_elements_with_polygons(visualization_elements_=vis_elements)
         self.visualization_elements_manager.add_visualization_elements(vis_elements)
 
         non_text_vis_elements = self.visualization_elements_manager.get_all([visualization_elements.CityScatter,
                                                                              visualization_elements.Line])
-        for vis_element in non_text_vis_elements:
-            plotter.attempt_plot(display_types=['algorithm'],
-                                 vis_element=vis_element)
-
+        non_text_results = [VisualizationElementResult(vis_element=non_text_vis_element) for non_text_vis_element in
+                            non_text_vis_elements]
+        plotted_elements = []
+        for result in non_text_results:
+            plotted = plotter.attempt_plot_algorithm_element(vis_element_result=result)
+            if plotted:
+                plotted_elements.append(result.vis_element)
         for city_scatter_and_text in self.visualization_elements_manager.city_scatter_and_texts.values():
-            for vis_element in self.algorithm_handler.find_best_polygon(city_element=city_scatter_and_text.city_scatter,
-                                                                        text_box_element=city_scatter_and_text.city_text_box,
-                                                                        city_buffer=self.config.get_config_value('algorithm.city_to_text_box_buffer', int),
-                                                                        number_of_steps=self.config.get_config_value('algorithm.search_steps', int)):
-                self.visualization_elements_manager.fill_element(vis_element)
-                plotter.attempt_plot(vis_element=vis_element)
+            for vis_element_result in self.algorithm_handler.find_best_polygon(
+                    city_element=city_scatter_and_text.city_scatter,
+                    text_box_element=city_scatter_and_text.city_text_box,
+                    city_buffer=self.config.get_config_value('algorithm.city_to_text_box_buffer', int),
+                    number_of_steps=self.config.get_config_value('algorithm.search_steps', int)):
+                self.visualization_elements_manager.fill_element(vis_element_result.vis_element)
+                plotted = plotter.attempt_plot_algorithm_element(vis_element_result=vis_element_result)
+                # If we successfully plotted it and it was a core vis element type, then we add it to the algorithm
+                if plotted and type(vis_element_result.vis_element) in [CityScatter, Best, Line]:
+                    self.algorithm_handler.add_element_to_algorithm(element=vis_element_result.vis_element)
+                    plotted_elements.append(vis_element_result.vis_element)
+
+        return plotted_elements
 
 

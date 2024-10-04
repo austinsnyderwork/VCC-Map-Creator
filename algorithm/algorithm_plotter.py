@@ -6,7 +6,7 @@ from mpl_toolkits import basemap
 from config_manager import ConfigManager
 from things.visualization_elements import CityScatter, CityTextBox, Intersection, \
     TextBoxFinalist, TextBoxNearbySearchArea, Best, Line, TextBoxScanArea
-from things.visualization_elements import visualization_elements
+from things.visualization_elements import vis_element_classes
 
 
 def check_show_display(func):
@@ -117,9 +117,9 @@ class AlgorithmPlotter:
         value = getattr(vis_element, f'{variable}') if hasattr(vis_element, f'{variable}') else default_plot_values[plot_key]
         return value
     @check_show_display
-    def plot_element(self, vis_element: visualization_elements.VisualizationElement, poly_override=None):
+    def plot_element(self, vis_element: vis_element_classes.VisualizationElement, poly_override=None):
         attr_prefix = 'algorithm_' if issubclass(type(vis_element),
-                                                 visualization_elements.DualVisualizationElement) else ''
+                                                 vis_element_classes.DualVisualizationElement) else ''
         edgecolor = self._get_plot_value(vis_element, f"{attr_prefix}edgecolor", 'color')
         facecolor = self._get_plot_value(vis_element, f"{attr_prefix}facecolor", 'color')
         alpha = self._get_plot_value(vis_element, f"{attr_prefix}transparency", 'transparency')

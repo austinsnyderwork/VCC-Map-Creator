@@ -1,5 +1,5 @@
-from .visualization_elements import (CityScatter, Line, CityTextBox, TextBoxNearbySearchArea, TextBoxScanArea,
-                                     TextBoxFinalist, Best, Intersection)
+from .vis_element_classes import (CityScatter, Line, CityTextBox, TextBoxNearbySearchArea, TextBoxScanArea,
+                                  TextBoxFinalist, Best, Intersection)
 from config_manager import ConfigManager
 
 

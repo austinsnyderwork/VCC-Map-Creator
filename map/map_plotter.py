@@ -38,39 +38,24 @@ class MapPlotter:
         self.iowa_map.drawstates()
         self.iowa_map.drawcounties(linewidth=county_line_width)
 
-        if self.show_display:
-            plt.draw()
-            plt.pause(0.1)
-            plt.show(block=False)
-
-        self.visualization_element_plot_funcs = {
-            Line: self._plot_line,
-            CityScatter: self._plot_point,
-            Best: self._plot_text
-        }
-
     def convert_coord_to_display(self, coord: tuple):
         lon, lat = coord
         convert_lon, convert_lat = self.iowa_map(lon, lat)
         return convert_lon, convert_lat
 
-    def get_text_box_dimensions(self, vis_element, override_coord: tuple = None) -> dict:
+    def get_text_box_dimensions(self, entity: entities.City, font_size: int, font_weight: str, font: str) -> dict:
         # We don't want Iowa cities to have the state abbreviation
-        city_name = vis_element.city_name.replace(', IA', '')
-        if override_coord:
-            lon, lat = override_coord
-        else:
-            lon, lat = vis_element.centroid
-        city_text = self.ax.text(lon, lat, city_name,
-                                 fontsize=vis_element.map_fontsize,
-                                 font=vis_element.map_font,
+        city_name = entity.city_name.replace(', IA', '')
+        city_text = self.ax.text(0, 0, city_name,
+                                 fontsize=font_size,
+                                 font=font,
                                  ha='center',
                                  va='center',
-                                 color=vis_element.map_color,
-                                 fontweight=vis_element.map_fontweight,
+                                 color='purple',
+                                 fontweight=font_weight,
                                  zorder=0,
                                  bbox=dict(facecolor='white', edgecolor='white', boxstyle='square,pad=0.0'))
-        bbox = city_text.get_window_extend
+        bbox = city_text.get_window_extent()
         bbox_coords = bbox.transformed(self.ax.transData.inverted())
         return {
             'x_min': bbox_coords.xmin,

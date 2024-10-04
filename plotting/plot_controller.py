@@ -1,7 +1,7 @@
 import logging
 
 import config_manager
-from things.visualization_elements import visualization_elements
+from things.visualization_elements import vis_element_classes
 
 
 class MapDisplayController:
@@ -15,12 +15,12 @@ class MapDisplayController:
                  show_dual_scatters=True,
                  show_line=True):
         self.master_display_origin_visiting_settings = {
-            visualization_elements.CityScatter: {
+            vis_element_classes.CityScatter: {
                 'origin': show_origin_scatters,
                 'visiting': show_visiting_scatters,
                 'dual_origin_visiting': show_dual_scatters
             },
-            visualization_elements.CityTextBox: {
+            vis_element_classes.CityTextBox: {
                 'origin': show_origin_text_box,
                 'visiting': show_visiting_text_box,
                 'dual_origin_visiting': show_dual_text_box
@@ -28,7 +28,7 @@ class MapDisplayController:
         }
 
         self.master_display_settings = {
-            visualization_elements.Line: show_line
+            vis_element_classes.Line: show_line
         }
 
     def should_display(self, vis_element=None, vis_element_type=None, site_type=None, *args, **kwargs):
@@ -38,11 +38,11 @@ class MapDisplayController:
             vis_element_type = type(vis_element)
 
         if vis_element_type in self.master_display_origin_visiting_settings:
-            return self.master_display_origin_visiting_settings[vis_element_type][vis_element][site_type]
-        elif type(vis_element) is visualization_elements.Line:
-            return self.master_display_settings[visualization_elements.Line]
+            return self.master_display_origin_visiting_settings[vis_element_type][site_type]
+        elif vis_element_type is vis_element_classes.Line:
+            return self.master_display_settings[vis_element_classes.Line]
         else:
-            raise TypeError(f"Vis ele type {type(vis_element)} is not accepted.")
+            raise TypeError(f"Vis ele type {vis_element_type} is not accepted.")
 
 
 class AlgorithmDisplayController:
@@ -51,42 +51,29 @@ class AlgorithmDisplayController:
         self.config = config_manager.ConfigManager()
         self.plot_settings = plot_settings
 
-        self.entity_type_display_origin_visiting = {
-            visualization_elements.CityScatter: {
-                'origin': self.retrieve_setting('algo_display_show_origin_scatters', True),
-                'visiting': self.retrieve_setting('algo_display_show_origin_visitings', True)
-            },
-            visualization_elements.CityTextBox: {
-                'origin': self.retrieve_setting('algo_display_show_origin_text_box', True),
-                'visiting': self.retrieve_setting('algo_display_show_visiting_text_box', True)
-            }
-        }
-
         self.visualization_elements_display = {
-            visualization_elements.Line: self.retrieve_setting('algo_display_show_line', True),
-            visualization_elements.CityTextBox: self.retrieve_setting('algo_display_show_scan_poly', True),
-            visualization_elements.TextBoxScanArea: self.retrieve_setting('algo_display_show_search_area_poly', True),
-            visualization_elements.TextBoxFinalist: self.retrieve_setting('algo_display_show_poly_finalist', True),
-            visualization_elements.TextBoxNearbySearchArea: self.retrieve_setting('algo_display_show_nearby_search_poly', True),
-            visualization_elements.Intersection: self.retrieve_setting('algo_display_show_intersecting_poly', True)
+            vis_element_classes.CityScatter: self.retrieve_setting('algo_display_show_scatter', True),
+            vis_element_classes.Line: self.retrieve_setting('algo_display_show_line', True),
+            vis_element_classes.CityTextBox: self.retrieve_setting('algo_display_show_scan_poly', True),
+            vis_element_classes.TextBoxScanArea: self.retrieve_setting('algo_display_show_search_area_poly', True),
+            vis_element_classes.TextBoxFinalist: self.retrieve_setting('algo_display_show_poly_finalist', True),
+            vis_element_classes.TextBoxNearbySearchArea: self.retrieve_setting('algo_display_show_nearby_search_poly', True),
+            vis_element_classes.Intersection: self.retrieve_setting('algo_display_show_intersecting_poly', True)
         }
 
         self.visualization_time_iterations_display = {
-            visualization_elements.CityTextBox: self.retrieve_setting('algo_display_steps_to_show_scan_poly', True),
-            visualization_elements.TextBoxScanArea: self.retrieve_setting('algo_display_steps_to_show_scan_poly', True),
-            visualization_elements.TextBoxFinalist: self.retrieve_setting('algo_display_steps_to_show_poly_finalist', True),
-            visualization_elements.TextBoxNearbySearchArea: self.retrieve_setting('algo_display_steps_to_show_poly_finalist', True)
+            vis_element_classes.CityTextBox: self.retrieve_setting('algo_display_steps_to_show_scan_poly', True),
+            vis_element_classes.TextBoxScanArea: self.retrieve_setting('algo_display_steps_to_show_scan_poly', True),
+            vis_element_classes.TextBoxFinalist: self.retrieve_setting('algo_display_steps_to_show_poly_finalist', True),
+            vis_element_classes.TextBoxNearbySearchArea: self.retrieve_setting('algo_display_steps_to_show_poly_finalist', True)
         }
 
-    def should_display(self, visualization_element, iterations: int = None) -> bool:
+    def should_display(self, vis_element, iterations: int = None) -> bool:
         show_algo = self.retrieve_setting('algo_display_show_algo', bool)
         if not show_algo:
             return False
 
-        visualization_element_type = type(visualization_element)
-        if visualization_element_type in self.entity_type_display_origin_visiting:
-            if not self.entity_type_display_origin_visiting[visualization_element_type][visualization_element.site_type]:
-                return False
+        visualization_element_type = type(vis_element)
 
         if visualization_element_type in self.visualization_elements_display:
             if not self.visualization_elements_display[visualization_element_type]:
@@ -131,12 +118,12 @@ class PlotController:
         self.plot_settings = plot_settings
 
         self.master_display_origin_visiting_settings = {
-            visualization_elements.CityScatter: {
+            vis_element_classes.CityScatter: {
                 'origin': show_origin_scatters,
                 'visiting': show_visiting_scatters,
                 'dual_origin_visiting': show_dual_scatters
             },
-            visualization_elements.CityTextBox: {
+            vis_element_classes.CityTextBox: {
                 'origin': show_origin_text_box,
                 'visiting': show_visiting_text_box,
                 'dual_origin_visiting': show_dual_text_box
@@ -144,23 +131,21 @@ class PlotController:
         }
 
         self.master_display_settings = {
-            visualization_elements.Line: show_line,
-            visualization_elements.CityTextBox: show_scan_poly,
-            visualization_elements.TextBoxScanArea: show_search_area_poly,
-            visualization_elements.TextBoxFinalist: show_poly_finalist,
-            visualization_elements.TextBoxNearbySearchArea: show_nearby_search_poly,
-            visualization_elements.Intersection: show_intersecting_poly
+            vis_element_classes.Line: show_line,
+            vis_element_classes.CityTextBox: show_scan_poly,
+            vis_element_classes.TextBoxScanArea: show_search_area_poly,
+            vis_element_classes.TextBoxFinalist: show_poly_finalist,
+            vis_element_classes.TextBoxNearbySearchArea: show_nearby_search_poly,
+            vis_element_classes.Intersection: show_intersecting_poly
         }
 
-    def should_display(self, visualization_element: visualization_elements.VisualizationElement, display_type: str,
+    def should_display(self, vis_element: vis_element_classes.VisualizationElement, display_type: str,
                        iterations: int = None, **kwargs) -> bool:
-        visualization_element_type = type(visualization_element)
-
         should_display_funcs = {
             'map': self.map_display_controller.should_display,
             'algorithm': self.algorithm_display_controller.should_display
         }
-        return should_display_funcs[display_type](visualization_element_type, iterations)
+        return should_display_funcs[display_type](vis_element=vis_element, iterations=iterations)
 
 
 

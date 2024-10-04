@@ -7,7 +7,7 @@ from typing import Type
 from .polygon_functions import shorten_line
 from polygons import polygon_functions
 from things import box_geometry
-from things.visualization_elements import visualization_elements
+from things.visualization_elements import vis_element_classes
 
 
 def _has_attributes(obj, attributes: list[str]) -> bool:
@@ -25,16 +25,16 @@ class PolygonFactory:
         self.unit_per_line_width = units_per_line_width
 
         self.poly_create_functions_by_type = {
-            visualization_elements.Line: self._create_line_polygon,
-            visualization_elements.CityScatter: self._create_scatter_polygon,
-            visualization_elements.CityTextBox: self._create_rectangle_polygon,
-            visualization_elements.TextBoxFinalist: self._create_rectangle_polygon,
-            visualization_elements.TextBoxNearbySearchArea: self._create_rectangle_polygon,
-            visualization_elements.TextBoxScanArea: self._create_rectangle_polygon
+            vis_element_classes.Line: self._create_line_polygon,
+            vis_element_classes.CityScatter: self._create_scatter_polygon,
+            vis_element_classes.CityTextBox: self._create_rectangle_polygon,
+            vis_element_classes.TextBoxFinalist: self._create_rectangle_polygon,
+            vis_element_classes.TextBoxNearbySearchArea: self._create_rectangle_polygon,
+            vis_element_classes.TextBoxScanArea: self._create_rectangle_polygon
         }
 
-    def create_poly(self, vis_element: visualization_elements.VisualizationElement = None,
-                    vis_element_type: Type[visualization_elements.VisualizationElement] = None,
+    def create_poly(self, vis_element: vis_element_classes.VisualizationElement = None,
+                    vis_element_type: Type[vis_element_classes.VisualizationElement] = None,
                     box: box_geometry.BoxGeometry = None,
                     **kwargs) -> Polygon:
         if vis_element:
@@ -45,7 +45,7 @@ class PolygonFactory:
                     **kwargs)
         return poly
 
-    def _create_line_polygon(self, vis_element: visualization_elements.Line, x_data: tuple = None, y_data: tuple = None,
+    def _create_line_polygon(self, vis_element: vis_element_classes.Line, x_data: tuple = None, y_data: tuple = None,
                              linewidth = None, **kwargs) -> Polygon:
         x_data = x_data if x_data else vis_element.x_data
         y_data = y_data if y_data else vis_element.y_data
@@ -69,7 +69,7 @@ class PolygonFactory:
 
         raise ValueError("Could not form a valid line polygon.")
 
-    def _create_scatter_polygon(self, vis_element: visualization_elements.VisualizationElement,
+    def _create_scatter_polygon(self, vis_element: vis_element_classes.VisualizationElement,
                                 num_points=8, **kwargs) -> Polygon:
         angles = np.linspace(0, 2 * np.pi, num_points)
         radius = vis_element.map_size * self.radius_per_scatter_size
@@ -80,7 +80,7 @@ class PolygonFactory:
         return poly
 
     @staticmethod
-    def _create_rectangle_polygon(vis_element: visualization_elements.VisualizationElement = None,
+    def _create_rectangle_polygon(vis_element: vis_element_classes.VisualizationElement = None,
                                   box: box_geometry.BoxGeometry = None, **kwargs) -> Polygon:
         if vis_element:
             attributes_1 = ['lon', 'lat', 'width', 'height']

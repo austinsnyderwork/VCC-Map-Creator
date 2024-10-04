@@ -6,7 +6,7 @@ from typing import Union
 
 import logging
 from things.entities import entities
-from things.visualization_elements import visualization_elements, CityScatterAndText
+from things.visualization_elements import vis_element_classes, CityScatterAndText
 
 
 def apply_to_type(expected_type):
@@ -22,7 +22,7 @@ def apply_to_type(expected_type):
 
 class Condition:
 
-    def __init__(self, condition: Callable, visualization_element: visualization_elements.VisualizationElement):
+    def __init__(self, condition: Callable, visualization_element: vis_element_classes.VisualizationElement):
         self.condition = condition
         self.visualization_element = visualization_element
 
@@ -59,19 +59,19 @@ class NumberOfVisitingClinicsConditions(ConditionsMap):
         super().__init__(conditions)
 
     def _create_visualization_elements(self):
-        visualization_element_1 = visualization_elements.CityScatter(
+        visualization_element_1 = vis_element_classes.CityScatter(
             size=self.config.get_config_value('num_visiting_clinics.range_1_scatter_size', int),
             color=self.config.get_config_value('num_visiting_clinics.range_1_color', str)
         )
-        visualization_element_2 = visualization_elements.CityScatter(
+        visualization_element_2 = vis_element_classes.CityScatter(
             size=self.config.get_config_value('num_visiting_clinics.range_2_scatter_size', int),
             color=self.config.get_config_value('num_visiting_clinics.range_2_color', str)
         )
-        visualization_element_3 = visualization_elements.CityScatter(
+        visualization_element_3 = vis_element_classes.CityScatter(
             size=self.config.get_config_value('num_visiting_clinics.range_3_scatter_size', int),
             color=self.config.get_config_value('num_visiting_clinics.range_3_color', str)
         )
-        visualization_element_4 = visualization_elements.CityScatter(
+        visualization_element_4 = vis_element_classes.CityScatter(
             size=self.config.get_config_value('num_visiting_clinics.range_4_scatter_size', int),
             color=self.config.get_config_value('num_visiting_clinics.range_4_color', str)
         )
@@ -125,20 +125,20 @@ class HighestCityVisitingVolumeConditions(ConditionsMap):
         self.entity_types = [entities.City, entities.ProviderAssignment]
 
     def _create_visualization_elements(self, config, visualization_element_data: dict):
-        visualization_element_1a = visualization_elements.CityScatter(
+        visualization_element_1a = vis_element_classes.CityScatter(
             size=config.get_config_value('num_visiting_providers.range_1_scatter_size', int),
             color=config.get_config_value('num_visiting_providers.range_1_color', str)
         )
-        if visualization_element_data and visualization_elements.CityScatter in visualization_element_data:
-            for k, v in visualization_element_data[visualization_elements.CityScatter].items():
+        if visualization_element_data and vis_element_classes.CityScatter in visualization_element_data:
+            for k, v in visualization_element_data[vis_element_classes.CityScatter].items():
                 setattr(visualization_element_1a, k, v)
-        visualization_element_1b = visualization_elements.CityTextBox()
+        visualization_element_1b = vis_element_classes.CityTextBox()
         vis_element_1 = CityScatterAndText(city_scatter=visualization_element_1a,
                                            city_text_box=visualization_element_1b)
 
-        visualization_element_2 = visualization_elements.Line()
-        if visualization_element_data and visualization_elements.Line in visualization_element_data:
-            for k, v in visualization_element_data[visualization_elements.Line].items():
+        visualization_element_2 = vis_element_classes.Line()
+        if visualization_element_data and vis_element_classes.Line in visualization_element_data:
+            for k, v in visualization_element_data[vis_element_classes.Line].items():
                 setattr(visualization_element_2, k, v)
         visualization_elements_ = [vis_element_1, visualization_element_2]
         return visualization_elements_
@@ -169,36 +169,36 @@ class NumberOfVisitingProvidersConditions(ConditionsMap):
         self.config = config
         self.entity_types = [entities.City]
 
-    def _create_visualization_elements(self, config) -> Union[list[visualization_elements.CityScatter], list[CityScatterAndText]]:
-        visualization_element_1a = visualization_elements.CityScatter(
+    def _create_visualization_elements(self, config) -> Union[list[vis_element_classes.CityScatter], list[CityScatterAndText]]:
+        visualization_element_1a = vis_element_classes.CityScatter(
             size=config.get_config_value('num_visiting_providers.range_1_scatter_size', int),
             color=config.get_config_value('num_visiting_providers.range_1_color', str)
         )
-        vis_element_1b = visualization_elements.CityTextBox()
+        vis_element_1b = vis_element_classes.CityTextBox()
         csat_1 = CityScatterAndText(city_scatter=visualization_element_1a,
                                     city_text_box=vis_element_1b)
 
-        visualization_element_2a = visualization_elements.CityScatter(
+        visualization_element_2a = vis_element_classes.CityScatter(
             size=config.get_config_value('num_visiting_providers.range_2_scatter_size', int),
             color=config.get_config_value('num_visiting_providers.range_2_color', str)
         )
-        vis_element_2b = visualization_elements.CityTextBox()
+        vis_element_2b = vis_element_classes.CityTextBox()
         csat_2 = CityScatterAndText(city_scatter=visualization_element_2a,
                                     city_text_box=vis_element_2b)
 
-        visualization_element_3a = visualization_elements.CityScatter(
+        visualization_element_3a = vis_element_classes.CityScatter(
             size=config.get_config_value('num_visiting_providers.range_3_scatter_size', int),
             color=config.get_config_value('num_visiting_providers.range_3_color', str)
         )
-        vis_element_3b = visualization_elements.CityTextBox()
+        vis_element_3b = vis_element_classes.CityTextBox()
         csat_3 = CityScatterAndText(city_scatter=visualization_element_3a,
                                     city_text_box=vis_element_3b)
         
-        visualization_element_4a = visualization_elements.CityScatter(
+        visualization_element_4a = vis_element_classes.CityScatter(
             size=config.get_config_value('num_visiting_providers.range_4_scatter_size', int),
             color=config.get_config_value('num_visiting_providers.range_4_color', str)
         )
-        vis_element_4b = visualization_elements.CityTextBox()
+        vis_element_4b = vis_element_classes.CityTextBox()
         csat_4 = CityScatterAndText(city_scatter=visualization_element_4a,
                                     city_text_box=vis_element_4b)
         
@@ -250,15 +250,15 @@ class NumberOfVisitingSpecialtiesConditions(ConditionsMap):
         super().__init__(conditions)
 
     def _create_visualization_elements(self):
-        visualization_element_1 = visualization_elements.CityScatter(
+        visualization_element_1 = vis_element_classes.CityScatter(
             size=self.config.get_config_value('num_visiting_specialties.range_1_scatter_size', int),
             color=self.config.get_config_value('num_visiting_specialties.range_1_color', str)
         )
-        visualization_element_2 = visualization_elements.CityScatter(
+        visualization_element_2 = vis_element_classes.CityScatter(
             size=self.config.get_config_value('num_visiting_specialties.range_2_scatter_size', int),
             color=self.config.get_config_value('num_visiting_specialties.range_2_color', str)
         )
-        visualization_element_3 = visualization_elements.CityScatter(
+        visualization_element_3 = vis_element_classes.CityScatter(
             size=self.config.get_config_value('num_visiting_specialties.range_3_scatter_size', int),
             color=self.config.get_config_value('num_visiting_specialties.range_3_color', str)
         )

@@ -3,11 +3,12 @@ import logging
 import algorithm
 from algorithm import algorithm_functions, rtree_analyzer
 import config_manager
+from plotting import VisualizationElementResult
 import polygons
 from polygons import city_text_box_manager, polygon_functions, polygon_factory
 from things import box_geometry, thing_converter
 from things.visualization_elements import CityScatter, CityTextBox, Intersection, \
-    TextBoxFinalist, TextBoxNearbySearchArea, Best
+    TextBoxFinalist, Best
 from things import visualization_elements
 
 
@@ -47,7 +48,7 @@ class CityScanner:
             'lowest_intersections': 100,
             'lowest_intersection_vis_elements': []
         }
-        for city_text_box in city_text_boxes:
+        for i, city_text_box in enumerate(city_text_boxes):
             intersecting_vis_elements = algorithm_functions.get_intersecting_vis_elements(
                 rtree_analyzer_=rtree_analyzer_,
                 city_text_box=city_text_box,
@@ -57,13 +58,16 @@ class CityScanner:
                                         if type(vis_element) is Best or type(vis_element) is CityScatter]
             ideal = len(nonstarter_intersections) == 0
 
-            yield city_text_box
+            result = VisualizationElementResult(vis_element=city_text_box)
+            yield result
 
             for vis_element in intersecting_vis_elements:
                 intersection = thing_converter.convert_visualization_element(vis_element=vis_element,
                                                                              desired_type=Intersection,
                                                                              default_poly=vis_element.default_poly)
-                yield intersection
+                result = VisualizationElementResult(vis_element=intersection,
+                                                    city_text_box_iterations=i)
+                yield result
 
             self._fill_intersections_data(all_lowest_intersections_data, intersecting_vis_elements,
                                           city_text_box)
@@ -75,11 +79,13 @@ class CityScanner:
             lowest_intersections_vis_eles = ideal_lowest_intersections_data['lowest_intersection_vis_elements']
         else:
             lowest_intersections_vis_eles = all_lowest_intersections_data['lowest_intersection_vis_elements']
-        for vis_element in lowest_intersections_vis_eles:
+        for i, vis_element in enumerate(lowest_intersections_vis_eles):
             finalist = thing_converter.convert_visualization_element(vis_element=vis_element,
                                                                      desired_type=TextBoxFinalist,
                                                                      poly=vis_element.poly)
-            yield finalist
+            result = VisualizationElementResult(vis_element=finalist,
+                                                num_iterations=i)
+            yield result
 
     def _create_city_text_boxes_surrounding_city(self) -> list[CityTextBox]:
         city_scatter_bounds = polygon_functions.get_poly_bounds(self.city_scatter_element.algorithm_poly)
@@ -87,7 +93,7 @@ class CityScanner:
         city_box.add_buffer(self.city_buffer)
 
         algorithm_functions.move_text_box_to_bottom_left_city_box_corner(text_box=self.text_box,
-                                                                                city_box=city_box)
+                                                                         city_box=city_box)
         city_perimeter = (2 * city_box.height) + (2 * city_box.width)
         perimeter_movement_amount = city_perimeter / self.number_of_search_steps
 
@@ -135,28 +141,39 @@ class CityScanner:
         return city_text_boxes
 
     def _determine_best_finalist(self, finalists: list[visualization_elements.TextBoxFinalist], rtree_analyzer_,
-                                 vis_elements_to_ignore: list) -> visualization_elements.VisualizationElement:
+                                 vis_elements_to_ignore: list):
         vis_element_distances = {}
-        for finalist in finalists:
+        for i, finalist in enumerate(finalists):
             min_distance, closest_vis_elements = rtree_analyzer_.get_closest_visualization_elements(
                 query_poly=finalist.poly,
                 vis_elements_to_ignore=vis_elements_to_ignore)
             vis_element_distances[min_distance] = finalist
+            result = VisualizationElementResult(vis_element=finalist,
+                                                num_iterations=i)
+            yield result
         farthest_distance = max(list(vis_element_distances.keys()))
         best_finalist = vis_element_distances[farthest_distance]
-        return best_finalist
-
-    def find_best_poly(self, rtree_analyzer_: rtree_analyzer.RtreeAnalyzer):
-        finalists = []
-        for vis_element in self._run_initial_scan(rtree_analyzer_=rtree_analyzer_):
-            yield vis_element
-            if type(vis_element) is visualization_elements.TextBoxFinalist:
-                finalists.append(vis_element)
-
-        best_finalist = self._determine_best_finalist(finalists=finalists,
-                                                      rtree_analyzer_=rtree_analyzer_,
-                                                      vis_elements_to_ignore=[self.city_scatter_element])
         best = thing_converter.convert_visualization_element(vis_element=best_finalist,
                                                              desired_type=visualization_elements.Best,
                                                              site_type=self.city_scatter_element.site_type)
-        yield best
+        result = VisualizationElementResult(vis_element=best)
+        yield result
+
+    def find_best_poly(self, rtree_analyzer_: rtree_analyzer.RtreeAnalyzer):
+        finalists = []
+        for result in self._run_initial_scan(rtree_analyzer_=rtree_analyzer_):
+            # We want to wait to yield the finalist to be potentially plotted until it's actually being analyzed further
+            # into the program
+            if type(result.vis_element) is visualization_elements.TextBoxFinalist:
+                finalists.append(result.vis_element)
+            else:
+                yield result
+
+        for result in self._determine_best_finalist(finalists=finalists,
+                                                    rtree_analyzer_=rtree_analyzer_,
+                                                    vis_elements_to_ignore=[self.city_scatter_element]):
+            yield result
+            if type(result.vis_element) is Best:
+                best_result = result
+                
+        yield best_result

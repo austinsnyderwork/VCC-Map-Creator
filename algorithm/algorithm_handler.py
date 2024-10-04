@@ -3,11 +3,11 @@ import logging
 
 from . import rtree_analyzer
 import config_manager
-from algorithm.city_scanning.city_scanner import CityScanner
+from algorithm.city_scanning import CityScanner
 from .algorithm_plotter import AlgorithmPlotter
 from polygons import polygon_functions, polygon_factory
 from things import box_geometry, thing_converter
-from things.visualization_elements import visualization_elements
+from things.visualization_elements import vis_element_classes
 
 
 class AlgorithmHandler:
@@ -23,28 +23,24 @@ class AlgorithmHandler:
         self.rtree_analyzer_ = rtree_analyzer.RtreeAnalyzer()
         self.polygon_factory_ = polygon_factory_
 
-    def plot_element(self, element: visualization_elements.VisualizationElement):
-        rtree_element_types = [visualization_elements.Line, visualization_elements.CityScatter,
-                               visualization_elements.Best]
+    def plot_element(self, element: vis_element_classes.VisualizationElement):
         new_poly = None
-        if type(element) is visualization_elements.Line:
+        # Shorten the line for the algorithm
+        if type(element) is vis_element_classes.Line:
             new_x_data, new_y_data = polygon_functions.shorten_line(element.x_data, element.y_data)
-            new_poly = self.polygon_factory_.create_poly(vis_element_type=visualization_elements.Line,
+            new_poly = self.polygon_factory_.create_poly(vis_element_type=vis_element_classes.Line,
                                                          x_data=new_x_data,
                                                          y_data=new_y_data,
                                                          linewidth=element.map_linewidth)
-
-        if type(element) in rtree_element_types:
-            self.add_element_to_algorithm(element, poly_override=new_poly)
         self.algorithm_plotter.plot_element(element, poly_override=new_poly)
 
-    def add_element_to_algorithm(self, element: visualization_elements.VisualizationElement, poly_override=None):
+    def add_element_to_algorithm(self, element: vis_element_classes.VisualizationElement, poly_override=None):
         poly = poly_override if poly_override else element.default_poly
         self.rtree_analyzer_.add_visualization_element(visualization_element=element,
                                                        poly=poly)
 
-    def find_best_polygon(self, city_element: visualization_elements.CityScatter,
-                          text_box_element: visualization_elements.CityTextBox, city_buffer: int, number_of_steps: int):
+    def find_best_polygon(self, city_element: vis_element_classes.CityScatter,
+                          text_box_element: vis_element_classes.CityTextBox, city_buffer: int, number_of_steps: int):
         logging.info(f"Finding best poly for {city_element.city_name}")
         text_box = box_geometry.BoxGeometry(dimensions={
                 'x_min': text_box_element.x_min,
@@ -60,16 +56,16 @@ class AlgorithmHandler:
             city_buffer=city_buffer,
             number_of_search_steps=number_of_steps)
 
-        for vis_element in city_text_box_search.find_best_poly(rtree_analyzer_=self.rtree_analyzer_):
-            yield vis_element
-            if type(vis_element) is visualization_elements.Best:
-                best = vis_element
-                centroid = vis_element.default_poly.centroid
+        for vis_element_result in city_text_box_search.find_best_poly(rtree_analyzer_=self.rtree_analyzer_):
+            yield vis_element_result
+            if type(vis_element_result.vis_element) is vis_element_classes.Best:
+                best_vis_element = vis_element_result.vis_element
+                centroid = best_vis_element.default_poly.centroid
                 thing_converter.convert_visualization_element(vis_element=text_box_element,
-                                                              new_vis_element=best,
+                                                              new_vis_element=best_vis_element,
                                                               city_name=city_element.city_name,
                                                               poly_coord=(centroid.x, centroid.y))
         logging.info(f"Found best poly for {city_element.city_name}.")
 
-        self.add_element_to_algorithm(element=best)
-        self.plot_element(element=best)
+        self.add_element_to_algorithm(element=best_vis_element)
+        self.plot_element(element=best_vis_element)
