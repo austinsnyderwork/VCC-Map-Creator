@@ -40,7 +40,8 @@ class AlgorithmHandler:
                                                        poly=poly)
 
     def find_best_polygon(self, city_element: vis_element_classes.CityScatter,
-                          text_box_element: vis_element_classes.CityTextBox, city_buffer: int, number_of_steps: int):
+                          text_box_element: vis_element_classes.CityTextBox, city_buffer: int, number_of_steps: int,
+                          polygon_to_vis_element: dict):
         logging.info(f"Finding best poly for {city_element.city_name}")
         text_box = box_geometry.BoxGeometry(dimensions={
                 'x_min': text_box_element.x_min,
@@ -56,8 +57,8 @@ class AlgorithmHandler:
             city_buffer=city_buffer,
             number_of_search_steps=number_of_steps)
 
-        for vis_element_result in city_text_box_search.find_best_poly(rtree_analyzer_=self.rtree_analyzer_):
-            yield vis_element_result
+        for vis_element_result in city_text_box_search.find_best_poly(rtree_analyzer_=self.rtree_analyzer_,
+                                                                      polygon_to_vis_element=polygon_to_vis_element):
             if type(vis_element_result.vis_element) is vis_element_classes.Best:
                 best_vis_element = vis_element_result.vis_element
                 centroid = best_vis_element.default_poly.centroid
@@ -65,6 +66,7 @@ class AlgorithmHandler:
                                                               new_vis_element=best_vis_element,
                                                               city_name=city_element.city_name,
                                                               poly_coord=(centroid.x, centroid.y))
+            yield vis_element_result
         logging.info(f"Found best poly for {city_element.city_name}.")
 
         self.add_element_to_algorithm(element=best_vis_element)

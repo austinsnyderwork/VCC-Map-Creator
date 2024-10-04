@@ -25,8 +25,11 @@ class Interface:
         vis_elements = self.application_manager.create_number_of_visiting_providers_map(**kwargs)
         self.pbif.add_visualization_elements(vis_elements)
         df = self.pbif.create_df()
-        df.to_excel(output_path)
+        df.to_csv(output_path)
 
-    def create_highest_volume_line_map(self, results: int):
-        self.application_manager.create_highest_volume_line_map(number_of_results=results)
+    def create_highest_volume_line_map(self, output_path: str, results: int):
+        vis_elements = self.application_manager.create_highest_volume_line_map(number_of_results=results)
+        self.pbif.add_visualization_elements(vis_elements)
+        df = self.pbif.create_df()
+        df.to_csv(output_path)
 

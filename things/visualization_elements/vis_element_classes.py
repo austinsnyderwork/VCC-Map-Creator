@@ -184,7 +184,6 @@ class CityTextBoxAlgorithmData:
 class CityTextBoxMapData:
 
     def __init__(self, **kwargs):
-        self.city_name = get_kwarg(kwargs, 'city_name', None)
         self.fontsize = get_kwarg(kwargs, 'font_size', None)
         self.font = get_kwarg(kwargs, 'font', None)
         self.color = get_kwarg(kwargs, 'color', None)

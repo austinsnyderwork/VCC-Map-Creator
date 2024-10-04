@@ -304,7 +304,7 @@ class ThingConverter:
 
             text_box_data = self._produce_city_text_box_data(city_entity=entity)
             text_box = CityTextBox(city_name=entity.city_name,
-                                                          **text_box_data)
+                                   **text_box_data)
             city_scatter_and_text = CityScatterAndText(city_scatter=city_scatter,
                                                        city_text_box=text_box,
                                                        city_name=entity.city_name)

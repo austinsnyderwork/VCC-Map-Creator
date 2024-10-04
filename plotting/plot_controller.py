@@ -112,7 +112,13 @@ class PlotController:
                  show_nearby_search_poly=True,
                  show_intersecting_poly=True,
                  **plot_settings):
-        self.map_display_controller = MapDisplayController(**plot_settings)
+        self.map_display_controller = MapDisplayController(show_origin_scatters,
+                                                             show_visiting_scatters,
+                                                             show_dual_text_box,
+                                                             show_origin_text_box,
+                                                             show_visiting_text_box,
+                                                             show_dual_scatters,
+                                                             show_line)
         self.algorithm_display_controller = AlgorithmDisplayController(**plot_settings)
         self.config = config if config else config_manager.ConfigManager()
         self.plot_settings = plot_settings

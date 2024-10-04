@@ -12,6 +12,29 @@ from things.visualization_elements import CityScatter, CityTextBox, Intersection
 from things import visualization_elements
 
 
+class BidirectionalDistancesDict:
+
+    def __init__(self):
+        self.distances_to_vis_elements = {}
+        self.vis_elements_to_distances = {}
+
+    def add(self, vis_element, distance):
+        self.distances_to_vis_elements[distance] = vis_element
+        self.vis_elements_to_distances[vis_element] = distance
+
+    def get_vis_element(self, distance):
+        return self.distances_to_vis_elements[distance]
+
+    def get_distance(self, vis_element):
+        return self.vis_elements_to_distances[vis_element]
+
+    def get_all_vis_elements(self):
+        return self.distances_to_vis_elements.values()
+
+    def get_all_distances(self):
+        return self.distances_to_vis_elements.keys()
+
+
 class CityScanner:
 
     def __init__(self, config: config_manager.ConfigManager, text_box: box_geometry.BoxGeometry,
@@ -140,26 +163,52 @@ class CityScanner:
 
         return city_text_boxes
 
+    def _find_closest_element(self, distances_data: dict, element_types, max_considered_distance: int):
+        sorted_dict = {key: distances_data[key] for key in sorted(distances_data.keys())}
+        for distance, vis_element in sorted_dict.items():
+            if distance > max_considered_distance:
+                return 1e10
+            if type(vis_element) in element_types:
+                return distance
+        return 1e10
     def _determine_best_finalist(self, finalists: list[visualization_elements.TextBoxFinalist], rtree_analyzer_,
-                                 vis_elements_to_ignore: list):
-        vis_element_distances = {}
+                                 vis_elements_to_ignore: list, polygon_to_vis_element: dict):
+        all_data_dict = BidirectionalDistancesDict()
+        critical_data_dict = BidirectionalDistancesDict()
         for i, finalist in enumerate(finalists):
-            min_distance, closest_vis_elements = rtree_analyzer_.get_closest_visualization_elements(
+            nearby_polygons_distances_dict = rtree_analyzer_.get_closest_visualization_elements(
                 query_poly=finalist.poly,
                 vis_elements_to_ignore=vis_elements_to_ignore)
-            vis_element_distances[min_distance] = finalist
+            nearby_vis_elements_distances_dict = {distance: polygon_to_vis_element[polygon]
+                                                  for distance, polygon in nearby_polygons_distances_dict.items()}
+            closest_critical_element_distance = self._find_closest_element(nearby_vis_elements_distances_dict,
+                                                                           element_types=[
+                                                                               visualization_elements.CityScatter,
+                                                                               visualization_elements.CityTextBox],
+                                                                           max_considered_distance=100000)
+            critical_data_dict.add(vis_element=finalist,
+                                   distance=closest_critical_element_distance)
+            all_data_dict.add(vis_element=finalist,
+                              distance=min(list(nearby_vis_elements_distances_dict.keys())))
             result = VisualizationElementResult(vis_element=finalist,
                                                 num_iterations=i)
             yield result
-        farthest_distance = max(list(vis_element_distances.keys()))
-        best_finalist = vis_element_distances[farthest_distance]
+
+        finalist_scores = {}
+        for finalist in finalists:
+            all_score = all_data_dict.get_distance(finalist)
+            critical_score = critical_data_dict.get_distance(finalist)
+            score = all_score * (critical_score ** 2)
+            finalist_scores[score] = finalist
+        max_score = max(list(finalist_scores.keys()))
+        best_finalist = finalist_scores[max_score]
         best = thing_converter.convert_visualization_element(vis_element=best_finalist,
                                                              desired_type=visualization_elements.Best,
                                                              site_type=self.city_scatter_element.site_type)
         result = VisualizationElementResult(vis_element=best)
         yield result
 
-    def find_best_poly(self, rtree_analyzer_: rtree_analyzer.RtreeAnalyzer):
+    def find_best_poly(self, rtree_analyzer_: rtree_analyzer.RtreeAnalyzer, polygon_to_vis_element: dict):
         finalists = []
         for result in self._run_initial_scan(rtree_analyzer_=rtree_analyzer_):
             # We want to wait to yield the finalist to be potentially plotted until it's actually being analyzed further
@@ -171,9 +220,10 @@ class CityScanner:
 
         for result in self._determine_best_finalist(finalists=finalists,
                                                     rtree_analyzer_=rtree_analyzer_,
-                                                    vis_elements_to_ignore=[self.city_scatter_element]):
+                                                    vis_elements_to_ignore=[self.city_scatter_element],
+                                                    polygon_to_vis_element=polygon_to_vis_element):
             yield result
             if type(result.vis_element) is Best:
                 best_result = result
-                
+
         yield best_result
