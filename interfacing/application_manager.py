@@ -162,7 +162,9 @@ class ApplicationManager:
             config=self.config)
         vis_element_plot_controller = plotting.PlotController(
             config=self.config,
-            show_visiting_text_boxes=False)
+            show_visiting_text_boxes=False,
+            show_line=False,
+            show_origin_scatters=False)
         plotter = plotting.PlotManager(algorithm_handler=self.algorithm_handler,
                                        map_plotter=self.map_plotter,
                                        plot_controller=vis_element_plot_controller)
@@ -224,5 +226,4 @@ class ApplicationManager:
                 self.visualization_elements_manager.fill_element(vis_element)
                 plotter.attempt_plot(vis_element=vis_element)
 
-        plotted_elements = [self.visualization_elements_manager.fill_element(element) for element in plotter.plotted_elements]
-        return plotted_elements
+

@@ -6,7 +6,7 @@ vcc_file_name = "/vcc_joined_data.csv"
 logging.basicConfig(level=logging.INFO)
 
 interface_ = interface.Interface(vcc_file_name=vcc_file_name, city_name_changes={'Des Moines': ['West Des Moines']})
-interface_.create_number_of_visiting_providers_map(output_path="C:/Users/13198/Downloads/provider_data.xlsx")
+interface_.create_number_of_visiting_providers_map(output_path="C:/Users/austisnyder/programming/programming_i_o_files/visiting_providers.xlsx")
 
 
 

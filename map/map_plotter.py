@@ -4,7 +4,7 @@ from mpl_toolkits import basemap
 
 import config_manager
 from things.entities import entities
-from things.visualization_elements import visualization_elements
+from things.visualization_elements import Line, CityScatter, Best
 
 
 def convert_bbox_to_data_coordinates(ax, bbox):
@@ -44,9 +44,9 @@ class MapPlotter:
             plt.show(block=False)
 
         self.visualization_element_plot_funcs = {
-            visualization_elements.Line: self._plot_line,
-            visualization_elements.CityScatter: self._plot_point,
-            visualization_elements.CityTextBox: self._plot_text
+            Line: self._plot_line,
+            CityScatter: self._plot_point,
+            Best: self._plot_text
         }
 
     def convert_coord_to_display(self, coord: tuple):
@@ -54,57 +54,78 @@ class MapPlotter:
         convert_lon, convert_lat = self.iowa_map(lon, lat)
         return convert_lon, convert_lat
 
-    def plot_element(self, vis_element: visualization_elements.VisualizationElement, zorder: int,
-                     override_coord: tuple = None):
-        plot_func = self.visualization_element_plot_funcs[type(vis_element)]
-        obj = plot_func(vis_element, zorder, override_coord=override_coord)
-        plt.draw()
-        if self.show_display:
-            plt.pause(0.1)
-            plt.show(block=False)
-        return obj
-
-    def _plot_point(self, scatter: visualization_elements.CityScatter, zorder: int, **kwargs):
-        scatter_obj = self.ax.scatter(scatter.city_coord[0], scatter.city_coord[1], marker=scatter.marker, color=scatter.color,
-                                      edgecolor=scatter.edgecolor, s=scatter.size, label=scatter.label, zorder=zorder,
-                                      **kwargs)
-
-        return scatter_obj
-
-    def _plot_line(self, line: visualization_elements.Line, zorder: int) -> plt.Line2D:
-        line = self.ax.attempt_plot(line.x_data, line.y_data, color=line.color, linestyle='-', linewidth=line.linewidth,
-                                    zorder=zorder)
-
-        return line
-
-    def _plot_text(self, text_box: visualization_elements.CityTextBox, zorder: int, override_coord: tuple = None):
+    def get_text_box_dimensions(self, vis_element, override_coord: tuple = None) -> dict:
         # We don't want Iowa cities to have the state abbreviation
-        city_name = text_box.city_name.replace(', IA', '')
+        city_name = vis_element.city_name.replace(', IA', '')
         if override_coord:
             lon, lat = override_coord
         else:
-            lon, lat = text_box.centroid
+            lon, lat = vis_element.centroid
         city_text = self.ax.text(lon, lat, city_name,
-                                 fontsize=text_box.map_fontsize,
-                                 font=text_box.map_font,
+                                 fontsize=vis_element.map_fontsize,
+                                 font=vis_element.map_font,
                                  ha='center',
                                  va='center',
-                                 color=text_box.map_color,
-                                 fontweight=text_box.map_fontweight,
-                                 zorder=zorder,
+                                 color=vis_element.map_color,
+                                 fontweight=vis_element.map_fontweight,
+                                 zorder=0,
                                  bbox=dict(facecolor='white', edgecolor='white', boxstyle='square,pad=0.0'))
-        return city_text
+        bbox = city_text.get_window_extend
+        bbox_coords = bbox.transformed(self.ax.transData.inverted())
+        return {
+            'x_min': bbox_coords.xmin,
+            'y_min': bbox_coords.ymin,
+            'x_max': bbox_coords.xmax,
+            'y_max': bbox_coords.ymax
+        }
 
-    def get_text_box_dimensions(self, city: entities.City, font_size: int, font: str, font_weight: str) -> dict:
-        # We don't want Iowa cities to have the state abbreviation
-        city_name = city.city_name.replace(', IA', '')
-        city_text = plt.text(0, 0, city_name, fontsize=font_size, font=font, ha='center', va='center',
-                             color='black', fontweight=font_weight)
-        self.fig.canvas.draw()
-        text_bbox = city_text.get_window_extent(renderer=self.fig.canvas.get_renderer())
 
-        city_text.remove()
 
-        text_box_dimensions = convert_bbox_to_data_coordinates(ax=self.ax,
-                                                               bbox=text_bbox)
-        return text_box_dimensions
+
+
+
+
+
+
+    """
+        def plot_element(self, vis_element, zorder: int,
+                 override_coord: tuple = None):
+            plot_func = self.visualization_element_plot_funcs[type(vis_element)]
+            obj = plot_func(vis_element, zorder, override_coord=override_coord)
+            plt.draw()
+            if self.show_display:
+                plt.pause(0.1)
+                plt.show(block=False)
+            return obj
+            
+        def _plot_point(self, scatter: CityScatter, zorder: int, **kwargs):
+            scatter_obj = self.ax.scatter(scatter.city_coord[0], scatter.city_coord[1], marker=scatter.marker, color=scatter.color,
+                                          edgecolor=scatter.edgecolor, s=scatter.size, label=scatter.label, zorder=zorder,
+                                          **kwargs)
+
+            return scatter_obj
+
+        def _plot_line(self, line: Line, zorder: int) -> plt.Line2D:
+            line = self.ax.attempt_plot(line.x_data, line.y_data, color=line.color, linestyle='-', linewidth=line.linewidth,
+                                        zorder=zorder)
+
+            return line
+
+        def _plot_text(self, text_box: Best, zorder: int, override_coord: tuple = None):
+            # We don't want Iowa cities to have the state abbreviation
+            city_name = text_box.city_name.replace(', IA', '')
+            if override_coord:
+                lon, lat = override_coord
+            else:
+                lon, lat = text_box.centroid
+            city_text = self.ax.text(lon, lat, city_name,
+                                     fontsize=text_box.map_fontsize,
+                                     font=text_box.map_font,
+                                     ha='center',
+                                     va='center',
+                                     color=text_box.map_color,
+                                     fontweight=text_box.map_fontweight,
+                                     zorder=zorder,
+                                     bbox=dict(facecolor='white', edgecolor='white', boxstyle='square,pad=0.0'))
+            return city_text
+        """
