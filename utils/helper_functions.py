@@ -1,0 +1,14 @@
+
+
+def get_config_value(config, key, cast_type):
+    """Helper function to get and cast config values with optional default."""
+    value = config
+    for part in key.split('.'):
+        value = value[part]  # Navigate through the nested keys
+
+    if cast_type is bool:
+        return True if value == 'True' else False
+    elif cast_type is list:
+        list_ = [item.strip() for item in value.split(',')]
+        return list_
+    return cast_type(value)
