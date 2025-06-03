@@ -1,7 +1,5 @@
-import logging
-
 import config_manager
-from things.visualization_elements import vis_element_classes
+from visualization_elements import vis_element_classes
 
 
 class MapDisplayController:
@@ -113,12 +111,12 @@ class PlotController:
                  show_intersecting_poly=True,
                  **plot_settings):
         self.map_display_controller = MapDisplayController(show_origin_scatters,
-                                                             show_visiting_scatters,
-                                                             show_dual_text_box,
-                                                             show_origin_text_box,
-                                                             show_visiting_text_box,
-                                                             show_dual_scatters,
-                                                             show_line)
+                                                           show_visiting_scatters,
+                                                           show_dual_text_box,
+                                                           show_origin_text_box,
+                                                           show_visiting_text_box,
+                                                           show_dual_scatters,
+                                                           show_line)
         self.algorithm_display_controller = AlgorithmDisplayController(**plot_settings)
         self.config = config if config else config_manager.ConfigManager()
         self.plot_settings = plot_settings
@@ -149,9 +147,6 @@ class PlotController:
                        iterations: int = None, **kwargs) -> bool:
         should_display_funcs = {
             'map': self.map_display_controller.should_display,
-            'algorithm': self.algorithm_display_controller.should_display
+            'algorithm_plot': self.algorithm_display_controller.should_display
         }
         return should_display_funcs[display_type](vis_element=vis_element, iterations=iterations)
-
-
-

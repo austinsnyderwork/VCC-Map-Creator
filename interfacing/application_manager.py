@@ -3,18 +3,16 @@ import pandas as pd
 from typing import Union
 
 from . import data_functions, helper_functions
-import algorithm
+
 import config_manager
 from environment_management import entity_relationship_manager
 from environment_management import CityOriginNetworkHandler
 import plotting
 from plotting import VisualizationElementResult
-from polygons import polygon_factory
 import things
-from things import visualization_elements
-from things.visualization_elements import CityScatter, Best, Line
-from things.entities import entities_factory
-from things import entities
+import visualization_elements
+from visualization_elements import CityScatter, Best, Line
+import entities
 import map
 
 
@@ -29,21 +27,17 @@ def _remove_same_city_visiting_assignments(entities_: list[entities.Entity]) -> 
 
 class ApplicationManager:
 
-    def __init__(self, df: pd.DataFrame,
+    def __init__(self,
+                 df: pd.DataFrame,
                  entities_factory_: entities_factory.EntitiesFactory = None,
                  map_plotter: map.MapPlotter = None,
-                 algorithm_handler: algorithm.AlgorithmHandler = None):
+                 algorithm_handler: AlgorithmHandler = None):
         self.df = df
         self.config = config_manager.ConfigManager()
-        self.entities_manager = entities.EntitiesManager()
+        self.entities_manager = entities.EntitiesHandler()
         self.visualization_elements_manager = visualization_elements.VisualizationElementsManager(config=self.config)
-        self.polygon_factory_ = polygon_factory.PolygonFactory(
-            radius_per_scatter_size=self.config.get_config_value('dimensions.units_radius_per_1_scatter_size', int),
-            units_per_line_width=self.config.get_config_value('dimensions.units_per_1_linewidth', int)
-        )
         self.city_origin_network_handler = CityOriginNetworkHandler(colors=helper_functions.get_colors())
-        self.entities_factory_ = entities_factory_ if entities_factory_ \
-            else entities_factory.EntitiesFactory(df=self.df)
+        self.entities_factory_ = entities_factory_ if entities_factory_ else entities_factory.EntitiesFactory(df=self.df)
 
         self.map_plotter = map_plotter or map.MapPlotter(
             config_=self.config,
@@ -65,31 +59,16 @@ class ApplicationManager:
 
     def startup(self):
         logging.info("Beginning startup.")
-        entities_ = self.entities_factory_.create_entities(coord_converter=self.map_plotter.convert_coord_to_display)
-        all_entities = [entity for entities_list in entities_.values() for entity in entities_list]
-
-        for entity in all_entities:
-            logging.debug(f"Attempting to add entity {entity} to entities_manager")
-            self.entities_manager.add_entity(entity)
+        entities_container = entities.create_entities(self.df)
 
         entity_relationship_manager_ = entity_relationship_manager.EntityRelationshipManager(
             cities=entities_[entities.City],
-            clinics=entities_[entities.VccClinicSite],
+            clinics=entities_[entities.Worksite],
             provider_assignments=entities_[entities.ProviderAssignment]
         )
         entity_relationship_manager_.fill_entities()
         self.city_origin_network_handler.fill_city_origin_networks(entities_manager=self.entities_manager)
         logging.info("Finished startup.")
-
-    def get_powerbi_output(self):
-        vis_elements = self.algorithm_handler.plotted_vis_elements
-        all_column_names = {vis_element_type: set() for vis_element_type in vis_elements.keys()}
-        for vis_element_type, typed_elements in vis_elements.items():
-            col_names = set()
-            for ele in typed_elements:
-                new_cols = set(ele.__dict__.keys())
-                col_names.update(new_cols)
-            all_column_names[vis_element_type].update(col_names)
 
     def _convert_entity(self, entity: entities.Entity, conditions_map) \
             -> Union[visualization_elements.Line, visualization_elements.CityScatterAndText, None]:
@@ -147,8 +126,8 @@ class ApplicationManager:
             logging.info(f"\tFilling visualization element {visualization_element} "
                          f"\n\t\tNumber {i} of {len(visualization_elements_)}")
             extra_args = visualization_element.__dict__
-            poly = self.polygon_factory_.create_poly(vis_element=visualization_element,
-                                                     **extra_args)
+            poly = self.polygon_factory_.create_polygon(vis_element=visualization_element,
+                                                        **extra_args)
 
             visualization_element.default_poly = poly
 
@@ -182,8 +161,8 @@ class ApplicationManager:
             for vis_element_result in self.algorithm_handler.find_best_polygon(
                     city_element=city_scatter_and_text.city_scatter,
                     text_box_element=city_scatter_and_text.city_text_box,
-                    city_buffer=self.config.get_config_value('algorithm.city_to_text_box_buffer', int),
-                    number_of_steps=self.config.get_config_value('algorithm.search_steps', int),
+                    city_buffer=self.config.get_config_value('algorithm_plot.city_to_text_box_buffer', int),
+                    number_of_steps=self.config.get_config_value('algorithm_plot.search_steps', int),
                     polygon_to_vis_element=self.visualization_elements_manager.polygon_to_vis_element):
                 self.visualization_elements_manager.fill_element(vis_element_result.vis_element)
                 self.visualization_elements_manager.add_visualization_elements(visualization_elements_=[vis_element_result.vis_element])

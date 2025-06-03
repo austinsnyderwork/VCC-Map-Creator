@@ -3,22 +3,23 @@ import configparser
 
 class ConfigManager:
     _instance = None
+    _initialized = False
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(ConfigManager, cls).__new__(cls)
-            cls._instance.load_config()
+
         return cls._instance
 
-    def load_config(self):
+    def __init__(self, config_path: str = 'config.ini'):
+        cls = self.__class__
+        if cls._initialized:
+            return
+
         config = configparser.ConfigParser()
-        config.read('config.ini')
-        self.config = config
+        self.config = config.read(config_path)
 
     def get_config_value(self, key, cast_type):
-        if not ConfigManager._instance:
-            ConfigManager()
-
         value = self.config
         for part in key.split('.'):
             value = value[part]  # Navigate through the nested keys
@@ -31,9 +32,6 @@ class ConfigManager:
         return cast_type(value)
 
     def get_config_values(self, key, subkeys, cast_types):
-        if not ConfigManager._instance:
-            ConfigManager()
-
         nest = self.config[key]
 
         outputs = []
@@ -48,4 +46,3 @@ class ConfigManager:
             else:
                 outputs.append(cast_type(value))
         return outputs
-

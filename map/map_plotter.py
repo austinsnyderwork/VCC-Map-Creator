@@ -1,10 +1,7 @@
-import logging
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 
 import config_manager
-from things.entities import entities
-from things.visualization_elements import Line, CityScatter, Best
 
 
 def convert_bbox_to_data_coordinates(ax, bbox):
@@ -21,6 +18,15 @@ def convert_bbox_to_data_coordinates(ax, bbox):
     return text_box_dimensions
 
 
+def _create_iowa_map(ax):
+    return basemap.Basemap(projection='lcc',
+                           resolution='i',
+                           lat_0=41.5, lon_0=-93.5,  # Central latitude and longitude
+                           llcrnrlon=-97, llcrnrlat=40,  # Lower-left corner
+                           urcrnrlon=-89, urcrnrlat=44,  # Upper-right corner
+                           ax=ax)
+
+
 class MapPlotter:
 
     def __init__(self, config_: config_manager.ConfigManager, display_fig_size: tuple, county_line_width: float,
@@ -29,18 +35,16 @@ class MapPlotter:
         self.config_ = config_
 
         self.fig, self.ax = plt.subplots(figsize=display_fig_size)
+
         self.ax.set_title("Main")
-        self.iowa_map = basemap.Basemap(projection='lcc', resolution='i',
-                                        lat_0=41.5, lon_0=-93.5,  # Central latitude and longitude
-                                        llcrnrlon=-97, llcrnrlat=40,  # Lower-left corner
-                                        urcrnrlon=-89, urcrnrlat=44,  # Upper-right corner
-                                        ax=self.ax)
-        self.iowa_map.drawstates()
-        self.iowa_map.drawcounties(linewidth=county_line_width)
+
+        self.map_plot = _create_iowa_map(self.ax)
+        self.map_plot.drawstates()
+        self.map_plot.drawcounties(linewidth=county_line_width)
 
     def convert_coord_to_display(self, coord: tuple):
         lon, lat = coord
-        convert_lon, convert_lat = self.iowa_map(lon, lat)
+        convert_lon, convert_lat = self.map_plot(lon, lat)
         return convert_lon, convert_lat
 
     def get_text_box_dimensions(self, entity: entities.City, font_size: int, font_weight: str, font: str) -> dict:
@@ -63,14 +67,6 @@ class MapPlotter:
             'x_max': bbox_coords.xmax,
             'y_max': bbox_coords.ymax
         }
-
-
-
-
-
-
-
-
 
     """
         def plot_element(self, vis_element, zorder: int,

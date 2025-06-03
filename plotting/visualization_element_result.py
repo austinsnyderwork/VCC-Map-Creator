@@ -1,5 +1,5 @@
 
-from things.visualization_elements import vis_element_classes
+from visualization_elements import vis_element_classes
 
 
 class VisualizationElementResult:

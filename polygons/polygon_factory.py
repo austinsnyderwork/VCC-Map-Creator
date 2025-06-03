@@ -1,13 +1,10 @@
-import itertools
-import logging
 import numpy as np
 from shapely.geometry import Polygon
-from typing import Type
 
-from .polygon_functions import shorten_line
-from polygons import polygon_functions
+from . import polygon_utils
+from shared.shared_utils import Coordinate
 from things import box_geometry
-from things.visualization_elements import vis_element_classes
+from visualization_elements import vis_element_classes
 
 
 def _has_attributes(obj, attributes: list[str]) -> bool:
@@ -20,68 +17,61 @@ def _get_attributes(obj, attributes: list[str]) -> tuple:
 
 class PolygonFactory:
 
-    def __init__(self, radius_per_scatter_size: int, units_per_line_width: int):
-        self.radius_per_scatter_size = radius_per_scatter_size
-        self.unit_per_line_width = units_per_line_width
+    @staticmethod
+    def create_line(coord_0: Coordinate,
+                    coord_1: Coordinate,
+                    line_width: float
+                    ) -> Polygon:
 
-        self.poly_create_functions_by_type = {
-            vis_element_classes.Line: self._create_line_polygon,
-            vis_element_classes.CityScatter: self._create_scatter_polygon,
-            vis_element_classes.CityTextBox: self._create_rectangle_polygon,
-            vis_element_classes.TextBoxFinalist: self._create_rectangle_polygon,
-            vis_element_classes.TextBoxNearbySearchArea: self._create_rectangle_polygon,
-            vis_element_classes.TextBoxScanArea: self._create_rectangle_polygon
-        }
+        # Determine the slope perpendicular to the line
+        delta_x = coord_1.lon - coord_0.lon
+        delta_y = coord_1.lat - coord_0.lat
 
-    def create_poly(self, vis_element: vis_element_classes.VisualizationElement = None,
-                    vis_element_type: Type[vis_element_classes.VisualizationElement] = None,
-                    box: box_geometry.BoxGeometry = None,
-                    **kwargs) -> Polygon:
-        if vis_element:
-            vis_element_type = type(vis_element)
-        func = self.poly_create_functions_by_type[vis_element_type]
-        poly = func(vis_element=vis_element,
-                    box=box,
-                    **kwargs)
-        return poly
+        if delta_x == 0:  # vertical line
+            perpendicular_slope = 0
+        elif delta_y == 0:  # horizontal line
+            perpendicular_slope = 1
+        else:
+            slope = delta_y / delta_x
+            perpendicular_slope = -1 / slope
 
-    def _create_line_polygon(self, vis_element: vis_element_classes.Line, x_data: tuple = None, y_data: tuple = None,
-                             linewidth = None, **kwargs) -> Polygon:
-        x_data = x_data if x_data else vis_element.x_data
-        y_data = y_data if y_data else vis_element.y_data
-        linewidth = linewidth if linewidth else vis_element.map_linewidth
-        slope = (y_data[1] - y_data[0]) / (x_data[1] - x_data[0])
-        perpendicular_slope = -1 / slope
+        # Create new points for the corners of the line polygon
+        new_coord_00 = polygon_utils.move_coordinate(coord_0.lon,
+                                                     coord_0.lat,
+                                                     slope=perpendicular_slope,
+                                                     distance=line_width / 2)
+        new_coord_01 = polygon_utils.move_coordinate(coord_0.lon,
+                                                     coord_0.lat,
+                                                     slope=-perpendicular_slope,
+                                                     distance=line_width / 2)
 
-        poly_coords = []
-        for coord in zip(x_data, y_data):
-            new_coord_0 = polygon_functions.move_coordinate(coord[0], coord[1], slope=perpendicular_slope,
-                                                            distance=linewidth / 2)
-            new_coord_1 = polygon_functions.move_coordinate(coord[0], coord[1], slope=-perpendicular_slope,
-                                                            distance=linewidth / 2)
-            poly_coords.append(new_coord_0)
-            poly_coords.append(new_coord_1)
+        new_coord_10 = polygon_utils.move_coordinate(coord_1.lon,
+                                                     coord_1.lat,
+                                                     slope=perpendicular_slope,
+                                                     distance=line_width / 2)
+        new_coord_11 = polygon_utils.move_coordinate(coord_1.lon,
+                                                     coord_1.lat,
+                                                     slope=-perpendicular_slope,
+                                                     distance=line_width / 2)
+        poly_coords = [new_coord_00, new_coord_10, new_coord_11, new_coord_01]
 
-        for permutation in itertools.permutations(poly_coords):
-            polygon = Polygon(permutation)
-            if polygon.is_valid:
-                return polygon
-
-        raise ValueError("Could not form a valid line polygon.")
-
-    def _create_scatter_polygon(self, vis_element: vis_element_classes.VisualizationElement,
-                                num_points=8, **kwargs) -> Polygon:
-        angles = np.linspace(0, 2 * np.pi, num_points)
-        radius = vis_element.map_size * self.radius_per_scatter_size
-        points = [(vis_element.algorithm_coord[0] + radius * np.cos(angle),
-                   vis_element.algorithm_coord[1] + radius * np.sin(angle)) for
-                  angle in angles]
-        poly = Polygon(points)
-        return poly
+        return Polygon(poly_coords)
 
     @staticmethod
-    def _create_rectangle_polygon(vis_element: vis_element_classes.VisualizationElement = None,
-                                  box: box_geometry.BoxGeometry = None, **kwargs) -> Polygon:
+    def create_scatter(coord: Coordinate,
+                       radius: int = 100,
+                       num_points=8
+                       ) -> Polygon:
+        angles = np.linspace(0, 2 * np.pi, num_points, endpoint=False)
+        points = [(coord.lon + radius * np.cos(angle),
+                   coord.lat + radius * np.sin(angle))
+                  for angle in angles]
+        return Polygon(points)
+
+    @staticmethod
+    def create_rectangle(coordinate_pack: 'CoordinatePack',
+                         vis_element: vis_element_classes.VisualizationElement = None,
+                         box: box_geometry.BoxGeometry = None, **kwargs) -> Polygon:
         if vis_element:
             attributes_1 = ['lon', 'lat', 'width', 'height']
             attributes_2 = ['center_coord', 'poly_width']
@@ -111,12 +101,13 @@ class PolygonFactory:
         else:
             raise ValueError("Must explicitly pass either a visualization element or a box geometry.")
 
+        cp = coordinate_pack
         coordinates = [
-            (x_min, y_min),  # Bottom-left corner
-            (x_max, y_min),  # Bottom-right corner
-            (x_max, y_max),  # Top-right corner
-            (x_min, y_max),  # Top-left corner
-            (x_min, y_min)  # Closing the polygon by returning to the start
+            (cp.x_min, cp.y_min),  # Bottom-left corner
+            (cp.x_max, cp.y_min),  # Bottom-right corner
+            (cp.x_max, cp.y_max),  # Top-right corner
+            (cp.x_min, cp.y_max),  # Top-left corner
+            (cp.x_min, cp.y_min)  # Closing the polygon by returning to the start
         ]
 
         # Create and return the Polygon
