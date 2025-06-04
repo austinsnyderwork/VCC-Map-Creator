@@ -71,6 +71,14 @@ class ProviderAssignment:
                 and self.origin_site == other.origin_site
                 and self.visiting_site == other.visiting_site)
 
+    @property
+    def origin_city(self):
+        return self.origin_site.city
+
+    @property
+    def visiting_city(self):
+        return self.visiting_site.city
+
 
 class Worksite:
 

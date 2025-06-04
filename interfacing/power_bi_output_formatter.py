@@ -1,6 +1,5 @@
 import pandas as pd
 
-
 from visualization_elements import Line, CityScatter, Best
 
 

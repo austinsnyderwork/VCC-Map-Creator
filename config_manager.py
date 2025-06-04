@@ -19,7 +19,7 @@ class ConfigManager:
         config = configparser.ConfigParser()
         self.config = config.read(config_path)
 
-    def get_config_value(self, key, cast_type):
+    def __call__(self, key: str, cast_type):
         value = self.config
         for part in key.split('.'):
             value = value[part]  # Navigate through the nested keys
@@ -31,7 +31,7 @@ class ConfigManager:
             return list_
         return cast_type(value)
 
-    def get_config_values(self, key, subkeys, cast_types):
+    def fetch_config_values(self, key, subkeys, cast_types):
         nest = self.config[key]
 
         outputs = []
@@ -46,3 +46,6 @@ class ConfigManager:
             else:
                 outputs.append(cast_type(value))
         return outputs
+
+    def fetch_config_value(self, key, cast_type):
+        return cast_type(self.config)

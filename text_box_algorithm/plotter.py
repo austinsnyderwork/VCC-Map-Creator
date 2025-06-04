@@ -1,11 +1,12 @@
 import logging
+
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
 
 from config_manager import ConfigManager
-from visualization_elements import CityScatter, CityTextBox, Intersection, \
-    TextBoxFinalist, TextBoxNearbySearchArea, Best, Line, TextBoxScanArea, vis_element_classes
+from polygons import polygon_utils
+from visualization_elements.element_classes import VisualizationElement, Line
 
 
 def check_show_display(func):
@@ -63,59 +64,25 @@ class AlgorithmPlotter:
         plt.draw()
         plt.pause(0.1)
 
-        logging.info("Created initial algorithm_plot figure.")
+        logging.info("Created initial text_box_algorithm figure.")
 
         plt.show(block=False)
 
-    def _configure_config_values(self, vis_element_type, input_dict):
-        variable_name_type = {
-            CityScatter: 'scatter',
-            Line: 'line',
-            TextBoxNearbySearchArea: 'nearby_search_poly',
-            Intersection: 'intersecting_poly',
-            Best: 'best_poly',
-            CityTextBox: 'scan_poly',
-            TextBoxFinalist: 'poly_finalist',
-            TextBoxScanArea: 'scan_area_poly'
-        }
-        v = variable_name_type[vis_element_type]
-        show, color, transparency, immediately_remove, center_view = self.config.get_config_values(
-            key='algo_display',
-            subkeys=[f"show_{v}", f"{v}_color", f"{v}_transparency", f"immediately_remove_{v}", f"center_view_on_{v}"],
-            cast_types=[bool, str, float, bool, bool]
-        )
-        input_dict[vis_element_type] = {
-            'show': show,
-            'color': color,
-            'edgecolor': color,
-            'transparency': transparency,
-            'immediately_remove': immediately_remove,
-            'center_view': center_view
-        }
-
-    @property
-    def default_plot_values(self):
-        if self._default_plot_values is None:
-            self._default_plot_values = {}
-            self._configure_config_values(CityScatter, self._default_plot_values)
-            self._configure_config_values(Line, self._default_plot_values)
-            self._configure_config_values(TextBoxNearbySearchArea, self._default_plot_values)
-            self._configure_config_values(Intersection, self._default_plot_values)
-            self._configure_config_values(Best, self._default_plot_values)
-            self._configure_config_values(Best, self._default_plot_values)
-            self._configure_config_values(CityTextBox, self._default_plot_values)
-            self._configure_config_values(TextBoxFinalist, self._default_plot_values)
-            self._configure_config_values(TextBoxScanArea, self._default_plot_values)
-
-        return self._default_plot_values
-
-    def _get_plot_value(self, vis_element, variable, plot_key):
-        default_plot_values = self.default_plot_values[type(vis_element)]
-        value = getattr(vis_element, f'{variable}') if hasattr(vis_element, f'{variable}') else default_plot_values[plot_key]
-        return value
-
     @check_show_display
-    def plot_element(self, vis_element: vis_element_classes.VisualizationElement, poly_override=None):
+    def plot_element(self, vis_element: VisualizationElement, poly_override=None):
+        if isinstance(vis_element, Line):
+            cpack = polygon_utils.shorten_line(x_data=)
+        # Below was brought in from algorithm_handler. Hvae to work that out still
+        new_poly = None
+        # Shorten the line for the text_box_algorithm
+        if type(element) is vis_element_classes.Line:
+            new_x_data, new_y_data = polygon_functions.shorten_line(element.x_data, element.y_data)
+            new_poly = self.polygon_factory_.create_polygon(vis_element_type=vis_element_classes.Line,
+                                                            x_data=new_x_data,
+                                                            y_data=new_y_data,
+                                                            linewidth=element.map_linewidth)
+        self.algorithm_plotter.plot_element(element, poly_override=new_poly)
+
         edgecolor = self._get_plot_value(vis_element, f"{attr_prefix}edgecolor", 'color')
         facecolor = self._get_plot_value(vis_element, f"{attr_prefix}facecolor", 'color')
         alpha = self._get_plot_value(vis_element, f"{attr_prefix}transparency", 'transparency')

@@ -1,28 +1,29 @@
-from entities.class_objs import City, ProviderAssignment
+import matplotlib
+
+from entities.entity_classes import ProviderAssignment
+from entities.factory import EntitiesContainer
 
 
-class CityOriginNetwork:
-
-    def __init__(self, origin_city: City, color: str):
-        self.origin_city = origin_city
-        self.color = color
-
-        self.visiting_cities = set()
-        self.present_origin_cities = set()
-
-    def add_city(self, city: City):
-        if city.city_name in self.present_origin_cities:
-            return
-
-        self.visiting_cities.add(city)
-        self.present_origin_cities.add(city.city_name)
+def _is_dark_color(hex_color):
+    # Convert hex to RGB values
+    rgb = matplotlib.colors.hex2color(hex_color)
+    # Calculate perceived brightness using a common formula
+    brightness = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2])
+    # A threshold to determine what counts as a "light" color
+    return brightness < 0.7
 
 
-class CityOriginNetworkHandler:
+def _fetch_colors():
+    all_colors = matplotlib.colors.CSS4_COLORS
+    colors = [color for color, hex_value in all_colors.items() if _is_dark_color(hex_value)]
+    return colors
 
-    def __init__(self, colors: list[str]):
-        self.colors = colors
-        self.city_origin_networks = {}
+
+class CityNetworksHandler:
+
+    def __init__(self, colors: list[str] = None):
+        self.colors = colors or _fetch_colors()
+        self._networks = {}
 
         self.colors_idx = 0
 
@@ -31,28 +32,12 @@ class CityOriginNetworkHandler:
         self.colors_idx += 1
         return color
 
-    def add_origin_city(self, origin_city: City):
-        if origin_city.city_name in self.city_origin_networks:
-            return
+    def fetch_assignment_color(self, assignment: ProviderAssignment):
+        return self._networks[assignment.origin_city]
 
-        self.city_origin_networks[origin_city.city_name] = CityOriginNetwork(origin_city=origin_city,
-                                                                        color=self._get_color())
+    def fill_networks(self, entities_container: EntitiesContainer):
+        for pa in entities_container.provider_assignments:
+            if pa.origin_city in self._networks:
+                continue
 
-    def add_visiting_city(self, origin_city: City, visiting_city: City):
-        self.city_origin_networks[origin_city.city_name].add_origin_city(visiting_city)
-
-    def get_entity_color(self, entity: ProviderAssignment):
-        if type(entity) is ProviderAssignment:
-            origin_city_name = entity.origin_city_name
-            return self.city_origin_networks[origin_city_name].color
-
-    def fill_city_origin_networks(self, entities_manager: EntitiesHandler):
-        for provider_assignment in entities_manager.get_all_entities(ProviderAssignment):
-            origin_city = entities_manager.get_city(name=provider_assignment.origin_city_name)
-            self.add_origin_city(origin_city=origin_city)
-
-        for provider_assignment in entities_manager.get_all_entities(ProviderAssignment):
-            origin_city = entities_manager.get_city(name=provider_assignment.origin_city_name)
-            visiting_city = entities_manager.get_city(name=provider_assignment.visiting_city_name)
-            self.add_visiting_city(origin_city=origin_city,
-                                   visiting_city=visiting_city)
+            self._networks[pa.origin_city] = self._get_color()

@@ -1,3 +1,4 @@
+from enum import Enum
 
 
 class Coordinate:
@@ -14,3 +15,16 @@ class Coordinate:
             return False
 
         return self.lon == other.lon and self.lat == other.lat
+
+
+class Direction(Enum):
+    UP = 'up'
+    DOWN = 'down'
+    LEFT = 'left'
+    RIGHT = 'right'
+
+
+class CityClassification(Enum):
+    ORIGIN = 'origin_city'
+    VISITING = 'visiting_city'
+    DUAL = 'dual_city'

@@ -29,9 +29,10 @@ def _create_iowa_map(ax):
 
 class MapPlotter:
 
-    def __init__(self, config_: config_manager.ConfigManager, display_fig_size: tuple, county_line_width: float,
-                 show_display: bool):
-        self.show_display = show_display
+    def __init__(self,
+                 config_: config_manager.ConfigManager,
+                 display_fig_size: tuple,
+                 county_line_width: float):
         self.config_ = config_
 
         self.fig, self.ax = plt.subplots(figsize=display_fig_size)

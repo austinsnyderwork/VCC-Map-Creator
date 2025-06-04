@@ -1,28 +1,68 @@
+import copy
+import logging
 
-import input_output
+import matplotlib
+import pandas as pd
+
+from config_manager import ConfigManager
+from entities.factory import EntitiesFactory, EntitiesContainer
+from environment_management.city_origin_networks import CityNetworksHandler
+from mapping import MapPlotter
+from plotting import NumberOfVisitingProvidersConditionsController, PlotController, PlotManager
+from text_box_algorithm.rtree_elements_manager import RtreeElementsManager
+from text_box_algorithm.textbox_placement_algorithm import TextboxPlacementAlgorithm
 from . import application_manager
 from .power_bi_output_formatter import PowerBiOutputFormatter
 
 
 class OperationsCoordinator:
 
-    def __init__(self, vcc_file_name: str, city_name_changes: dict, sheet_name: str = None):
-        df = input_output.get_dataframe(file_name=vcc_file_name,
-                                        sheet_name=sheet_name,
-                                        replace_variables={
-                                            'visiting_city': city_name_changes,
-                                            'origin_city': city_name_changes
-                                        })
-        self.application_manager = application_manager.ApplicationManager(df=df)
-        self.application_manager.startup()
+    def __init__(self, vcc_df: pd.DataFrame):
+        self._entities_container = EntitiesFactory.create_entities(vcc_df)
+        self._city_networks_handler = CityNetworksHandler().fill_networks(entities_container=self._entities_container)
 
-        self.pbif = PowerBiOutputFormatter()
+        config = ConfigManager()
+        self.text_box_algorithm = TextboxPlacementAlgorithm(
+            rtree_manager=RtreeElementsManager(),
+            city_buffer=config('text_box_algorithm.city_to_text_box_buffer', int),
+            number_of_search_steps=config('text_box_algorithm.search_steps', int)
+        )
 
-    def create_line_map(self, **kwargs):
-        self.application_manager.create_line_map(**kwargs)
+        if config('display.show_display', bool):
+            self.map_plotter = MapPlotter(
+                config_=config,
+                display_fig_size=(config('display.fig_size_x', int),
+                                  config('display.fig_size_y', int)
+                                  ),
+                county_line_width=config('display.county_line_width', float)
+            )
+
+    def create_map(self, conditions_controller):
+
+    def create_high_volume_line_map(self, number_of_origin_cities: int):
+
+
+    def create_line_map(self, entities_container: EntitiesContainer = None):
+        entities_container = entities_container or self._entities_container
 
     def create_number_of_visiting_providers_map(self, output_path: str, **kwargs):
-        vis_elements = self.application_manager.create_number_of_visiting_providers_map(**kwargs)
+        logging.info("Creating number of providers by visiting site mapping.")
+
+        conditions_map = NumberOfVisitingProvidersConditionsController(config=self.config)
+        vis_element_plot_controller = PlotController(
+            config=self.config,
+            show_line=False,
+            show_visiting_text_box=False)
+        plotter = PlotManager(algorithm_handler=self.algorithm_handler,
+                              map_plotter=self.map_plotter,
+                              plot_controller=vis_element_plot_controller)
+
+        plotted_elements = self._create_map(conditions_map=conditions_map,
+                                            plot_controller=vis_element_plot_controller,
+                                            plot_manager=plotter)
+
+        return plotted_elements
+
         self.pbif.add_visualization_elements(vis_elements)
         df = self.pbif.create_df()
         df.to_csv(output_path)
@@ -32,4 +72,3 @@ class OperationsCoordinator:
         self.pbif.add_visualization_elements(vis_elements)
         df = self.pbif.create_df()
         df.to_csv(output_path)
-
