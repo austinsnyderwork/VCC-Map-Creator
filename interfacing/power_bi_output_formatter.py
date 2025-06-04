@@ -1,7 +1,6 @@
 import pandas as pd
 
-
-from things.visualization_elements import Line, CityScatter, Best
+from visualization_elements import Line, CityScatter, Best
 
 
 class PowerBiOutputFormatter:

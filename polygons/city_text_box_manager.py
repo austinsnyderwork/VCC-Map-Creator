@@ -1,4 +1,4 @@
-from things import visualization_elements
+import visualization_elements
 
 
 class CityTextBoxManager:
