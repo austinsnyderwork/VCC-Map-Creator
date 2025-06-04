@@ -28,9 +28,8 @@ class MapDisplayController:
 
     def should_display(self, vis_element=None, vis_element_type=None, site_type=None, *args, **kwargs):
         if vis_element:
-            if hasattr(vis_element, 'site_type'):
-                site_type = getattr(vis_element, 'site_type')
             vis_element_type = type(vis_element)
+            site_type = vis_element.get(CityClassification, None)
 
         if vis_element_type in self.master_display_origin_visiting_settings:
             return self.master_display_origin_visiting_settings[vis_element_type][site_type]
