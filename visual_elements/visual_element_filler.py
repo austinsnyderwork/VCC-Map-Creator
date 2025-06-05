@@ -22,7 +22,7 @@ class VisualElementAttributesFiller:
                                       attributes=algo_config[vis_element].attributes)
                 return
 
-            # Classification-specific attributes take priority over general class attributes, so we apply these
+            # Classification-specific attributes take priority over general class attributes, so we apply general attributes
             # after searching for those classification-specific attributes
             cls._apply_attributes(vis_element=vis_element,
                                   attributes=general_attributes)
