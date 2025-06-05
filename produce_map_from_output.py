@@ -54,4 +54,4 @@ def apply_plot_row(row):
 
 dataset.apply(apply_plot_row, axis=1)
 plt.draw()
-plt.show(block=True)
+plt.show()

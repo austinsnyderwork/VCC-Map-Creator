@@ -1,6 +1,5 @@
-from .conditions_map import (ConditionsMap, NumberOfVisitingSpecialtiesConditions, NumberOfVisitingProvidersConditions,
-                             NumberOfVisitingSpecialtiesConditions, HighestCityVisitingVolumeConditions)
-from .plot_controller import PlotController
+from .conditions_controllers import (_ConditionsMap, NumberOfVisitingSpecialtiesConditionsController, NumberOfVisitingProvidersConditionsController,
+                                     NumberOfVisitingSpecialtiesConditionsController, HighestOriginVolumeController)
+from .plot_controlling import PlotController
 from .plot_manager import PlotManager
-from .visualization_element_result import VisualizationElementResult
 
