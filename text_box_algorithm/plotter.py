@@ -3,10 +3,9 @@ import logging
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from mpl_toolkits import basemap
-
-from config_manager import ConfigManager
-from polygons import polygon_utils
-from visualization_elements.element_classes import VisualizationElement, Line
+from shapely import LineString
+from shapely.ops import substring
+from visual_elements.element_classes import VisualElement, Line, TextBoxClassification, SearchAreaClassification
 
 
 def check_show_display(func):
@@ -20,34 +19,40 @@ def check_show_display(func):
     return wrapper
 
 
-class AlgorithmPlotter:
+class AlgorithmDisplay:
+    _removes = {
+        TextBoxClassification.SCAN: {
+            TextBoxClassification.SCAN,
+            TextBoxClassification.INTERSECT
+        },
+        TextBoxClassification.FINALIST: {
+            TextBoxClassification.SCAN,
+            TextBoxClassification.INTERSECT,
+            TextBoxClassification.FINALIST,
+            SearchAreaClassification.SCAN
+        },
+        TextBoxClassification.BEST: {
+            TextBoxClassification.FINALIST,
+            TextBoxClassification.INTERSECT,
+            SearchAreaClassification.SCAN
+        }
+    }
 
-    def __init__(self, config: ConfigManager, display_fig_size: tuple, county_line_width: float, show_display: bool, show_pause: float):
-        self.config = config
-        self.show_display = show_display
+    def __init__(self,
+                 county_line_width: float,
+                 show_pause: float,
+                 display_fig_size: tuple = None):
         self.show_pause = show_pause
 
         self.fig, self.ax = None, None
         self.map_plot = None
 
-        if show_display:
-            self._create_figure(fig_size=display_fig_size,
-                                county_line_width=county_line_width)
+        self._create_figure(fig_size=display_fig_size,
+                            county_line_width=county_line_width)
 
         self._default_plot_values = None
 
-        self.remove_polys_by_type = {
-            CityTextBox: [CityTextBox, Intersection],
-            TextBoxFinalist: [CityTextBox, Intersection, TextBoxFinalist, TextBoxNearbySearchArea],
-            Best: [TextBoxFinalist, Intersection, TextBoxFinalist, TextBoxNearbySearchArea]
-        }
-
-        self.poly_patches = {
-            Best: None,
-            TextBoxNearbySearchArea: None,
-            CityTextBox: None,
-            TextBoxFinalist: None
-        }
+        self.poly_patches = dict()
 
         plt.ion()
 
@@ -68,11 +73,20 @@ class AlgorithmPlotter:
 
         plt.show(block=False)
 
+    def _plot_line(self, line: Line):
+        # Lines are shortened so that the text box placement algorithm can accurately determine proximities
+        line = LineString([line.origin_coordinate, line.visiting_coordinate])
+        reduced_length = line.length * 0.8
+        line = substring(line, 0, line.length * 0.8)
+
+
+
+
     @check_show_display
-    def plot_element(self, vis_element: VisualizationElement, poly_override=None):
+    def display_element(self, vis_element: VisualElement, classification):
         if isinstance(vis_element, Line):
-            cpack = polygon_utils.shorten_line(x_data=)
-        # Below was brought in from algorithm_handler. Hvae to work that out still
+            line = vis_element
+        # Below was brought in from algorithm_handler. Have to work that out still
         new_poly = None
         # Shorten the line for the text_box_algorithm
         if type(element) is vis_element_classes.Line:
@@ -81,7 +95,7 @@ class AlgorithmPlotter:
                                                             x_data=new_x_data,
                                                             y_data=new_y_data,
                                                             linewidth=element.map_linewidth)
-        self.algorithm_plotter.plot_element(element, poly_override=new_poly)
+        self.algorithm_plotter.display_element(element, poly_override=new_poly)
 
         edgecolor = self._get_plot_value(vis_element, f"{attr_prefix}edgecolor", 'color')
         facecolor = self._get_plot_value(vis_element, f"{attr_prefix}facecolor", 'color')

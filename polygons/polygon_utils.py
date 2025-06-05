@@ -1,7 +1,7 @@
 import math
 from enum import Enum
 
-from shapely import Polygon, LineString
+from shapely import Polygon
 
 from .polygon_factory import PolygonFactory
 
@@ -68,44 +68,6 @@ def move_coordinate(x, y, slope, distance) -> tuple:
     new_y = y + delta_y
 
     return new_x, new_y
-
-
-def shorten_line(x_data, y_data, line_length_reduction_percent) -> CoordinatePack:
-    line = LineString([x_data, y_data])
-
-    # Ensure we have exactly two points
-    if len(x_data) != 2 or len(y_data) != 2:
-        raise ValueError("x_data and y_data must contain exactly two points.")
-
-    # Extract the coordinates
-    x1, y1 = x_data[0], y_data[0]
-    x2, y2 = x_data[1], y_data[1]
-
-    # Calculate the reduction length
-    reduction_length = length * (100 - line_length_reduction_percent) / 100
-
-    # Calculate the new length
-    new_length = length - reduction_length
-
-    # Calculate the direction vector
-    dx = x2 - x1
-    dy = y2 - y1
-
-    # Normalize the direction vector
-    norm = math.sqrt(dx ** 2 + dy ** 2)
-    dx /= norm
-    dy /= norm
-
-    # Calculate the new endpoints
-    new_x1 = x1 + dx * (new_length / 2)
-    new_y1 = y1 + dy * (new_length / 2)
-    new_x2 = x2 - dx * (new_length / 2)
-    new_y2 = y2 - dy * (new_length / 2)
-
-    return CoordinatePack(x_min=new_x1,
-                          x_max=new_x2,
-                          y_min=new_y1,
-                          y_max=new_y2)
 
 
 def thin_rectangle(rectangle: Polygon, width_adjustment: float):

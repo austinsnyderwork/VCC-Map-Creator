@@ -8,11 +8,14 @@ class EntitiesContainer:
     
     def __init__(self):
         
-        self.cities = dict()
-        self.worksites = dict()
-        self.providers = dict()
+        self.cities = set()
+        self.worksites = set()
+        self.providers = set()
         self.provider_assignments = set()
 
+    @property
+    def entities(self):
+        return self.cities | self.worksites | self.providers | self.provider_assignments
 
 class EntitiesFactory:
 
@@ -50,14 +53,12 @@ class EntitiesFactory:
             city=origin_city
         )
         origin_worksite = cls._handle_new_entity(entity=origin_worksite, dict_=container.worksites)
-        origin_city.add_worksite(origin_worksite)
     
         visiting_worksite = Worksite(
             site_name=row['visiting_site'],
             city=visiting_city
         )
         visiting_worksite = cls._handle_new_entity(entity=visiting_worksite, dict_=container.worksites)
-        visiting_city.add_worksite(visiting_worksite)
     
         provider = Provider(
             name=row['consultant_name'],

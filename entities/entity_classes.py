@@ -31,8 +31,6 @@ class City:
         self.city_name = city_name
         self.city_coord = city_coord
 
-        self._worksites = set()
-
     def __hash__(self):
         return hash((self.city_name, self.city_coord))
 
@@ -41,9 +39,6 @@ class City:
             return False
 
         return self.city_name == other.city_name and self.city_coord == other.city_coord
-
-    def add_worksite(self, worksite: 'Worksite'):
-        self._worksites.add(worksite)
 
 
 class ProviderAssignment:
