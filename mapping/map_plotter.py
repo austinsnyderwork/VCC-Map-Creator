@@ -48,9 +48,9 @@ class MapDisplay:
         convert_lon, convert_lat = self.map_plot(lon, lat)
         return convert_lon, convert_lat
 
-    def get_text_box_dimensions(self, entity: City, font_size: int, font: str) -> BoxGeometry:
+    def get_text_box_dimensions(self, text_box: TextBox, font_size: int, font: str) -> BoxGeometry:
         # Iowa cities should not have their state abbreviation
-        city_name = entity.city_name.replace(', IA', '')
+        city_name = text_box.city_name.replace(', IA', '')
 
         city_text = self.ax.text(0, 0, city_name,
                                  fontsize=font_size,
@@ -65,12 +65,10 @@ class MapDisplay:
         bbox_coords = city_text.get_window_extent().transformed(self.ax.transData.inverted())
         city_text.remove()
 
-        return BoxGeometry(
-            x_min=bbox_coords.xmin,
-            x_max=bbox_coords.xmax,
-            y_min=bbox_coords.ymin,
-            y_max=bbox_coords.ymax
-        )
+        width = bbox_coords.xmax - bbox_coords.xmin
+        height = bbox_coords.ymax - bbox_coords.ymin
+
+        return width, height
 
     def plot_point(self, scatter: CityScatter, zorder: int, **kwargs):
         scatter_obj = self.ax.scatter(scatter.city_coord[0], scatter.city_coord[1], marker=scatter.marker, color=scatter.color,

@@ -1,5 +1,5 @@
 import pandas as pd
-from visual_elements.element_classes import TextBox, CityScatter, Line
+from visual_elements.element_classes import TextBox, CityScatter, Line, TextBoxAttribute
 
 from config_manager import ConfigManager
 from entities.factory import EntitiesFactory
@@ -25,7 +25,7 @@ class OperationsCoordinator:
             number_of_search_steps=config('text_box_algorithm.search_steps', int)
         )
 
-        self._map_plotter = MapDisplay(
+        self._map_display = MapDisplay(
             figure_size=(config('display.fig_size_x', int), config('display.fig_size_y', int)),
             county_line_width=config('display.county_line_width', float)
         )
@@ -59,9 +59,20 @@ class OperationsCoordinator:
                 )
                 non_text.polygon = scatter_poly
 
+            self._map_display.display_element(non_text)
+
             rtree_map.add_visual_element(visual_element=non_text)
 
+        # 3. Use the non-TextBox visual elements in the RTree to determine the best placement for TextBoxes
         for text in texts:
+            text_box_width, text_box_height = self._map_display.get_text_box_dimensions(
+                text_box=text,
+                font_size=text.map_attributes[TextBoxAttribute.FONT_SIZE],
+                font=text.map_attributes[TextBoxAttribute.FONT]
+            )
+            text.width = text_box_width
+            text.height = text_box_height
+
             city_scatter = [nt for nt in non_texts if isinstance(nt, CityScatter) and nt.city_name == text.city_name][0]
 
             for element, classification in self.text_box_algorithm.find_best_poly(text_box=text,
@@ -69,7 +80,7 @@ class OperationsCoordinator:
                 if self._algo_display:
                     self._algo_display.display_element(vis_element=element,
                                                        classification=classification)
-                    
+
             poly = self.text_box_algorithm.find_best_poly(text_box=text,
                                                           city_scatter=city_scatter)
             text.polygon = poly

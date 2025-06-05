@@ -30,6 +30,11 @@ class TextBoxClassification(Enum):
     INVALID = 'invalid'
 
 
+class TextBoxAttribute(Enum):
+    FONT_SIZE = 'font_size'
+    FONT = 'font'
+
+
 class TextBox(VisualElement):
 
     def __init__(self,
