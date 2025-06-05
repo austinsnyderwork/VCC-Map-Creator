@@ -1,10 +1,7 @@
 from dataclasses import dataclass
-from enum import Enum
 
-from setuptools.dist import check_entry_points
-
-from visualization_elements.element_classes import CityScatter, TextBoxClassification, SearchAreaClassification, \
-    VisualizationElement, Line, SearchArea
+from visual_elements.element_classes import CityScatter, TextBoxClassification, SearchAreaClassification, \
+    VisualElement, Line, SearchArea, TextBox
 
 
 class DisplayEnum:
@@ -17,7 +14,7 @@ class DisplayEnum:
 
 @dataclass
 class DisplayConfig:
-    element_class: type(VisualizationElement)
+    element_class: type(VisualElement)
     show: bool
     color: str
     transparency: float
@@ -64,42 +61,57 @@ algo_config = {
                 center_view=False,
                 steps_to_show=1
             )
-        }
+        },
+    TextBox: {
+        TextBoxClassification.INTERSECT: DisplayConfig(
+            element_class=TextBox,
+            class_type=TextBoxClassification.INTERSECT,
+            show=True,
+            color='red',
+            transparency=0.5,
+            immediately_remove=False,
+            center_view=False
+        ),
+        TextBoxClassification.BEST: DisplayConfig(
+            element_class=TextBox,
+            class_type=TextBoxClassification.BEST,
+            show=True,
+            color='black',
+            transparency=0.75,
+            immediately_remove=False,
+            center_view=False
+        ),
+        TextBoxClassification.FINALIST: DisplayConfig(
+            element_class=TextBox,
+            class_type=TextBoxClassification.FINALIST,
+            show=True,
+            color='purple',
+            transparency=1.0,
+            immediately_remove=True,
+            center_view=False,
+            steps_to_show=1
+        ),
+        TextBoxClassification.SCAN: DisplayConfig(
+            element_class=TextBox,
+            class_type=TextBoxClassification.SCAN,
+            show=True,
+            color='blue',
+            transparency=0.5,
+            immediately_remove=True,
+            center_view=False,
+            steps_to_show=5
+        ),
+        TextBoxClassification.INVALID: DisplayConfig(
+            element_class=TextBox,
+            class_type=TextBoxClassification.INVALID,
+            show=True,
+            color='gray',
+            transparency=0.5,
+            immediately_remove=False,
+            center_view=False
+        )
+    }
 }
-    SearchAreaClassification.SCAN: DisplayConfig()
-}
-
-
-[algo_display.intersect]
-show = True
-color = red
-transparency = 0.5
-immediately_remove = False
-center_view = False
-
-[algo_display.best]
-show = True
-color = black
-transparency = 0.75
-immediately_remove = False
-center_view = False
-
-[algo_display.scan_box]
-show = True
-color = blue
-transparency = 0.5
-immediately_remove = True
-center_view = False
-steps_to_show = 5
-
-[algo_display.finalist_area]
-finalist = True
-color = purple
-transparency = 1.0
-immediately_remove = True
-center_view = False
-steps_to_show = 1
-
 [algo_display.nearby]
 show = True
 color = gray

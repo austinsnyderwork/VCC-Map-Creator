@@ -1,6 +1,6 @@
 import logging
 
-from interfacing import operations_coordinator
+from program_management import operations_coordinator
 
 vcc_file_name = "/vcc_joined_data.csv"
 

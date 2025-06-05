@@ -1,11 +1,24 @@
-from things import box_geometry
+import math
 
-from polygons import polygon_functions
+from visual_elements.element_classes import TextBoxClassification, CityScatter, TextBox
+
 from polygons.polygon_factory import PolygonFactory
-from shared.shared_utils import Direction
-from visualization_elements.element_classes import TextBoxClassification, CityScatter, TextBox
-from .rtree_elements_manager import RtreeElementsManager
+from shared.shared_utils import Coordinate, BoxGeometry
+from .rtree_elements_manager import RtreeVisualElementsMap
 
+
+class _ScatterCircling:
+
+    def __init__(self, centroid: Coordinate, radius: float):
+        self.centroid = centroid
+        self.radius = radius
+
+    def get_coord_at_angle(self, angle_degrees: float) -> Coordinate:
+        """Returns a Coordinate on the circle's perimeter at the given angle (in degrees)."""
+        angle_radians = math.radians(angle_degrees)
+        dx = self.radius * math.cos(angle_radians)
+        dy = self.radius * math.sin(angle_radians)
+        return Coordinate(latitude=self.centroid.lat + dy, longitude=self.centroid.lon + dx)
 
 class BestFits:
 
@@ -35,8 +48,8 @@ class BestFits:
 
 class _TextBoxCandidatesResolver:
 
-    def __init__(self, rtree_manager: RtreeElementsManager):
-        self._rtree_manager = rtree_manager
+    def __init__(self, rtree_map: RtreeVisualElementsMap):
+        self._rtree_map = rtree_map
 
         self._best_fits = BestFits()
 
@@ -45,8 +58,8 @@ class _TextBoxCandidatesResolver:
                                        city_scatter
                                        ) -> list:
         # See what elements are within the city text box Rtree bounding box
-        intersection_indices = list(self._rtree_manager._rtree_idx.intersection(city_text_box.algorithm_poly.bounds))
-        intersecting_vis_elements = [self._rtree_manager._elements[idx] for idx in intersection_indices]
+        intersection_indices = list(self._rtree_map._rtree_idx.intersection(city_text_box.algorithm_poly.bounds))
+        intersecting_vis_elements = [self._rtree_map._elements[idx] for idx in intersection_indices]
 
         vis_elements = [ve for ve in intersecting_vis_elements if ve != city_scatter]
 
@@ -58,8 +71,8 @@ class _TextBoxCandidatesResolver:
     def determine_best_finalist(self, finalists: list[TextBox], city_scatter):
         finalist_scores = dict()
         for i, finalist in enumerate(finalists):
-            nearby_elements = self._rtree_manager.determine_nearest_elements(query_poly=finalist.poly,
-                                                                             elements_to_ignore=city_scatter)
+            nearby_elements = self._rtree_map.determine_nearest(query_poly=finalist.poly,
+                                                                elements_to_ignore=city_scatter)
             nearby_invalids = [d for d, ele in nearby_elements.items()
                                if isinstance(ele, CityScatter) or isinstance(ele, CityTextBox)]
             closest_invalid = min(nearby_invalids) if nearby_invalids else float('inf')
@@ -74,7 +87,7 @@ class _TextBoxCandidatesResolver:
 
     def determine_text_box_finalists(self, city_text_boxes):
         for city_text_box in enumerate(city_text_boxes):
-            yield [city_text_box], TextBoxClassification.REFERENCE
+            yield [city_text_box], TextBoxClassification.SCAN
 
             intersecting_elements = self._get_intersecting_vis_elements(city_text_box=city_text_box)
             yield intersecting_elements, TextBoxClassification.INTERSECT
@@ -94,109 +107,68 @@ class _TextBoxCandidatesResolver:
 class TextboxPlacementAlgorithm:
 
     def __init__(self,
-                 rtree_manager: RtreeElementsManager,
+                 rtree_map: RtreeVisualElementsMap,
                  city_buffer: int,
                  number_of_search_steps: int):
-        self.text_box_resolver = _TextBoxCandidatesResolver(rtree_manager=rtree_manager)
-        self.city_buffer = city_buffer
+        self._text_box_resolver = _TextBoxCandidatesResolver(rtree_map=rtree_map)
+        self._city_buffer = city_buffer
         self.number_of_search_steps = number_of_search_steps
 
         self.best_fits = BestFits()
 
-    @staticmethod
-    def _orient_text_box_for_algorithm_start(text_box: box_geometry.BoxGeometry,
-                                             city_box: box_geometry.BoxGeometry):
-        # Text box to the right of city box
-        if text_box.x_max > city_box.x_max:
-            x_distance = text_box.x_max - city_box.x_min
-            text_box.move_box('left', x_distance)
-        # Text box to the left of city box
-        else:
-            x_distance = city_box.x_min - text_box.x_max
-            text_box.move_box('right', x_distance)
-
-        # Text box above city box
-        if text_box.y_max > city_box.y_max:
-            y_distance = text_box.y_max - city_box.y_min
-            text_box.move_box('down', y_distance)
-        else:
-            # Text box below city box
-            y_distance = city_box.y_min - text_box.y_max
-            text_box.move_box('up', y_distance)
-
-    @staticmethod
-    def _move_and_create_text_box(text_box, direction: Direction, distance, city_name):
-        text_box.move(direction=direction,
-                      distance=distance)
-        new_poly = PolygonFactory.create_rectangle(**text_box.bounds)
-        new_text_box = TextBox(poly=new_poly,
-                               text=city_name)
-        return new_text_box
-
     def _create_surrounding_text_boxes(self,
-                                       city_scatter_element,
-                                       text_box
+                                       city_scatter: CityScatter,
+                                       text_box: TextBox
                                        ) -> list[TextBox]:
-        city_scatter_bounds = polygon_functions.fetch_bounds(polygon=city_scatter_element.algorithm_poly)
-        city_box = BoxGeometry(dimensions=city_scatter_bounds)
-        city_box.add_buffer(self.city_buffer)
+        scatter_circling = _ScatterCircling(
+            centroid=city_scatter.centroid,
+            radius=city_scatter.radius + self._city_buffer
+        )
 
-        self._orient_text_box_for_algorithm_start(text_box=text_box,
-                                                  city_box=city_box)
+        text_boxes = []
+        for angle in list(range(360)):
+            bottom_right_coord = scatter_circling.get_coord_at_angle(angle)
+            x_min = bottom_right_coord.lon
+            x_max = x_min - text_box.width
 
-        box_width = text_box.x_max - text_box.x_min
-        box_height = text_box.y_max - text_box.y_min
+            y_min = bottom_right_coord.lat
+            y_max = y_min + text_box.height
 
-        city_perimeter = (2 * box_height) + (2 * box_width)
-        perimeter_movement_amount = city_perimeter / self.number_of_search_steps
+            poly = PolygonFactory.create_rectangle(
+                x_min=x_min,
+                x_max=x_max,
+                y_min=y_min,
+                y_max=y_max
+            )
+            new_text_box = TextBox(
+                width=text_box.width,
+                height=text_box.height,
+                classification=TextBoxClassification.SCAN,
+                polygon=poly
+            )
+            text_boxes.append(new_text_box)
 
-        city_text_boxes = []
-
-        while text_box.x_min < city_box.x_max:
-            text_box = self._move_and_create_text_box(text_box=text_box,
-                                                      direction=Direction.RIGHT,
-                                                      distance=min(perimeter_movement_amount, box_width),
-                                                      city_name=city_name)
-            city_text_boxes.append(text_box)
-
-        while text_box.y_min < city_box.y_max:
-            text_box = self._move_and_create_text_box(text_box=text_box,
-                                                      direction=Direction.UP,
-                                                      distance=min(perimeter_movement_amount, box_height),
-                                                      city_name=city_name)
-            city_text_boxes.append(text_box)
-
-        while text_box.x_max > city_box.x_min:
-            text_box = self._move_and_create_text_box(text_box=text_box,
-                                                      direction=Direction.LEFT,
-                                                      distance=min(perimeter_movement_amount, box_width),
-                                                      city_name=city_name)
-            city_text_boxes.append(text_box)
-
-        while text_box.y_max > city_box.y_min:
-            text_box = self._move_and_create_text_box(text_box=text_box,
-                                                      direction=Direction.DOWN,
-                                                      distance=min(perimeter_movement_amount, box_height),
-                                                      city_name=city_name)
-            city_text_boxes.append(text_box)
-
-        return city_text_boxes
+        return text_boxes
 
     def find_best_poly(self,
-                       text_box: box_geometry.BoxGeometry,
+                       text_box: TextBox,
                        city_scatter: CityScatter,
                        ):
         finalists = []
 
         city_text_boxes = self._create_surrounding_text_boxes(text_box=text_box,
-                                                              city_scatter_element=city_scatter)
+                                                              city_scatter=city_scatter)
 
-        for elements, classification in self.text_box_resolver.determine_text_box_finalists(city_text_boxes=city_text_boxes):
+        for elements, classification in self._text_box_resolver.determine_text_box_finalists(city_text_boxes=city_text_boxes):
             # We don't display finalists until we are determining the best finalist
             if classification == TextBoxClassification.FINALIST:
                 finalists.extend(elements)
-            else:
-                yield elements, classification
+                continue
 
-        for elements, classification in self.text_box_resolver.determine_best_finalist(finalists):
-            yield elements, classification
+            for element in elements:
+                yield element, classification
+
+        for elements, classification in self._text_box_resolver.determine_best_finalist(finalists=finalists,
+                                                                                        city_scatter=city_scatter):
+            for element in elements:
+                yield element, classification

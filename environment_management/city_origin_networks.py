@@ -1,6 +1,6 @@
 import matplotlib
 
-from entities.entity_classes import ProviderAssignment
+from entities.entity_classes import ProviderAssignment, City
 from entities.factory import EntitiesContainer
 
 
@@ -31,6 +31,9 @@ class CityNetworksHandler:
         color = self.colors[self.colors_idx]
         self.colors_idx += 1
         return color
+
+    def fetch_city_color(self, city: City):
+        return self._networks[city]
 
     def fetch_assignment_color(self, assignment: ProviderAssignment):
         return self._networks[assignment.origin_city]

@@ -3,7 +3,7 @@ from .vis_element_classes import (CityScatter, Line, CityTextBox, TextBoxNearbyS
                                   TextBoxFinalist, Best, Intersection)
 
 
-class VisualizationElementFiller:
+class VisualElementFiller:
 
     def __init__(self, config: ConfigManager):
         self.config = config

@@ -1,10 +1,10 @@
-import visualization_elements
+import visual_elements
 
 
 class CityTextBoxManager:
 
     def __init__(self):
-        self.city_text_box_polygons: list[visualization_elements.CityTextBox] = []
+        self.city_text_box_polygons: list[visual_elements.CityTextBox] = []
 
     def _group_city_text_boxes_by_number_of_intersctions(self):
         city_text_box_polygonss_intersections = {}

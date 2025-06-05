@@ -1,4 +1,4 @@
 from .handler import AlgorithmHandler
-from .plotter import AlgorithmPlotter
+from .plotter import AlgorithmDisplay
 
 

@@ -1,6 +1,6 @@
 import pandas as pd
 
-from visualization_elements import Line, CityScatter, Best
+from visual_elements import Line, CityScatter, Best
 
 
 class PowerBiOutputFormatter:
@@ -45,7 +45,7 @@ class PowerBiOutputFormatter:
             new_row[f_col_name] = value
         return new_row
 
-    def add_visualization_elements(self, vis_elements: list):
+    def add_visual_elements(self, vis_elements: list):
         new_rows = [self._create_new_row(vis_element) for vis_element in vis_elements]
         self.rows.extend(new_rows)
 
