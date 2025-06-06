@@ -16,6 +16,10 @@ class Coordinate:
 
         return self.lon == other.lon and self.lat == other.lat
 
+    @property
+    def lon_lat(self):
+        return self.lon, self.lat
+
 
 class Direction(Enum):
     UP = 'up'

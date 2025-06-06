@@ -1,24 +1,31 @@
 import logging
 
-from program_management import operations_coordinator
+import pandas as pd
 
-vcc_file_name = "/vcc_joined_data.csv"
+from plot_maps.city_providers_volume import CityProviderVolumeConditionsController
+from plot_maps.highest_volume_cities import HighestOriginVolumeController
+from program_management import operations_coordinator
 
 logging.basicConfig(level=logging.INFO)
 
-interface_ = operations_coordinator.OperationsCoordinator(
-    vcc_file_name=vcc_file_name,
-    city_name_changes={
-        'Des Moines': ['West Des Moines', 'Ankeny', 'Johnston'],
-        'Omaha, NE': ['Council Bluffs']
-    }
-)
-"""
-interface_.create_highest_volume_line_map(results=6,
-                                          output_path="C:/Users/austisnyder/programming/programming_i_o_files/visiting_providers.csv")
-"""
-interface_.create_number_of_visiting_providers_map(output_path="C:/Users/austisnyder/programming/programming_i_o_files/num_visiting_providers.csv")
+vcc_file_name = "C:/Users/austisnyder/Documents/GitHub/VCC-Map-Creator/vcc_maps/vcc_joined_data.csv"
+vcc_df = pd.read_csv(vcc_file_name)
 
+city_name_changes = {
+    'Des Moines': ['West Des Moines', 'Ankeny', 'Johnston'],
+    'Omaha, NE': ['Council Bluffs']
+}
 
+replacement_map = {
+    old_name: new_name
+    for new_name, old_names in city_name_changes.items()
+    for old_name in old_names
+}
+
+vcc_df['visiting_city'] = vcc_df['visiting_city'].replace(replacement_map)
+vcc_df['origin_city'] = vcc_df['origin_city'].replace(replacement_map)
+
+interface_ = operations_coordinator.OperationsCoordinator(vcc_df=vcc_df)
+interface_.create_map(CityProviderVolumeConditionsController)
 
 

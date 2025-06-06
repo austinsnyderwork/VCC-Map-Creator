@@ -11,7 +11,7 @@ class PolygonFactory:
                     coord_1: Coordinate,
                     width: float
                     ) -> Polygon:
-        line = LineString([coord_0, coord_1])
+        line = LineString([coord_0.lon_lat, coord_1.lon_lat])
         line = line.buffer(width / 2)
         return line
 

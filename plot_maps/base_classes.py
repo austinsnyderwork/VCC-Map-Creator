@@ -1,9 +1,9 @@
 from abc import ABC
 from collections.abc import Callable
 
+from entities.entity_classes import ProviderAssignment, City, Provider, Worksite
+from environment_management.city_origin_networks import CityNetworksHandler
 from visual_elements.element_classes import VisualElement
-
-from entities.entity_classes import ProviderAssignment, City
 
 
 class _Condition:
@@ -24,7 +24,9 @@ class ConditionsMap:
     def __init__(self):
         self.conditions = {
             City: [],
-            ProviderAssignment: []
+            ProviderAssignment: [],
+            Provider: [],
+            Worksite: []
         }
 
     def add_condition(self, condition: Callable, entity_type):
@@ -33,19 +35,22 @@ class ConditionsMap:
 
 class ConditionsController(ABC):
 
-    def __init__(self, conditions_map: ConditionsMap, **kwargs):
+    def __init__(self,
+                 conditions_map: ConditionsMap,
+                 city_networks_handler: CityNetworksHandler,
+                 **kwargs):
         self._conditions_map = conditions_map
+        self._city_networks_handler = city_networks_handler
 
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    def determine_visual_element(self, entity) -> VisualElement:
+    def determine_visual_element(self, entity) -> list[VisualElement]:
         conditions = self._conditions_map.conditions[type(entity)]
-        vis_elements = [ve for condition in conditions if (ve := condition(entity)) is not None]
+        vis_elements = [
+            ve
+            for condition in conditions
+            for ve in condition(entity) if ve is not None
+        ]
 
-        if len(vis_elements) >= 2:
-            raise ValueError(f"Fetched multiple different visualization elements for entity type {type(entity)}")
-
-        return vis_elements[0] if vis_elements else None
-
-
+        return vis_elements

@@ -11,18 +11,17 @@ class AssignmentDirection(Enum):
 
 class Provider:
 
-    def __init__(self, name: str, hcp_id: int):
+    def __init__(self, name: str):
         self.provider_name = name
-        self.hcp_id = hcp_id
 
     def __hash__(self):
-        return self.hcp_id
+        return hash(self.provider_name)
 
     def __eq__(self, other):
         if not isinstance(other, Provider):
             return False
 
-        return self.provider_name == other.provider_name and self.hcp_id == other.hcp_id
+        return self.provider_name == other.provider_name
 
 
 class City:

@@ -16,20 +16,22 @@ class ConfigManager:
         if cls._initialized:
             return
 
-        config = configparser.ConfigParser()
-        self.config = config.read(config_path)
+        self.config = configparser.ConfigParser()
+        self.config.read(config_path)
 
-    def __call__(self, key: str, cast_type):
-        value = self.config
-        for part in key.split('.'):
-            value = value[part]  # Navigate through the nested keys
-
-        if cast_type is bool:
-            return True if value == 'True' else False
-        elif cast_type is list:
-            list_ = [item.strip() for item in value.split(',')]
-            return list_
-        return cast_type(value)
+    def __call__(self, section: str, key: str, cast_type):
+        if cast_type == int:
+            return self.config.getint(section, key)
+        elif cast_type == float:
+            return self.config.getfloat(section, key)
+        elif cast_type == bool:
+            return self.config.getboolean(section, key)
+        elif cast_type == str:
+            return self.config.get(section, key)
+        elif cast_type == list:
+            return [item.strip() for item in self.config.get(section, key).split(',')]
+        else:
+            raise ValueError(f"Unsupported cast_type: {cast_type}")
 
     def fetch_config_values(self, key, subkeys, cast_types):
         nest = self.config[key]

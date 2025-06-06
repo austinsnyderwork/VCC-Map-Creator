@@ -7,50 +7,51 @@ from shared.shared_utils import Coordinate
 
 class VisualElement(ABC):
 
-    _algo_defaults = dict()
-
     def __init__(self,
                  polygon=None,
                  map_attributes: dict = None,
                  algorithm_attributes: dict = None,
-                 classification = None,
+                 classification=None,
                  **kwargs
                  ):
-        self.polygon = polygon
-
         self.map_attributes = map_attributes or dict()
         self.algorithm_attributes = algorithm_attributes or dict()
+
+        self._set_attributes(
+            default_attributes=self.__class__._algo_defaults,
+            attributes_variable=self.algorithm_attributes
+        )
+        self._set_attributes(
+            default_attributes=self.__class__._map_defaults,
+            attributes_variable=self.map_attributes
+        )
+        self.polygon = polygon
+
         self.classification = classification
-        
-        a = self.algorithm_attributes
-        for default_k, default_v in self.__class__._algo_defaults.items():
-            a[default_k] = a[default_k] if default_k in a else default_v
 
         for k, v in kwargs.items():
             setattr(self, k, v)
 
+    def _set_attributes(self, default_attributes: dict, attributes_variable: dict):
+        if hasattr(self, 'classification'):
+            # Set the classification-specific default attributes first
+            for default_k, default_v in default_attributes.items():
+                if self.classification == default_k:
+                    for k, v in default_v.items():
+                        if k not in attributes_variable:
+                            attributes_variable[k] = v
+
+        # Set the VisualElement type default attributes next
+        for default_k, default_v in default_attributes.items():
+            if isinstance(default_k, str):
+                if default_k not in attributes_variable:
+                    attributes_variable[default_k] = default_v
+
     def __init_subclass__(cls, **kwargs):
         if not hasattr(cls, "_algo_defaults"):
-            raise ValueError(f"Subclass of {cls.__name__} must define _algo_defaults")
-
-    @classmethod
-    def _apply_attributes(cls, attributes: dict):
-        for k, v in attributes.items():
-            if not hasattr(cls, k):
-                setattr(cls, k, v)
-
-    @classmethod
-    def _fill_default(cls):
-        classification = getattr(cls, "classification", None)
-
-        if classification and classification in cls._algo_defaults:
-            classification_attributes = cls._algo_defaults[classification]
-            cls._apply_attributes(classification_attributes)
-
-        # Classification-specific attributes take priority over general attributes
-        general_attributes = {k: v for k, v in cls._algo_defaults.items() if isinstance(k, str)}
-        cls._apply_attributes(general_attributes)
-
+            raise ValueError(f"Subclass of {cls.__name__} must define _algo_defaults.")
+        elif not hasattr(cls, "_map_defaults"):
+            raise ValueError(f"Subclass of {cls.__name__} must define _map_defaults.")
 
 
 class TextBoxClassification(Enum):
@@ -61,31 +62,27 @@ class TextBoxClassification(Enum):
     INVALID = "invalid"
 
 
-class TextBoxAttribute(Enum):
-    FONT_SIZE = "font_size"
-    FONT = "font"
-
-
 class TextBox(VisualElement):
 
     _algo_defaults = {
         TextBoxClassification.INTERSECT: {
             "show": True,
-            "color": "red",
+            "facecolor": "red",
             "transparency": 0.5,
-            "immediately_remove": False,
+            "immediately_remove": True,
             "center_view": False
         },
         TextBoxClassification.BEST: {
             "show": True,
-            "color": "black",
+            "facecolor": "black",
             "transparency": 0.75,
             "immediately_remove": False,
-            "center_view": False
+            "center_view": False,
+            "zorder": 2
         },
         TextBoxClassification.FINALIST: {
             "show": True,
-            "color": "purple",
+            "facecolor": "purple",
             "transparency": 1.0,
             "immediately_remove": True,
             "center_view": False,
@@ -93,7 +90,7 @@ class TextBox(VisualElement):
         },
         TextBoxClassification.SCAN: {
             "show": True,
-            "color": "blue",
+            "facecolor": "blue",
             "transparency": 0.5,
             "immediately_remove": True,
             "center_view": False,
@@ -101,15 +98,21 @@ class TextBox(VisualElement):
         },
         TextBoxClassification.INVALID: {
             "show": True,
-            "color": "gray",
+            "facecolor": "gray",
             "transparency": 0.5,
             "immediately_remove": False,
             "center_view": False
         }
     }
 
+    _map_defaults = {
+        "fontsize": 12,
+        "font": "Roboto",
+        "zorder": 2
+    }
+
     def __init__(self,
-                 city_name: str,
+                 city_name: str = None,
                  centroid: Coordinate = None,
                  width: float = None,
                  height: float = None,
@@ -120,7 +123,7 @@ class TextBox(VisualElement):
                  ):
         self.city_name = city_name
 
-        self.centroid = centroid
+        self._centroid = centroid
         self.width = width
         self.height = height
         self.classification = classification
@@ -129,22 +132,34 @@ class TextBox(VisualElement):
                          map_attributes=map_attributes,
                          algorithm_attributes=algorithm_attributes)
 
+    @property
+    def centroid(self):
+        if self._centroid:
+            return self._centroid
 
-class ScatterAttributes(Enum):
-    RADIUS = "radius"
-    COLOR = "color"
-    OUTER_COLOR = "outer_color"
-    MARKER = "marker"
+        return Coordinate(
+            longitude=self.polygon.centroid.x,
+            latitude=self.polygon.centroid.y
+        )
+
 
 
 class CityScatter(VisualElement):
 
-    _defaults = {
+    _algo_defaults = {
         "show": False,
-        "color": "blue",
+        "facecolor": "blue",
+        "edgecolor": "blue",
         "transparency": 1.0,
         "immediately_remove": False,
-        "center_view": False
+        "center_view": False,
+        "marker": "o",
+        "zorder": 3,
+        "label": "algo_label"
+    }
+
+    _map_defaults = {
+        "zorder": 3
     }
 
     def __init__(self,
@@ -180,7 +195,7 @@ class SearchArea(VisualElement):
             "color": "red",
             "transparency": 0.5,
             "immediately_remove": False,
-            "center_view": False
+            "center_view": True
         },
         SearchAreaClassification.FINALIST: {
             "class_type": SearchAreaClassification.FINALIST,
@@ -192,6 +207,8 @@ class SearchArea(VisualElement):
             "steps_to_show": 1
         }
     }
+
+    _map_defaults = {}
 
     def __init__(self,
                  classification: SearchAreaClassification,
@@ -212,10 +229,6 @@ class SearchArea(VisualElement):
         self.classification = classification
 
 
-class LineAttributes(Enum):
-    COLOR = "color"
-
-
 class Line(VisualElement):
     
     _algo_defaults = {
@@ -223,13 +236,19 @@ class Line(VisualElement):
         "color": "blue",
         "transparency": 1.0,
         "immediately_remove": False,
-        "center_view": False
+        "center_view": False,
+        "linestyle": "-",
+        "linewidth": 0.1,
+        "zorder": 1
+    }
+
+    _map_defaults = {
+        "zorder": 1
     }
     
     def __init__(self,
                  origin_coordinate: Coordinate,
                  visiting_coordinate: Coordinate,
-                 width: float,
                  polygon=None,
                  map_attributes: dict = None,
                  algorithm_attributes: dict = None
@@ -240,6 +259,12 @@ class Line(VisualElement):
 
         self.origin_coordinate = origin_coordinate
         self.visiting_coordinate = visiting_coordinate
-        self.width = width
 
+    @property
+    def x_data(self):
+        return self.origin_coordinate.lon, self.visiting_coordinate.lon
+
+    @property
+    def y_data(self):
+        return self.origin_coordinate.lat, self.visiting_coordinate.lat
 

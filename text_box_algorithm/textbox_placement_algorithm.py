@@ -1,9 +1,8 @@
 import math
 
-from visual_elements.element_classes import TextBoxClassification, CityScatter, TextBox
-
 from polygons.polygon_factory import PolygonFactory
-from shared.shared_utils import Coordinate, BoxGeometry
+from shared.shared_utils import Coordinate
+from visual_elements.element_classes import TextBoxClassification, CityScatter, TextBox, Line
 from .rtree_elements_manager import RtreeVisualElementsMap
 
 
@@ -58,13 +57,13 @@ class _TextBoxCandidatesResolver:
                                        city_scatter
                                        ) -> list:
         # See what elements are within the city text box Rtree bounding box
-        intersection_indices = list(self._rtree_map._rtree_idx.intersection(city_text_box.algorithm_poly.bounds))
+        intersection_indices = list(self._rtree_map._rtree_idx.intersection(city_text_box.polygon.bounds))
         intersecting_vis_elements = [self._rtree_map._elements[idx] for idx in intersection_indices]
 
         vis_elements = [ve for ve in intersecting_vis_elements if ve != city_scatter]
 
         # Check whether it actually intersects
-        vis_elements = [ve for ve in vis_elements if city_text_box.algorithm_poly.intersects(ve.poly)]
+        vis_elements = [ve for ve in vis_elements if city_text_box.polygon.intersects(ve.poly)]
 
         return vis_elements
 
@@ -85,11 +84,14 @@ class _TextBoxCandidatesResolver:
         best_score = max(list(finalist_scores.keys()))
         yield [finalist_scores[best_score]], TextBoxClassification.BEST
 
-    def determine_text_box_finalists(self, city_text_boxes):
-        for city_text_box in enumerate(city_text_boxes):
+    def determine_text_box_finalists(self,
+                                     city_text_boxes,
+                                     city_scatter: CityScatter):
+        for city_text_box in city_text_boxes:
             yield [city_text_box], TextBoxClassification.SCAN
 
-            intersecting_elements = self._get_intersecting_vis_elements(city_text_box=city_text_box)
+            intersecting_elements = self._get_intersecting_vis_elements(city_text_box=city_text_box,
+                                                                        city_scatter=city_scatter)
             yield intersecting_elements, TextBoxClassification.INTERSECT
 
             invalid_elements = [ve for ve in intersecting_elements if not isinstance(ve, Line)]
@@ -159,7 +161,10 @@ class TextboxPlacementAlgorithm:
         city_text_boxes = self._create_surrounding_text_boxes(text_box=text_box,
                                                               city_scatter=city_scatter)
 
-        for elements, classification in self._text_box_resolver.determine_text_box_finalists(city_text_boxes=city_text_boxes):
+        for elements, classification in self._text_box_resolver.determine_text_box_finalists(
+                city_text_boxes=city_text_boxes,
+                city_scatter=city_scatter
+        ):
             # We don't display finalists until we are determining the best finalist
             if classification == TextBoxClassification.FINALIST:
                 finalists.extend(elements)

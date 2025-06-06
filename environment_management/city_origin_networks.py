@@ -40,7 +40,7 @@ class CityNetworksHandler:
 
     def fill_networks(self, entities_container: EntitiesContainer):
         for pa in entities_container.provider_assignments:
-            if pa.origin_city in self._networks:
-                continue
+            if pa.origin_city not in self._networks:
+                self._networks[pa.origin_city] = self._get_color()
 
-            self._networks[pa.origin_city] = self._get_color()
+        return self

@@ -7,9 +7,10 @@ from plot_maps.base_classes import ConditionsController
 
 class HighestOriginVolumeController(ConditionsController):
 
-    def __init__(self, entities_container: EntitiesContainer):
-        self._entities_container = self._filter_entities_container(entities_container=entities_container,
-                                                                   origin_cities_limit=origin_cities_limit)
+    def __init__(self,
+                 entities_container: EntitiesContainer
+                 ):
+        self._entities_container = self._setup(entities_container)
         
         self._city_volumes = dict()
         
@@ -17,9 +18,9 @@ class HighestOriginVolumeController(ConditionsController):
 
         self.entity_types = [City, ProviderAssignment]
 
-        super().__init__(conditions_map, **kwargs)
+        super().__init__()
 
-    def _setup(self):
+    def _setup(self, entities_container) -> EntitiesContainer:
         origin_cities_limit = 5
         
         for city in self._entities_container.cities:

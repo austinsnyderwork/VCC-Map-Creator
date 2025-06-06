@@ -2,6 +2,7 @@
 import itertools
 
 from rtree import index
+
 from visual_elements.element_classes import VisualElement
 
 
