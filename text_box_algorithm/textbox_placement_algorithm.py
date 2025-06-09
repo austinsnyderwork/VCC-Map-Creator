@@ -8,16 +8,60 @@ from .rtree_elements_manager import RtreeVisualElementsMap
 
 class _ScatterCircling:
 
-    def __init__(self, centroid: Coordinate, radius: float):
+    def __init__(self,
+                 centroid: Coordinate,
+                 radius: float):
         self.centroid = centroid
         self.radius = radius
 
-    def get_coord_at_angle(self, angle_degrees: float) -> Coordinate:
-        """Returns a Coordinate on the circle's perimeter at the given angle (in degrees)."""
-        angle_radians = math.radians(angle_degrees)
-        dx = self.radius * math.cos(angle_radians)
-        dy = self.radius * math.sin(angle_radians)
-        return Coordinate(latitude=self.centroid.lat + dy, longitude=self.centroid.lon + dx)
+    def create_encircling_coordinates(self, rect_width, rect_height) -> list[Coordinate]:
+        r = self.radius
+        d = r / math.sqrt(2)
+        cx = self.centroid.lon
+        cy = self.centroid.lat
+
+        top_right = Coordinate(cx + d, cy + d)
+        top_left = Coordinate(cx - d, cy + d)
+        bottom_left = Coordinate(cx - d, cy - d)
+        bottom_right = Coordinate(cx + d, cy - d)
+
+        rect_coords = {
+            0: Coordinate(
+                latitude=self.centroid.lat,
+                longitude=self.centroid.lon + self.radius + (rect_width / 2)
+            ),
+            45: Coordinate(
+                latitude=top_right.lat + (rect_height / 2),
+                longitude=top_right.lon + (rect_width / 2)
+            ),
+            90: Coordinate(
+                latitude=self.centroid.lat + self.radius + (rect_height / 2),
+                longitude=self.centroid.lon
+            ),
+            135: Coordinate(
+                latitude=top_left.lat + (rect_height / 2),
+                longitude=top_left.lon - (rect_width / 2)
+            ),
+            180: Coordinate(
+                latitude=self.centroid.lat,
+                longitude=self.centroid.lon - self.radius - (rect_width / 2)
+            ),
+            225: Coordinate(
+                latitude=bottom_left.lat - (rect_height / 2),
+                longitude=bottom_left.lon - (rect_width / 2)
+            ),
+            270: Coordinate(
+                latitude=self.centroid.lat - self.radius - (rect_height / 2),
+                longitude=self.centroid.lon
+            ),
+            315: Coordinate(
+                latitude=bottom_right.lat - (rect_height / 2),
+                longitude=bottom_right.lon + (rect_width / 2)
+            )
+        }
+
+        return list(rect_coords.values())
+
 
 class BestFits:
 
@@ -63,22 +107,23 @@ class _TextBoxCandidatesResolver:
         vis_elements = [ve for ve in intersecting_vis_elements if ve != city_scatter]
 
         # Check whether it actually intersects
-        vis_elements = [ve for ve in vis_elements if city_text_box.polygon.intersects(ve.poly)]
+        vis_elements = [ve for ve in vis_elements if city_text_box.polygon.intersects(ve.polygon)]
 
         return vis_elements
 
     def determine_best_finalist(self, finalists: list[TextBox], city_scatter):
         finalist_scores = dict()
         for i, finalist in enumerate(finalists):
-            nearby_elements = self._rtree_map.determine_nearest(query_poly=finalist.poly,
-                                                                elements_to_ignore=city_scatter)
-            nearby_invalids = [d for d, ele in nearby_elements.items()
-                               if isinstance(ele, CityScatter) or isinstance(ele, CityTextBox)]
-            closest_invalid = min(nearby_invalids) if nearby_invalids else float('inf')
+            nearby_elements = self._rtree_map.determine_nearest(query_poly=finalist.polygon,
+                                                                elements_to_ignore=[city_scatter])
+            distances_to_invalids = [d for ele, d in nearby_elements.items()
+                                     if isinstance(ele, CityScatter) or isinstance(ele, TextBox)]
+            shortest_distance_to_invalid = min(distances_to_invalids) if distances_to_invalids else float('inf')
 
-            closest_element = min([d for d, ele in nearby_elements.items()])
+            all_distances = [d for ele, d in nearby_elements.items()]
+            shortest_distance_to_element = min(all_distances)
 
-            score = closest_element * (closest_invalid ** 2)
+            score = shortest_distance_to_element * (shortest_distance_to_invalid ** 2)
             finalist_scores[score] = finalist
 
         best_score = max(list(finalist_scores.keys()))
@@ -127,14 +172,17 @@ class TextboxPlacementAlgorithm:
             radius=city_scatter.radius + self._city_buffer
         )
 
+        rectangle_centroids = scatter_circling.create_encircling_coordinates(rect_width=text_box.width,
+                                                                             rect_height=text_box.height)
         text_boxes = []
-        for angle in list(range(360)):
-            bottom_right_coord = scatter_circling.get_coord_at_angle(angle)
-            x_min = bottom_right_coord.lon
-            x_max = x_min - text_box.width
+        for rectangle_centroid in rectangle_centroids:
+            center_x, center_y = rectangle_centroid.lon_lat
 
-            y_min = bottom_right_coord.lat
-            y_max = y_min + text_box.height
+            x_min = center_x - (text_box.width / 2)
+            x_max = center_x + (text_box.width / 2)
+
+            y_min = center_y - (text_box.height / 2)
+            y_max = center_y + (text_box.height / 2)
 
             poly = PolygonFactory.create_rectangle(
                 x_min=x_min,

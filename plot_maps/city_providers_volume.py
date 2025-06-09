@@ -20,13 +20,14 @@ class CityProviderVolumeConditionsController(ConditionsController):
         cmap = ConditionsMap()
         cmap.add_condition(condition=self._city_condition,
                            entity_type=City)
-        cmap.add_condition(condition=self._assignment_condition,
-                           entity_type=ProviderAssignment)
+        """cmap.add_condition(condition=self._assignment_condition,
+                           entity_type=ProviderAssignment)"""
 
         super().__init__(conditions_map=cmap,
                          city_networks_handler=city_networks_handler)
 
     def _setup(self, entities_container: EntitiesContainer):
+        print(f"Setting up {self.__class__.__name__} EntitiesContainer.")
         for pa in entities_container.provider_assignments:
             if pa.origin_city not in self._leaving_providers:
                 self._leaving_providers[pa.origin_city] = 0
@@ -44,7 +45,7 @@ class CityProviderVolumeConditionsController(ConditionsController):
         if leaving_providers in range(5, 11):
             scatter = CityScatter(
                 centroid=city.city_coord,
-                radius=12,
+                radius=0.04,
                 map_attributes={
                     "color": "red",
                     "marker": "o",
@@ -57,7 +58,7 @@ class CityProviderVolumeConditionsController(ConditionsController):
         elif leaving_providers in range(11, 16):
             scatter = CityScatter(
                 centroid=city.city_coord,
-                radius=25,
+                radius=0.04,
                 map_attributes={
                     "color": 'blue',
                     "marker": "o",
@@ -70,7 +71,7 @@ class CityProviderVolumeConditionsController(ConditionsController):
         elif leaving_providers in range(16, 21):
             scatter = CityScatter(
                 centroid=city.city_coord,
-                radius=37,
+                radius=0.04,
                 map_attributes={
                     "color": "orange",
                     "marker": "o",
@@ -83,7 +84,7 @@ class CityProviderVolumeConditionsController(ConditionsController):
         elif leaving_providers >= 21:
             scatter = CityScatter(
                 centroid=city.city_coord,
-                radius=50,
+                radius=0.04,
                 map_attributes={
                     "color": "black",
                     "marker": "o",

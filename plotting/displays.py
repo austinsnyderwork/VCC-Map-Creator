@@ -25,15 +25,9 @@ def convert_bbox_to_data_coordinates(ax, bbox):
 
 
 def _create_iowa_map(ax):
-    # Set up the map projection
-    projection = ccrs.LambertConformal(
-        central_longitude=-93.5,
-        central_latitude=41.5
-    )
 
     # Set the projection for the axis
     ax.set_extent([-97, -89, 40, 44], crs=ccrs.PlateCarree())
-    ax.set_aspect('equal')
     ax.coastlines(resolution='10m')  # or '50m' or '110m'
     ax.add_feature(cfeature.BORDERS.with_scale('10m'), linewidth=0.5)
     ax.add_feature(cfeature.STATES.with_scale('10m'), linewidth=0.5)
@@ -50,12 +44,7 @@ class MapDisplay:
                  ):
 
         self.fig, self.ax = plt.subplots(
-            subplot_kw={
-                'projection': ccrs.LambertConformal(
-                    central_longitude=-93.5,
-                    central_latitude=41.5
-                )
-            },
+            subplot_kw={'projection': ccrs.PlateCarree()},
             figsize=figure_size
         )
 
@@ -70,11 +59,11 @@ class MapDisplay:
 
         city_text = self.ax.text(0, 0, city_name,
                                  fontsize=text_box.map_attributes['fontsize'],
-                                 font=text_box.map_attributes['font'],
+                                 fontname=text_box.map_attributes.get('font', None),
                                  ha='center',
                                  va='center',
                                  color='purple',
-                                 visible=False,
+                                 alpha=0.0,  # invisible but rendered
                                  bbox=dict(facecolor='white', edgecolor='white', boxstyle='square,pad=0.0'))
 
         self.fig.canvas.draw()
@@ -109,6 +98,7 @@ class MapDisplay:
             s=scatter.radius,
             label=att['label'],
             zorder=att['zorder'],
+            transform=ccrs.PlateCarree(),
             **kwargs
         )
 
@@ -123,6 +113,7 @@ class MapDisplay:
             linestyle=att['linestyle'],
             linewidth=att['linewidth'],
             zorder=att['zorder'],
+            transform=ccrs.PlateCarree(),
         )
 
         return line
@@ -142,6 +133,7 @@ class MapDisplay:
             color=text_box.map_attributes['color'],
             fontweight=text_box.map_attributes['fontweight'],
             zorder=text_box.map_attributes['zorder'],
+            transform=ccrs.PlateCarree(),
             bbox=dict(facecolor='white', edgecolor='white', boxstyle='square,pad=0.0')
         )
         return city_text
@@ -175,12 +167,7 @@ class AlgorithmDisplay:
     def __init__(self, county_line_width: float, show_pause: float, figure_size: tuple):
         print("Initializing AlgorithmDisplay.")
         self.fig, self.ax = plt.subplots(
-            subplot_kw={
-                'projection': ccrs.LambertConformal(
-                    central_longitude=-93.5,
-                    central_latitude=41.5
-                )
-            },
+            subplot_kw={'projection': ccrs.PlateCarree()},
             figsize=figure_size
         )
 
@@ -199,17 +186,16 @@ class AlgorithmDisplay:
 
         self.show_display()
 
-    def _center_display(self, visual_element: VisualElement, padding_degrees):
+    def _center_display(self, visual_element: VisualElement, padding_degrees=1):
         # Option 1: Center on centroid
-        centroid = visual_element.polygon.centroid
-        center_lon, center_lat = centroid.x, centroid.y
+        c = visual_element.polygon.centroid
 
         # Calculate extent around centroid with padding
         extent = [
-            center_lon - padding_degrees,
-            center_lon + padding_degrees,
-            center_lat - padding_degrees,
-            center_lat + padding_degrees,
+            c.x - padding_degrees,
+            c.x + padding_degrees,
+            c.y - padding_degrees,
+            c.y + padding_degrees
         ]
 
         # Set extent on axis in PlateCarree CRS (longitude/latitude)
@@ -248,18 +234,18 @@ class AlgorithmDisplay:
 
     def _plot_line(self, line: Line):
         att = line.algorithm_attributes
-        patch = self.ax.plot(
+
+        line_patch = self.ax.plot(
             line.x_data,
             line.y_data,
-            facecolor=att['color'],
-            linewidth=att['linewidth']
-        )
+            color=att['color'],
+            linewidth=att['linewidth'],
+            transform=ccrs.PlateCarree()  # 👈 crucial
+        )[0]
 
-        self.ax.add_patch(patch)
+        self._patches[Line][line] = line_patch
 
-        self._patches[Line][line] = patch
-
-        return patch
+        return line_patch
 
     def plot_element(self,
                      visual_element,
@@ -276,8 +262,7 @@ class AlgorithmDisplay:
 
         # Set axis limits
         if 'center_view' in kwargs and kwargs['center_view']:
-            self._center_display(visual_element=visual_element,
-                                 padding_degrees=50)
+            self._center_display(visual_element=visual_element)
 
         # Redraw the figure to update the display
         self.fig.canvas.draw()

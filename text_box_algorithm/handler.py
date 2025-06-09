@@ -4,7 +4,7 @@ from shapely import Polygon
 
 from config_manager import ConfigManager
 from polygons.polygon_factory import PolygonFactory
-from visual_elements.element_classes import TextBoxClassification, CityScatter, TextBox
+from visual_elements.element_classes import TextBoxClassification, CityScatter, TextBox, VisualElement
 from plotting import AlgorithmDisplay
 from .rtree_elements_manager import RtreeVisualElementsMap
 from .textbox_placement_algorithm import TextboxPlacementAlgorithm
@@ -27,6 +27,17 @@ class AlgorithmHandler:
         ) if config('algo.display', 'show_display', bool) else None
 
         self._rtree_visual_elements_map = RtreeVisualElementsMap()
+
+    def plot_elements(self, visual_elements: list[VisualElement]):
+        for i, ve in enumerate(visual_elements):
+            if i % 50 == 0:
+                print(f"Plotting VisualElement {i} of {len(visual_elements)} into AlgorithmDisplay")
+
+            self._algo_display.plot_element(ve,
+                                            center_view=False,
+                                            show=False)
+
+            self._rtree_visual_elements_map.add_visual_element(ve)
 
     def find_best_polygon(self,
                           city_scatter: CityScatter,

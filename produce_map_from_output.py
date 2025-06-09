@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-from mpl_toolkits import basemap
 
 display_fig_size = (20, 15)
 county_line_width = 0.05

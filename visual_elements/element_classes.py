@@ -106,7 +106,7 @@ class TextBox(VisualElement):
     }
 
     _map_defaults = {
-        "fontsize": 12,
+        "fontsize": 10,
         "font": "Roboto",
         "zorder": 2
     }

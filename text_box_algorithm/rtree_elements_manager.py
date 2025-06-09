@@ -26,6 +26,6 @@ class RtreeVisualElementsMap:
         nearby_eles = [self._elements[idx] for idx in nearest_ids
                        if self._elements[idx] not in elements_to_ignore]
 
-        distances = {nearby_ele: nearby_ele.distance(query_poly) for nearby_ele in nearby_eles}
+        distances = {nearby_ele: nearby_ele.polygon.distance(query_poly) for nearby_ele in nearby_eles}
         return distances
 

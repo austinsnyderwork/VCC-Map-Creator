@@ -75,8 +75,9 @@ class OperationsCoordinator:
                 non_text.polygon = scatter_poly
 
             self._map_display.plot_element(non_text)
-
             rtree_map.add_visual_element(visual_element=non_text)
+
+        self._algo_handler.plot_elements(non_texts)
 
         # 3. Use the non-TextBox visual elements in the RTree to determine the best placement for TextBoxes
         for text in texts:
