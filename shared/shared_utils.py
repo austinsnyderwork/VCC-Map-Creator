@@ -16,6 +16,9 @@ class Coordinate:
 
         return self.lon == other.lon and self.lat == other.lat
 
+    def __str__(self):
+        return f"Lon: {self.lon} Lat: {self.lat}"
+
     @property
     def lon_lat(self):
         return self.lon, self.lat

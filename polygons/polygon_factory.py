@@ -23,7 +23,7 @@ class PolygonFactory:
 
     @staticmethod
     def create_rectangle(x_min,
-                         x_max,
                          y_min,
+                         x_max,
                          y_max) -> Polygon:
         return box(x_min, y_min, x_max, y_max)

@@ -2,7 +2,8 @@ import math
 
 from polygons.polygon_factory import PolygonFactory
 from shared.shared_utils import Coordinate
-from visual_elements.element_classes import TextBoxClassification, CityScatter, TextBox, Line
+from visual_elements.element_classes import TextBoxClassification, CityScatter, TextBox, Line, VisualElementClassification
+from visual_elements.elements_factories import TextBoxFactory
 from .rtree_elements_manager import RtreeVisualElementsMap
 
 
@@ -126,6 +127,8 @@ class _TextBoxCandidatesResolver:
             score = shortest_distance_to_element * (shortest_distance_to_invalid ** 2)
             finalist_scores[score] = finalist
 
+        yield finalists, TextBoxClassification.FINALIST
+
         best_score = max(list(finalist_scores.keys()))
         yield [finalist_scores[best_score]], TextBoxClassification.BEST
 
@@ -137,10 +140,10 @@ class _TextBoxCandidatesResolver:
 
             intersecting_elements = self._get_intersecting_vis_elements(city_text_box=city_text_box,
                                                                         city_scatter=city_scatter)
-            yield intersecting_elements, TextBoxClassification.INTERSECT
+            if intersecting_elements:
+                yield intersecting_elements, VisualElementClassification.INTERSECT
 
             invalid_elements = [ve for ve in intersecting_elements if not isinstance(ve, Line)]
-            yield invalid_elements, TextBoxClassification.INVALID
 
             self._best_fits.add_result(
                 num_intersections=len(intersecting_elements),
@@ -167,8 +170,9 @@ class TextboxPlacementAlgorithm:
                                        city_scatter: CityScatter,
                                        text_box: TextBox
                                        ) -> list[TextBox]:
+        print("Creating surrounding text boxes.")
         scatter_circling = _ScatterCircling(
-            centroid=city_scatter.centroid,
+            centroid=city_scatter.coord,
             radius=city_scatter.radius + self._city_buffer
         )
 
@@ -176,27 +180,12 @@ class TextboxPlacementAlgorithm:
                                                                              rect_height=text_box.height)
         text_boxes = []
         for rectangle_centroid in rectangle_centroids:
-            center_x, center_y = rectangle_centroid.lon_lat
-
-            x_min = center_x - (text_box.width / 2)
-            x_max = center_x + (text_box.width / 2)
-
-            y_min = center_y - (text_box.height / 2)
-            y_max = center_y + (text_box.height / 2)
-
-            poly = PolygonFactory.create_rectangle(
-                x_min=x_min,
-                x_max=x_max,
-                y_min=y_min,
-                y_max=y_max
-            )
-            new_text_box = TextBox(
-                width=text_box.width,
-                height=text_box.height,
-                classification=TextBoxClassification.SCAN,
-                polygon=poly
-            )
+            new_text_box = TextBoxFactory.create_text_box(center_coord=rectangle_centroid,
+                                                          text_box_width=text_box.width,
+                                                          text_box_height=text_box.height)
             text_boxes.append(new_text_box)
+
+        print(f"Plotting text boxes surrounding {city_scatter.city_name} coordinate {str(city_scatter.centroid_coord)}")
 
         return text_boxes
 
@@ -215,13 +204,12 @@ class TextboxPlacementAlgorithm:
         ):
             # We don't display finalists until we are determining the best finalist
             if classification == TextBoxClassification.FINALIST:
+                print(f"Finalists extended: {len(elements)}")
                 finalists.extend(elements)
                 continue
 
-            for element in elements:
-                yield element, classification
+            yield elements, classification
 
         for elements, classification in self._text_box_resolver.determine_best_finalist(finalists=finalists,
                                                                                         city_scatter=city_scatter):
-            for element in elements:
-                yield element, classification
+            yield elements, classification

@@ -107,5 +107,6 @@ class EntitiesFactory:
     def create_entities(cls, df: pd.DataFrame) -> EntitiesContainer:
         container = EntitiesContainer()
         df.apply(cls._apply_create_entities, args=(container,), axis=1)
+
         return container
 

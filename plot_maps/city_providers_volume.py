@@ -44,7 +44,7 @@ class CityProviderVolumeConditionsController(ConditionsController):
         text_box = None
         if leaving_providers in range(5, 11):
             scatter = CityScatter(
-                centroid=city.city_coord,
+                coord=city.city_coord,
                 radius=0.04,
                 map_attributes={
                     "color": "red",
@@ -57,7 +57,7 @@ class CityProviderVolumeConditionsController(ConditionsController):
 
         elif leaving_providers in range(11, 16):
             scatter = CityScatter(
-                centroid=city.city_coord,
+                coord=city.city_coord,
                 radius=0.04,
                 map_attributes={
                     "color": 'blue',
@@ -70,7 +70,7 @@ class CityProviderVolumeConditionsController(ConditionsController):
 
         elif leaving_providers in range(16, 21):
             scatter = CityScatter(
-                centroid=city.city_coord,
+                coord=city.city_coord,
                 radius=0.04,
                 map_attributes={
                     "color": "orange",
@@ -83,7 +83,7 @@ class CityProviderVolumeConditionsController(ConditionsController):
 
         elif leaving_providers >= 21:
             scatter = CityScatter(
-                centroid=city.city_coord,
+                coord=city.city_coord,
                 radius=0.04,
                 map_attributes={
                     "color": "black",

@@ -7,7 +7,9 @@ from matplotlib import patches
 from shapely import Polygon
 from matplotlib.patches import Polygon as MplPolygon
 
-from visual_elements.element_classes import CityScatter, Line, TextBox, VisualElement, TextBoxClassification, SearchAreaClassification
+from plotting.visual_attributes_resolver import VisualElementAttributesResolver
+from visual_elements.element_classes import (CityScatter, Line, TextBox, VisualElement, TextBoxClassification,
+                                             VisualElementClassification)
 
 
 def convert_bbox_to_data_coordinates(ax, bbox):
@@ -27,7 +29,7 @@ def convert_bbox_to_data_coordinates(ax, bbox):
 def _create_iowa_map(ax):
 
     # Set the projection for the axis
-    ax.set_extent([-97, -89, 40, 44], crs=ccrs.PlateCarree())
+    ax.set_extent([-97, -89, 40, 44], crs=ccrs.UTM(zone=15, southern_hemisphere=False))
     ax.coastlines(resolution='10m')  # or '50m' or '110m'
     ax.add_feature(cfeature.BORDERS.with_scale('10m'), linewidth=0.5)
     ax.add_feature(cfeature.STATES.with_scale('10m'), linewidth=0.5)
@@ -44,7 +46,7 @@ class MapDisplay:
                  ):
 
         self.fig, self.ax = plt.subplots(
-            subplot_kw={'projection': ccrs.PlateCarree()},
+            subplot_kw={'projection': ccrs.UTM(zone=15, southern_hemisphere=False)},
             figsize=figure_size
         )
 
@@ -54,12 +56,14 @@ class MapDisplay:
         self.show_display()
 
     def determine_text_box_dimensions(self, text_box: TextBox) -> tuple:
+        map_attributes = VisualElementAttributesResolver.resolve_map_attributes(element=text_box)
+
         # Iowa cities should not have their state abbreviation
         city_name = text_box.city_name.replace(', IA', '')
 
         city_text = self.ax.text(0, 0, city_name,
-                                 fontsize=text_box.map_attributes['fontsize'],
-                                 fontname=text_box.map_attributes.get('font', None),
+                                 fontsize=map_attributes['fontsize'],
+                                 fontname=map_attributes.get('font', None),
                                  ha='center',
                                  va='center',
                                  color='purple',
@@ -88,52 +92,61 @@ class MapDisplay:
         return patch
 
     def plot_point(self, scatter: CityScatter, **kwargs):
-        att = scatter.map_attributes
+        map_attributes = VisualElementAttributesResolver.resolve_map_attributes(
+            element=scatter
+        )
+
         scatter_obj = self.ax.scatter(
-            scatter.centroid.lon,
-            scatter.centroid.lat,
-            marker=att['marker'],
-            color=att['color'],
-            edgecolor=att['edgecolor'] if "edgecolor" in att else None,
+            scatter.coord.lon,
+            scatter.coord.lat,
+            marker=map_attributes['marker'],
+            color=map_attributes['color'],
+            edgecolor=map_attributes['edgecolor'] if "edgecolor" in map_attributes else None,
             s=scatter.radius,
-            label=att['label'],
-            zorder=att['zorder'],
-            transform=ccrs.PlateCarree(),
+            label=map_attributes['label'],
+            zorder=map_attributes['zorder'],
+            transform=ccrs.UTM(zone=15, southern_hemisphere=False),
             **kwargs
         )
 
         return scatter_obj
 
     def plot_line(self, line: Line) -> plt.Line2D:
-        att = line.map_attributes
+        map_attributes = VisualElementAttributesResolver.resolve_map_attributes(
+            element=line
+        )
+
         line = self.ax.plot(
             line.x_data,
             line.y_data,
-            color=att['color'],
-            linestyle=att['linestyle'],
-            linewidth=att['linewidth'],
-            zorder=att['zorder'],
-            transform=ccrs.PlateCarree(),
+            color=map_attributes['color'],
+            linestyle=map_attributes['linestyle'],
+            linewidth=map_attributes['linewidth'],
+            zorder=map_attributes['zorder'],
+            transform=ccrs.UTM(zone=15, southern_hemisphere=False),
         )
 
         return line
 
     def plot_text(self, text_box: TextBox):
+        map_attributes = VisualElementAttributesResolver.resolve_map_attributes(
+            element=text_box
+        )
+
         # We don't want Iowa cities to have the state abbreviation
         city_name = text_box.city_name.replace(', IA', '')
-        lon, lat = text_box.centroid
+        lon, lat = text_box.centroid_coord.lon_lat
         city_text = self.ax.text(
             lon,
             lat,
             city_name,
-            fontsize=text_box.map_attributes['fontsize'],
-            font=text_box.map_attributes['font'],
+            fontsize=map_attributes['fontsize'],
+            font=map_attributes['font'],
             ha='center',
             va='center',
-            color=text_box.map_attributes['color'],
-            fontweight=text_box.map_attributes['fontweight'],
-            zorder=text_box.map_attributes['zorder'],
-            transform=ccrs.PlateCarree(),
+            fontweight=map_attributes['fontweight'],
+            zorder=map_attributes['zorder'],
+            transform=ccrs.UTM(zone=15, southern_hemisphere=False),
             bbox=dict(facecolor='white', edgecolor='white', boxstyle='square,pad=0.0')
         )
         return city_text
@@ -145,29 +158,56 @@ class MapDisplay:
         plt.show(block=False)
 
 
+class Patches:
+
+    def __init__(self):
+        self._patches = dict()
+
+    def add_patch(self, new_patch, classification):
+        if not classification:
+            return
+
+        if classification not in self._patches:
+            self._patches[classification] = []
+
+        self._patches[classification].append(new_patch)
+
+    def fetch_patches_for_removal(self, classifications) -> list:
+        patches = [
+            p
+            for classification, ps in self._patches.items()
+            if classification in classifications
+            for p in ps
+        ]
+        removed_dict = {c: [] for c in classifications}
+        self._patches.update(removed_dict)
+
+        return patches
+
+
 class AlgorithmDisplay:
     _removes = {
-        TextBoxClassification.SCAN: {
-            TextBoxClassification.SCAN,
-            TextBoxClassification.INTERSECT
-        },
-        TextBoxClassification.FINALIST: {
-            TextBoxClassification.SCAN,
-            TextBoxClassification.INTERSECT,
-            TextBoxClassification.FINALIST,
-            SearchAreaClassification.SCAN
-        },
-        TextBoxClassification.BEST: {
-            TextBoxClassification.FINALIST,
-            TextBoxClassification.INTERSECT,
-            SearchAreaClassification.SCAN
+        TextBox: {
+            TextBoxClassification.SCAN: {
+                TextBoxClassification.SCAN,
+                VisualElementClassification.INTERSECT
+            },
+            TextBoxClassification.FINALIST: {
+                TextBoxClassification.SCAN,
+                VisualElementClassification.INTERSECT,
+                TextBoxClassification.FINALIST
+            },
+            TextBoxClassification.BEST: {
+                TextBoxClassification.FINALIST,
+                VisualElementClassification.INTERSECT
+            }
         }
     }
 
-    def __init__(self, county_line_width: float, show_pause: float, figure_size: tuple):
+    def __init__(self, show_pause: float, figure_size: tuple, county_line_width: float):
         print("Initializing AlgorithmDisplay.")
         self.fig, self.ax = plt.subplots(
-            subplot_kw={'projection': ccrs.PlateCarree()},
+            subplot_kw={'projection': ccrs.UTM(zone=15, southern_hemisphere=False)},
             figsize=figure_size
         )
 
@@ -178,91 +218,122 @@ class AlgorithmDisplay:
 
         self.show_pause = show_pause
 
-        self._patches = {
-            CityScatter: dict(),
-            TextBox: dict(),
-            Line: dict()
-        }
+        self._patches = Patches()
 
         self.show_display()
 
-    def _center_display(self, visual_element: VisualElement, padding_degrees=1):
+    def center_display(self, visual_element: VisualElement, padding_degrees=1):
         # Option 1: Center on centroid
-        c = visual_element.polygon.centroid
+        c = visual_element.centroid_coord
 
         # Calculate extent around centroid with padding
         extent = [
-            c.x - padding_degrees,
-            c.x + padding_degrees,
-            c.y - padding_degrees,
-            c.y + padding_degrees
+            c.lon - padding_degrees,
+            c.lon + padding_degrees,
+            c.lat - padding_degrees,
+            c.lat + padding_degrees
         ]
 
         # Set extent on axis in PlateCarree CRS (longitude/latitude)
-        self.ax.set_extent(extent, crs=ccrs.PlateCarree())
+        self.ax.set_extent(extent, crs=ccrs.UTM(zone=15, southern_hemisphere=False))
 
-    def _plot_scatter(self, scatter: CityScatter):
-        att = scatter.algorithm_attributes
+    def _remove_patches(self, visual_element, classification=None):
+        if not classification:
+            return  # Nothing to remove, exit early
+
+        removes = self.__class__._removes
+        if type(visual_element) not in removes:
+            return  # No removals configured for TextBox
+
+        remove_classifications = removes[type(visual_element)].get(classification)
+        if not remove_classifications:
+            return  # Nothing to remove for this classification
+
+        patches_to_remove = self._patches.fetch_patches_for_removal(remove_classifications)
+
+        for patch in patches_to_remove:
+            patch.remove()
+
+    def _plot_scatter(self,
+                      scatter: CityScatter,
+                      classification
+                      ):
+        algo_attributes = VisualElementAttributesResolver.resolve_algo_attributes(
+            element=scatter,
+            classification=classification
+        )
         patch = patches.Circle(
-            (scatter.centroid.lon, scatter.centroid.lat),
+            (scatter.coord.lon, scatter.coord.lat),
             radius=scatter.radius,
-            facecolor=att['facecolor'],
-            edgecolor=att['edgecolor'] if 'edgecolor' in att else None
+            facecolor=algo_attributes['facecolor'],
+            edgecolor=algo_attributes['edgecolor'] if 'edgecolor' in algo_attributes else None
         )
 
         self.ax.add_patch(patch)
 
-        self._patches[CityScatter][scatter] = patch
+        self._patches.add_patch(patch, classification)
 
         return patch
 
-    def _plot_text(self, text_box: TextBox):
-        att = text_box.algorithm_attributes
+    def _plot_text(self,
+                   text_box: TextBox,
+                   classification=None):
+        algo_attributes = VisualElementAttributesResolver.resolve_algo_attributes(
+            element=text_box,
+            classification=classification
+        )
+
+        self._remove_patches(text_box, classification)
+
         patch = patches.Rectangle(
-            (text_box.centroid.lon, text_box.centroid.lat),
+            (text_box.centroid_coord.lon, text_box.centroid_coord.lat),
             text_box.width,
             text_box.height,
-            facecolor=att['facecolor'],
-            edgecolor=att['edgecolor'] if 'edgecolor' in att else None
+            facecolor=algo_attributes['facecolor'],
+            edgecolor=algo_attributes['edgecolor'] if 'edgecolor' in algo_attributes else None
         )
 
         self.ax.add_patch(patch)
 
-        self._patches[TextBox][text_box] = patch
+        self._patches.add_patch(patch, classification)
 
         return patch
 
-    def _plot_line(self, line: Line):
-        att = line.algorithm_attributes
+    def _plot_line(self, line: Line, classification):
+        algo_attributes = VisualElementAttributesResolver.resolve_algo_attributes(
+            element=line,
+            classification=classification
+        )
 
         line_patch = self.ax.plot(
             line.x_data,
             line.y_data,
-            color=att['color'],
-            linewidth=att['linewidth'],
-            transform=ccrs.PlateCarree()  # 👈 crucial
+            color=algo_attributes['color'],
+            linewidth=algo_attributes['linewidth'],
+            transform=ccrs.UTM(zone=15, southern_hemisphere=False)  # 👈 crucial
         )[0]
 
-        self._patches[Line][line] = line_patch
+        self._patches.add_patch(line_patch, classification)
 
         return line_patch
 
     def plot_element(self,
                      visual_element,
+                     classification=None,
                      *args,
                      **kwargs):
         if isinstance(visual_element, CityScatter):
-            patch = self._plot_scatter(visual_element)
+            patch = self._plot_scatter(visual_element, classification)
         elif isinstance(visual_element, TextBox):
-            patch = self._plot_text(visual_element)
+            patch = self._plot_text(visual_element, classification)
         elif isinstance(visual_element, Line):
-            patch = self._plot_line(visual_element)
+            patch = self._plot_line(visual_element, classification)
         else:
             raise TypeError(f"Unsupported VisualElement type {type(visual_element)} for function plot_element")
 
         # Set axis limits
         if 'center_view' in kwargs and kwargs['center_view']:
-            self._center_display(visual_element=visual_element)
+            self.center_display(visual_element=visual_element)
 
         # Redraw the figure to update the display
         self.fig.canvas.draw()

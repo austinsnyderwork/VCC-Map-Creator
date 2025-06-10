@@ -1,8 +1,9 @@
+import ccrs
 import matplotlib.pyplot as plt
 
 display_fig_size = (20, 15)
 county_line_width = 0.05
-fig, ax = plt.subplots(figsize=display_fig_size)
+fig, ax = plt.subplots(subplot_kw={"projection": ccrs.UTM(zone=15)})
 iowa_map = basemap.Basemap(projection='lcc', resolution='i',
                            lat_0=41.5, lon_0=-93.5,  # Central latitude and longitude
                            llcrnrlon=-97, llcrnrlat=40,  # Lower-left corner
