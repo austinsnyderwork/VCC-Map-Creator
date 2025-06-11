@@ -90,7 +90,7 @@ class BestFits:
         return self._best_fits
 
 
-class _TextBoxCandidatesResolver:
+class TextBoxCandidatesResolver:
 
     def __init__(self, rtree_map: RtreeVisualElementsMap):
         self._rtree_map = rtree_map
@@ -157,10 +157,8 @@ class _TextBoxCandidatesResolver:
 class TextboxPlacementAlgorithm:
 
     def __init__(self,
-                 rtree_map: RtreeVisualElementsMap,
                  city_buffer: int,
                  number_of_search_steps: int):
-        self._text_box_resolver = _TextBoxCandidatesResolver(rtree_map=rtree_map)
         self._city_buffer = city_buffer
         self.number_of_search_steps = number_of_search_steps
 
@@ -182,14 +180,14 @@ class TextboxPlacementAlgorithm:
         for rectangle_centroid in rectangle_centroids:
             new_text_box = TextBoxFactory.create_text_box(center_coord=rectangle_centroid,
                                                           text_box_width=text_box.width,
-                                                          text_box_height=text_box.height)
+                                                          text_box_height=text_box.height,
+                                                          classification=TextBoxClassification.SCAN)
             text_boxes.append(new_text_box)
-
-        print(f"Plotting text boxes surrounding {city_scatter.city_name} coordinate {str(city_scatter.centroid_coord)}")
 
         return text_boxes
 
     def find_best_poly(self,
+                       candidates_resolver: TextBoxCandidatesResolver,
                        text_box: TextBox,
                        city_scatter: CityScatter,
                        ):
@@ -198,7 +196,7 @@ class TextboxPlacementAlgorithm:
         city_text_boxes = self._create_surrounding_text_boxes(text_box=text_box,
                                                               city_scatter=city_scatter)
 
-        for elements, classification in self._text_box_resolver.determine_text_box_finalists(
+        for elements, classification in candidates_resolver.determine_text_box_finalists(
                 city_text_boxes=city_text_boxes,
                 city_scatter=city_scatter
         ):
@@ -210,6 +208,6 @@ class TextboxPlacementAlgorithm:
 
             yield elements, classification
 
-        for elements, classification in self._text_box_resolver.determine_best_finalist(finalists=finalists,
-                                                                                        city_scatter=city_scatter):
+        for elements, classification in candidates_resolver.determine_best_finalist(finalists=finalists,
+                                                                                    city_scatter=city_scatter):
             yield elements, classification

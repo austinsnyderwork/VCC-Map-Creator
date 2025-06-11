@@ -14,14 +14,15 @@ class CityProviderVolumeConditionsController(ConditionsController):
                  ):
         self._leaving_providers = dict()
         self._visiting_providers = dict()
+        self._pas = set()
 
         self._setup(entities_container=entities_container)
 
         cmap = ConditionsMap()
         cmap.add_condition(condition=self._city_condition,
                            entity_type=City)
-        """cmap.add_condition(condition=self._assignment_condition,
-                           entity_type=ProviderAssignment)"""
+        cmap.add_condition(condition=self._assignment_condition,
+                           entity_type=ProviderAssignment)
 
         super().__init__(conditions_map=cmap,
                          city_networks_handler=city_networks_handler)
@@ -45,7 +46,7 @@ class CityProviderVolumeConditionsController(ConditionsController):
         if leaving_providers in range(5, 11):
             scatter = CityScatter(
                 coord=city.city_coord,
-                radius=0.04,
+                radius=40,
                 map_attributes={
                     "color": "red",
                     "marker": "o",
@@ -58,7 +59,7 @@ class CityProviderVolumeConditionsController(ConditionsController):
         elif leaving_providers in range(11, 16):
             scatter = CityScatter(
                 coord=city.city_coord,
-                radius=0.04,
+                radius=40,
                 map_attributes={
                     "color": 'blue',
                     "marker": "o",
@@ -71,7 +72,7 @@ class CityProviderVolumeConditionsController(ConditionsController):
         elif leaving_providers in range(16, 21):
             scatter = CityScatter(
                 coord=city.city_coord,
-                radius=0.04,
+                radius=40,
                 map_attributes={
                     "color": "orange",
                     "marker": "o",
@@ -84,7 +85,7 @@ class CityProviderVolumeConditionsController(ConditionsController):
         elif leaving_providers >= 21:
             scatter = CityScatter(
                 coord=city.city_coord,
-                radius=0.04,
+                radius=40,
                 map_attributes={
                     "color": "black",
                     "marker": "o",
@@ -103,15 +104,14 @@ class CityProviderVolumeConditionsController(ConditionsController):
         line_color = self._city_networks_handler.fetch_city_color(pa.origin_city)
 
         origin_leaving_providers = self._leaving_providers[pa.origin_city]
-        if origin_leaving_providers >= 5:
+        if origin_leaving_providers >= 15 and (pa.origin_city, pa.visiting_city) not in self._pas:
+            self._pas.add((pa.origin_city, pa.visiting_city))
             return (
                 Line(
                     origin_coordinate=pa.origin_city.city_coord,
                     visiting_coordinate=pa.visiting_city.city_coord,
                     map_attributes={
-                        "color": line_color,
-                        "linestyle": "-",
-                        "linewidth": 0.1
+                        "color": line_color
                     }
                 ),
                 None

@@ -1,6 +1,6 @@
 import pandas as pd
 
-from visual_elements import Line, CityScatter, Best
+from visual_elements.element_classes import TextBox, Line, CityScatter
 
 
 class PowerBiOutputFormatter:
@@ -11,13 +11,13 @@ class PowerBiOutputFormatter:
         self.vis_element_columns = {
             Line: ['x_data', 'y_data', 'color', 'linestyle', 'linewidth', 'zorder'],
             CityScatter: ['city_coord', 'marker', 'color', 'edgecolor', 'size', 'label', 'zorder'],
-            Best: ['poly_coord', 'city_name', 'fontsize', 'font', 'color', 'fontweight', 'zorder']
+            TextBox: ['poly_coord', 'city_name', 'fontsize', 'font', 'color', 'fontweight', 'zorder']
         }
 
         self.ele_type_to_col_name = {
             Line: 'line',
             CityScatter: 'scatter',
-            Best: 'text'
+            TextBox: 'text'
         }
 
         self.cols = ['type']

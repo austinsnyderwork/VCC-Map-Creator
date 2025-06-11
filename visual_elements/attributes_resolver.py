@@ -16,6 +16,7 @@ class VisualElementAttributesResolver:
     _algo_defaults = {
         TextBox: {
             TextBoxClassification.BEST: {
+                "fontsize": 1000,
                 "show": True,
                 "facecolor": "black",
                 "transparency": 0.75,
@@ -24,6 +25,7 @@ class VisualElementAttributesResolver:
                 "zorder": 2
             },
             TextBoxClassification.FINALIST: {
+                "fontsize": 1000,
                 "show": True,
                 "facecolor": "purple",
                 "transparency": 1.0,
@@ -32,6 +34,7 @@ class VisualElementAttributesResolver:
                 "steps_to_show": 1
             },
             TextBoxClassification.SCAN: {
+                "fontsize": 1000,
                 "show": True,
                 "facecolor": "blue",
                 "transparency": 0.5,
@@ -71,7 +74,7 @@ class VisualElementAttributesResolver:
                 "immediately_remove": False,
                 "center_view": False,
                 "linestyle": "-",
-                "linewidth": 0.1,
+                "linewidth": 7,
                 "zorder": 1
             }
         }
@@ -79,13 +82,15 @@ class VisualElementAttributesResolver:
 
     _map_defaults = {
         TextBox: {
-            "fontsize": 10,
+            "fontsize": 1,
             "font": "Roboto",
             "fontweight": "normal",
             "zorder": 1
         },
         Line: {
-            "zorder": 0
+            "zorder": 0,
+            "linewidth": 2,
+            "linestyle": "-"
         },
         CityScatter: {
             "zorder": 2

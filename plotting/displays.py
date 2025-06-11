@@ -1,13 +1,9 @@
-from abc import ABC
-
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import matplotlib.pyplot as plt
 from matplotlib import patches
-from shapely import Polygon
-from matplotlib.patches import Polygon as MplPolygon
 
-from plotting.visual_attributes_resolver import VisualElementAttributesResolver
+from visual_elements.attributes_resolver import VisualElementAttributesResolver
 from visual_elements.element_classes import (CityScatter, Line, TextBox, VisualElement, TextBoxClassification,
                                              VisualElementClassification)
 
@@ -29,7 +25,7 @@ def convert_bbox_to_data_coordinates(ax, bbox):
 def _create_iowa_map(ax):
 
     # Set the projection for the axis
-    ax.set_extent([-97, -89, 40, 44], crs=ccrs.UTM(zone=15, southern_hemisphere=False))
+    ax.set_extent([150000, 750000, 4470000, 4830000], crs=ccrs.UTM(zone=15, southern_hemisphere=False))
     ax.coastlines(resolution='10m')  # or '50m' or '110m'
     ax.add_feature(cfeature.BORDERS.with_scale('10m'), linewidth=0.5)
     ax.add_feature(cfeature.STATES.with_scale('10m'), linewidth=0.5)
@@ -71,15 +67,19 @@ class MapDisplay:
                                  bbox=dict(facecolor='white', edgecolor='white', boxstyle='square,pad=0.0'))
 
         self.fig.canvas.draw()
-        bbox_coords = city_text.get_window_extent().transformed(self.ax.transData.inverted())
+        bbox_pixels = city_text.get_window_extent()
+        inv = self.ax.transData.inverted()
+        ll = inv.transform((bbox_pixels.xmin, bbox_pixels.ymin))
+        ur = inv.transform((bbox_pixels.xmax, bbox_pixels.ymax))
+
         city_text.remove()
 
-        width = bbox_coords.xmax - bbox_coords.xmin
-        height = bbox_coords.ymax - bbox_coords.ymin
+        width = ur[0] - ll[0]
+        height = ur[1] - ll[1]
 
         return width, height
 
-    def plot_element(self, visual_element: VisualElement, *args, **kwargs):
+    def plot_element(self, visual_element: VisualElement):
         if isinstance(visual_element, CityScatter):
             patch = self.plot_point(scatter=visual_element)
         elif isinstance(visual_element, Line):
@@ -96,20 +96,14 @@ class MapDisplay:
             element=scatter
         )
 
-        scatter_obj = self.ax.scatter(
-            scatter.coord.lon,
-            scatter.coord.lat,
-            marker=map_attributes['marker'],
-            color=map_attributes['color'],
-            edgecolor=map_attributes['edgecolor'] if "edgecolor" in map_attributes else None,
-            s=scatter.radius,
-            label=map_attributes['label'],
-            zorder=map_attributes['zorder'],
-            transform=ccrs.UTM(zone=15, southern_hemisphere=False),
-            **kwargs
+        patch = patches.Circle(
+            (scatter.coord.lon, scatter.coord.lat),
+            radius=scatter.radius,
+            facecolor=map_attributes['facecolor'],
+            edgecolor=map_attributes['edgecolor'] if 'edgecolor' in map_attributes else None
         )
 
-        return scatter_obj
+        self.ax.add_patch(patch)
 
     def plot_line(self, line: Line) -> plt.Line2D:
         map_attributes = VisualElementAttributesResolver.resolve_map_attributes(
@@ -124,7 +118,7 @@ class MapDisplay:
             linewidth=map_attributes['linewidth'],
             zorder=map_attributes['zorder'],
             transform=ccrs.UTM(zone=15, southern_hemisphere=False),
-        )
+        )[0]
 
         return line
 
@@ -135,27 +129,29 @@ class MapDisplay:
 
         # We don't want Iowa cities to have the state abbreviation
         city_name = text_box.city_name.replace(', IA', '')
-        lon, lat = text_box.centroid_coord.lon_lat
-        city_text = self.ax.text(
-            lon,
-            lat,
-            city_name,
-            fontsize=map_attributes['fontsize'],
-            font=map_attributes['font'],
-            ha='center',
-            va='center',
-            fontweight=map_attributes['fontweight'],
-            zorder=map_attributes['zorder'],
-            transform=ccrs.UTM(zone=15, southern_hemisphere=False),
-            bbox=dict(facecolor='white', edgecolor='white', boxstyle='square,pad=0.0')
+
+        text_box_lon, text_box_lat = text_box.centroid_coord.lon_lat
+
+        # MatPlotLib plots rectangles from the bottom_left point
+        bottom_left_point = (
+            text_box_lon - text_box.width / 2,
+            text_box_lat - text_box.height / 2
         )
-        return city_text
+        patch = patches.Rectangle(
+            bottom_left_point,
+            text_box.width,
+            text_box.height,
+            facecolor=algo_attributes['facecolor'],
+            edgecolor=algo_attributes['edgecolor'] if 'edgecolor' in algo_attributes else None
+        )
+
+        self.ax.add_patch(patch)
 
     @staticmethod
-    def show_display():
+    def show_display(block: bool = False):
         plt.draw()
         plt.pause(0.1)
-        plt.show(block=False)
+        plt.show(block=block)
 
 
 class Patches:
@@ -204,12 +200,13 @@ class AlgorithmDisplay:
         }
     }
 
-    def __init__(self, show_pause: float, figure_size: tuple, county_line_width: float):
+    def __init__(self, show_pause: float, figure_size: tuple, display_zoom_out: int):
         print("Initializing AlgorithmDisplay.")
         self.fig, self.ax = plt.subplots(
             subplot_kw={'projection': ccrs.UTM(zone=15, southern_hemisphere=False)},
             figsize=figure_size
         )
+        self._display_zoom_out = display_zoom_out
 
         self.ax.set_title("Main")
         _create_iowa_map(self.ax)
@@ -222,19 +219,18 @@ class AlgorithmDisplay:
 
         self.show_display()
 
-    def center_display(self, visual_element: VisualElement, padding_degrees=1):
+    def center_display(self, visual_element: VisualElement):
         # Option 1: Center on centroid
         c = visual_element.centroid_coord
 
         # Calculate extent around centroid with padding
         extent = [
-            c.lon - padding_degrees,
-            c.lon + padding_degrees,
-            c.lat - padding_degrees,
-            c.lat + padding_degrees
+            c.lon - self._display_zoom_out,
+            c.lon + self._display_zoom_out,
+            c.lat - self._display_zoom_out,
+            c.lat + self._display_zoom_out
         ]
 
-        # Set extent on axis in PlateCarree CRS (longitude/latitude)
         self.ax.set_extent(extent, crs=ccrs.UTM(zone=15, southern_hemisphere=False))
 
     def _remove_patches(self, visual_element, classification=None):
@@ -285,8 +281,15 @@ class AlgorithmDisplay:
 
         self._remove_patches(text_box, classification)
 
+        text_box_lon, text_box_lat = text_box.centroid_coord.lon_lat
+
+        # MatPlotLib plots rectangles from the bottom_left point
+        bottom_left_point = (
+            text_box_lon - text_box.width / 2,
+            text_box_lat - text_box.height / 2
+        )
         patch = patches.Rectangle(
-            (text_box.centroid_coord.lon, text_box.centroid_coord.lat),
+            bottom_left_point,
             text_box.width,
             text_box.height,
             facecolor=algo_attributes['facecolor'],
