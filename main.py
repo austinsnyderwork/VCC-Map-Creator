@@ -2,9 +2,9 @@ import logging
 
 import pandas as pd
 
-from plot_maps.city_providers_volume import CityProviderVolumeConditionsController
-from plot_maps.highest_volume_cities import HighestOriginVolumeController
+from plot_maps.city_origin_volume import CityOriginVolumeConditionsController
 from program_management import operations_coordinator
+from program_management.power_bi_output_formatter import PowerBiOutputFormatter
 
 logging.basicConfig(level=logging.INFO)
 
@@ -16,6 +16,9 @@ city_name_changes = {
 }
 
 interface_ = operations_coordinator.OperationsCoordinator(vcc_df=vcc_df)
-interface_.create_map(CityProviderVolumeConditionsController)
+visual_elements = interface_.create_map(CityOriginVolumeConditionsController)
+
+pbi_df = PowerBiOutputFormatter().create_df(visual_elements=visual_elements)
+pbi_df.to_csv("C:/Users/austisnyder/programming/programming_i_o_files/pbi_output.csv")
 
 

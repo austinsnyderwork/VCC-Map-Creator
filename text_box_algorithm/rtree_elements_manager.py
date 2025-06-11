@@ -14,6 +14,10 @@ class RtreeVisualElementsMap:
         self._elements = {}
         self._poly_idx_counter = itertools.count()
 
+    @property
+    def elements(self) -> list:
+        return list(self._elements.values())
+
     def add_visual_element(self, visual_element: VisualElement):
         poly = visual_element.polygon
         poly_idx = next(self._poly_idx_counter)

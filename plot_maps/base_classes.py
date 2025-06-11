@@ -45,12 +45,12 @@ class ConditionsController(ABC):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    def determine_visual_element(self, entity) -> list[VisualElement]:
+    def determine_visual_elements(self, entity) -> list[VisualElement]:
         conditions = self._conditions_map.conditions[type(entity)]
         vis_elements = [
             ve
             for condition in conditions
-            for ve in condition(entity) if ve is not None
+            for ve in condition(entity)
         ]
 
         return vis_elements

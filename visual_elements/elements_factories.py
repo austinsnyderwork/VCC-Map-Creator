@@ -1,6 +1,6 @@
 from polygons.polygon_factory import PolygonFactory
 from shared.shared_utils import Coordinate
-from .element_classes import TextBox, TextBoxClassification
+from .element_classes import TextBox
 
 
 class TextBoxFactory:
@@ -9,7 +9,6 @@ class TextBoxFactory:
     def create_text_box(center_coord: Coordinate,
                         text_box_width: float,
                         text_box_height: float,
-                        classification,
                         map_attributes: dict = None,
                         algo_attributes: dict = None):
         center_x, center_y = center_coord.lon_lat
@@ -29,7 +28,6 @@ class TextBoxFactory:
         new_text_box = TextBox(
             width=text_box_width,
             height=text_box_height,
-            classification=classification,
             polygon=poly,
             map_attributes=map_attributes,
             algo_attributes=algo_attributes

@@ -1,8 +1,57 @@
 import pprint
 from abc import ABC
 from enum import Enum
+from typing import Optional
 
 from shared.shared_utils import Coordinate
+
+
+class VisualElementAttributes:
+    def __init__(self,
+                 show: Optional[bool] = True,
+                 facecolor: Optional[str] = None,
+                 edgecolor: Optional[str] = None,
+                 color: Optional[str] = None,
+                 fontcolor: Optional[str] = None,
+                 transparency: Optional[float] = 1.0,
+                 immediately_remove: Optional[bool] = False,
+                 center_view: Optional[bool] = False,
+                 fontsize: Optional[float] = 10.0,
+                 fontweight: Optional[str] = 'normal',
+                 font: Optional[str] = None,
+                 zorder: Optional[int] = 1,
+                 steps_to_show: Optional[int] = 0,
+                 radius: Optional[float] = None,
+                 marker: Optional[str] = None,
+                 label: Optional[str] = None,
+                 linestyle: Optional[str] = None,
+                 linewidth: Optional[float] = None,
+                 size: Optional[float] = None):
+
+        self.show = show
+        self.facecolor = facecolor
+        self.edgecolor = edgecolor
+        self.color = color
+        self.fontcolor = fontcolor
+        self.transparency = transparency
+        self.immediately_remove = immediately_remove
+        self.center_view = center_view
+        self.fontsize = fontsize
+        self.fontweight = fontweight
+        self.font = font
+        self.zorder = zorder
+        self.steps_to_show = steps_to_show
+        self.radius = radius
+        self.marker = marker
+        self.label = label
+        self.linestyle = linestyle
+        self.linewidth = linewidth
+        self.size = size
+
+    def update(self, new_attributes: "VisualElementAttributes"):
+        for k, v in new_attributes.__dict__.items():
+            if not hasattr(self, k):
+                raise ValueError(f"Variable {k} not listed in {self.__class__.__name__}")
 
 
 def _find_class_key(search_key, data: dict):
@@ -36,16 +85,16 @@ class VisualElement(ABC):
     def __init__(self,
                  centroid_coord: Coordinate = None,
                  polygon=None,
-                 map_attributes: dict = None,
-                 algo_attributes: dict = None,
+                 map_attributes=None,
+                 algo_attributes=None,
                  classification=None,
                  **kwargs
                  ):
         self._centroid_coord = centroid_coord
 
-        self.map_attributes = map_attributes or dict()
+        self.map_attributes = map_attributes or VisualElementAttributes()
 
-        self.algo_attributes = algo_attributes or dict()
+        self.algo_attributes = algo_attributes or VisualElementAttributes()
 
         self.polygon = polygon
 
@@ -79,16 +128,14 @@ class TextBox(VisualElement):
                  city_name: str = None,
                  width: float = None,
                  height: float = None,
-                 classification: TextBoxClassification = None,
                  polygon=None,
-                 map_attributes: dict = None,
-                 algo_attributes: dict = None
+                 map_attributes: VisualElementAttributes = None,
+                 algo_attributes: VisualElementAttributes = None
                  ):
         self.city_name = city_name
 
         self.width = width
         self.height = height
-        self.classification = classification
 
         super().__init__(centroid_coord=centroid_coord,
                          polygon=polygon,
@@ -104,11 +151,11 @@ class CityScatter(VisualElement):
 
     def __init__(self,
                  coord: Coordinate,
-                 radius: float,
                  city_name: str,
+                 radius: float = None,
                  polygon=None,
-                 map_attributes: dict = None,
-                 algo_attributes: dict = None,
+                 map_attributes: VisualElementAttributes = None,
+                 algo_attributes: VisualElementAttributes = None,
                  **kwargs
                  ):
 
@@ -130,8 +177,8 @@ class SearchArea(VisualElement):
                  width: float,
                  height: float,
                  polygon=None,
-                 map_attributes: dict = None,
-                 algo_attributes: dict = None
+                 map_attributes: VisualElementAttributes = None,
+                 algo_attributes: VisualElementAttributes = None
                  ):
         super().__init__(polygon=polygon,
                          map_attributes=map_attributes,
@@ -148,8 +195,8 @@ class Line(VisualElement):
                  origin_coordinate: Coordinate,
                  visiting_coordinate: Coordinate,
                  polygon=None,
-                 map_attributes: dict = None,
-                 algo_attributes: dict = None
+                 map_attributes: VisualElementAttributes = None,
+                 algo_attributes: VisualElementAttributes = None
                  ):
         super().__init__(polygon=polygon,
                          map_attributes=map_attributes,

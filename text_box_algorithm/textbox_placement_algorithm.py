@@ -1,6 +1,5 @@
 import math
 
-from polygons.polygon_factory import PolygonFactory
 from shared.shared_utils import Coordinate
 from visual_elements.element_classes import TextBoxClassification, CityScatter, TextBox, Line, VisualElementClassification
 from visual_elements.elements_factories import TextBoxFactory
@@ -180,8 +179,7 @@ class TextboxPlacementAlgorithm:
         for rectangle_centroid in rectangle_centroids:
             new_text_box = TextBoxFactory.create_text_box(center_coord=rectangle_centroid,
                                                           text_box_width=text_box.width,
-                                                          text_box_height=text_box.height,
-                                                          classification=TextBoxClassification.SCAN)
+                                                          text_box_height=text_box.height)
             text_boxes.append(new_text_box)
 
         return text_boxes

@@ -1,24 +1,22 @@
 import pandas as pd
 from shapely import Polygon
 
+import plotting
 from config_manager import ConfigManager
 from entities.factory import EntitiesFactory
 from environment_management.city_origin_networks import CityNetworksHandler
-from plotting import MapDisplay, AlgorithmDisplay
 from plot_maps.base_classes import ConditionsController
-from visual_elements.attributes_resolver import VisualElementAttributesResolver
+from plotting import AlgorithmDisplay
 from polygons.polygon_factory import PolygonFactory
 from text_box_algorithm.rtree_elements_manager import RtreeVisualElementsMap
 from text_box_algorithm.textbox_placement_algorithm import TextboxPlacementAlgorithm, TextBoxCandidatesResolver
+from visual_elements.attributes_resolver import VisualElementAttributesResolver
 from visual_elements.element_classes import TextBox, CityScatter, Line, TextBoxClassification
-from .crs_conversion import convert_crs
 
 
 class OperationsCoordinator:
 
     def __init__(self, vcc_df: pd.DataFrame):
-        vcc_df = convert_crs(vcc_df)
-
         print("Building EntitiesContainer.")
         self._entities_container = EntitiesFactory.create_entities(vcc_df)
 
@@ -30,27 +28,17 @@ class OperationsCoordinator:
             city_buffer=self._config('algo', 'city_to_text_box_buffer', float),
             number_of_search_steps=self._config('algo', 'search_steps', int)
         )
-
-        self._should_display_map = self._config('map.display', 'show_display', bool)
-        self._map_display = MapDisplay(
-            figure_size=(
-                self._config('map.display', 'fig_size_x', float),
-                self._config('map.display', 'fig_size_y', float)
-            ),
-            county_line_width=self._config('map.display', 'county_line_width', float)
-        )
-
-        self._should_display_algo = self._config('algo.display', 'show_display', bool)
-        self._algo_display = AlgorithmDisplay(
-            figure_size=(
-                self._config('algo.display', 'fig_size_x', int),
-                self._config('algo.display', 'fig_size_y', int)
-            ),
-            show_pause=self._config('algo.display', 'show_pause', float),
-            display_zoom_out=self._config('algo.display', 'display_zoom_out', int)
-        )
-
-        self._rtree_visual_elements_map = RtreeVisualElementsMap()
+        
+        self._algo_display = None
+        if self._config('algo.display', 'show_display', bool):
+            self._algo_display = AlgorithmDisplay(
+                figure_size=(
+                    self._config('algo.display', 'fig_size_x', int),
+                    self._config('algo.display', 'fig_size_y', int)
+                ),
+                show_pause=self._config('algo.display', 'show_pause', float),
+                display_zoom_out=self._config('algo.display', 'display_zoom_out', int)
+            )
 
     def _find_best_polygon(self,
                            rtree_map: RtreeVisualElementsMap,
@@ -61,7 +49,7 @@ class OperationsCoordinator:
         print(f"Finding best poly for city '{city_scatter.city_name}'")
 
         # Center on the scan area
-        if self._should_display_algo:
+        if self._algo_display:
             self._algo_display.center_display(visual_element=city_scatter)
 
         algo = TextboxPlacementAlgorithm(
@@ -75,14 +63,13 @@ class OperationsCoordinator:
                                                             city_scatter=city_scatter):
             print(f"Algorithm plotting {len(elements)}: {classification}")
             for element in elements:
-                if self._should_display_algo:
+                if self._algo_display:
                     self._algo_display.plot_element(visual_element=element,
                                                     classification=classification)
-                    self._algo_display.show_display()
 
                 if classification == TextBoxClassification.BEST:
                     print(f"Rtree inserting Best for {text_box.city_name}")
-                    self._rtree_visual_elements_map.add_visual_element(element)
+                    rtree_map.add_visual_element(element)
 
                     return PolygonFactory.create_rectangle(*element.bounds)
 
@@ -99,7 +86,7 @@ class OperationsCoordinator:
         elements = [
             ve
             for entity in self._entities_container.entities
-            for ve in conditions_controller.determine_visual_element(entity)
+            for ve in conditions_controller.determine_visual_elements(entity)
         ]
         texts = [element for element in elements if isinstance(element, TextBox)]
         non_texts = [element for element in elements if not isinstance(element, TextBox)]
@@ -111,11 +98,13 @@ class OperationsCoordinator:
         for non_text in non_texts:
             non_text.algo_attributes = VisualElementAttributesResolver.resolve_algo_attributes(non_text,
                                                                                                classification=None)
+
+            # Have to fill in the polygon for each VisualElement so that it can be inserted into the Rtree
             if isinstance(non_text, Line):
                 line_poly = PolygonFactory.create_line(
                     coord_0=non_text.origin_coordinate,
                     coord_1=non_text.visiting_coordinate,
-                    width=non_text.algo_attributes['linewidth']
+                    width=non_text.algo_attributes.linewidth
                 )
                 non_text.polygon = line_poly
             elif isinstance(non_text, CityScatter):
@@ -125,20 +114,18 @@ class OperationsCoordinator:
                 )
                 non_text.polygon = scatter_poly
 
-            if self._should_display_map:
-                self._map_display.plot_element(non_text)
-
             rtree_map.add_visual_element(visual_element=non_text)
 
-            if self._should_display_algo:
-                self._algo_display.plot_element(non_text)
+            if self._algo_display:
+                self._algo_display.plot_element(non_text,
+                                                show_display=False)
 
         # 3. Use the non-TextBox visual elements in the RTree to determine the best placement for TextBoxes
         for text in texts:
-            text_box_width, text_box_height = self._map_display.determine_text_box_dimensions(text_box=text)
-
-            text.width = text_box_width
-            text.height = text_box_height
+            text.map_attributes = VisualElementAttributesResolver.resolve_map_attributes(text)
+            text.algo_attributes = VisualElementAttributesResolver.resolve_algo_attributes(text,
+                                                                                           classification=None)
+            text.width, text.height = self._algo_display.determine_text_box_dimensions(text)
 
             city_scatter = [nt for nt in non_texts if isinstance(nt, CityScatter) and nt.city_name == text.city_name][0]
 
@@ -154,7 +141,4 @@ class OperationsCoordinator:
 
             rtree_map.add_visual_element(text)
 
-            if self._should_display_map:
-                self._map_display.plot_element(text)
-
-        self._map_display.show_display(block=True)
+        return rtree_map.elements

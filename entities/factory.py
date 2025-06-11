@@ -1,5 +1,4 @@
 import pandas as pd
-from pyproj import Transformer
 
 from shared.shared_utils import Coordinate
 from .entity_classes import City, Worksite, Provider, ProviderAssignment, AssignmentDirection
@@ -51,23 +50,21 @@ class EntitiesContainer:
 class EntitiesFactory:
     
     @classmethod
-    def _apply_create_entities(cls, row, container: EntitiesContainer, transformer: Transformer):
-        origin_lon, origin_lat = transformer.transform(row['origin_lon'], row['origin_lat'])
+    def _apply_create_entities(cls, row, container: EntitiesContainer):
         origin_city = City(
             city_name=row['origin_city'],
             city_coord=Coordinate(
-                longitude=origin_lon,
-                latitude=origin_lat
+                longitude=row['origin_lon'],
+                latitude=row['origin_lat']
             )
         )
         origin_city = container.add_entity(entity=origin_city)
 
-        visiting_lon, visiting_lat = transformer.transform(row['visiting_lon'], row['visiting_lat'])
         visiting_city = City(
             city_name=row['visiting_city'],
             city_coord=Coordinate(
-                longitude=visiting_lon,
-                latitude=visiting_lat
+                longitude=row['visiting_lon'],
+                latitude=row['visiting_lat']
             )
         )
         visiting_city = container.add_entity(visiting_city)
@@ -108,9 +105,8 @@ class EntitiesFactory:
     
     @classmethod
     def create_entities(cls, df: pd.DataFrame) -> EntitiesContainer:
-        transformer = Transformer.from_crs("EPSG:4326", "EPSG:26915", always_xy=True)
         container = EntitiesContainer()
-        df.apply(cls._apply_create_entities, args=(container,transformer), axis=1)
+        df.apply(cls._apply_create_entities, args=(container,), axis=1)
 
         return container
 
