@@ -101,8 +101,8 @@ class AlgorithmDisplay:
 
         test_txt = self.ax.text(0, 0,
                                 text_box.city_name,
-                                fontsize=algo_attributes['fontsize'],
-                                fontweight=algo_attributes['fontweight'],
+                                fontsize=algo_attributes.fontsize,
+                                fontweight=algo_attributes.fontweight,
                                 ha='center',
                                 va='center')
         self.fig.canvas.draw()
@@ -141,9 +141,9 @@ class AlgorithmDisplay:
         patch = patches.Circle(
             (scatter.coord.lon, scatter.coord.lat),
             radius=scatter.radius,
-            facecolor=algo_attributes['facecolor'],
-            edgecolor=algo_attributes.get('edgecolor', None),
-            zorder=algo_attributes['zorder']
+            facecolor=algo_attributes.facecolor,
+            edgecolor=algo_attributes.edgecolor,
+            zorder=algo_attributes.zorder
         )
         self.ax.add_patch(patch)
         self._patches.add_patch(patch, classification)
@@ -161,9 +161,9 @@ class AlgorithmDisplay:
             bottom_left_point,
             text_box.width,
             text_box.height,
-            facecolor=algo_attributes['facecolor'],
-            edgecolor=algo_attributes.get('edgecolor', None),
-            zorder=algo_attributes['zorder']
+            facecolor=algo_attributes.facecolor,
+            edgecolor=algo_attributes.edgecolor,
+            zorder=algo_attributes.zorder
         )
         self.ax.add_patch(patch)
         self._patches.add_patch(patch, classification)
@@ -175,9 +175,9 @@ class AlgorithmDisplay:
         line_patch = self.ax.plot(
             line.x_data,
             line.y_data,
-            color=algo_attributes['color'],
-            linewidth=algo_attributes['linewidth'],
-            zorder=algo_attributes['zorder']
+            color=algo_attributes.color,
+            linewidth=algo_attributes.linewidth,
+            zorder=algo_attributes.zorder
         )[0]
 
         self._patches.add_patch(line_patch, classification)

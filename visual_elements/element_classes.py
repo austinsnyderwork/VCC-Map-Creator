@@ -28,30 +28,22 @@ class VisualElementAttributes:
                  linewidth: Optional[float] = None,
                  size: Optional[float] = None):
 
-        self.show = show
-        self.facecolor = facecolor
-        self.edgecolor = edgecolor
-        self.color = color
-        self.fontcolor = fontcolor
-        self.transparency = transparency
-        self.immediately_remove = immediately_remove
-        self.center_view = center_view
-        self.fontsize = fontsize
-        self.fontweight = fontweight
-        self.font = font
-        self.zorder = zorder
-        self.steps_to_show = steps_to_show
-        self.radius = radius
-        self.marker = marker
-        self.label = label
-        self.linestyle = linestyle
-        self.linewidth = linewidth
-        self.size = size
+        self._explicitly_set = set()
+        for attr, value in locals().items():
+            if attr != "self" and attr != "_explicitly_set":
+                setattr(self, attr, value)
+                # Record attributes that are NOT default
+                if value is not None:
+                    self._explicitly_set.add(attr)
 
     def update(self, new_attributes: "VisualElementAttributes"):
         for k, v in new_attributes.__dict__.items():
+            if k.startswith('_'):  # Skip private/internal attributes
+                continue
             if not hasattr(self, k):
                 raise ValueError(f"Variable {k} not listed in {self.__class__.__name__}")
+            if k not in self._explicitly_set and v is not None:
+                setattr(self, k, v)
 
 
 def _find_class_key(search_key, data: dict):
