@@ -8,42 +8,50 @@ from shared.shared_utils import Coordinate
 
 class VisualElementAttributes:
     def __init__(self,
-                 show: Optional[bool] = True,
+                 show: Optional[bool] = None,
                  facecolor: Optional[str] = None,
                  edgecolor: Optional[str] = None,
-                 color: Optional[str] = None,
-                 fontcolor: Optional[str] = None,
-                 transparency: Optional[float] = 1.0,
-                 immediately_remove: Optional[bool] = False,
-                 center_view: Optional[bool] = False,
-                 fontsize: Optional[float] = 10.0,
-                 fontweight: Optional[str] = 'normal',
-                 font: Optional[str] = None,
-                 zorder: Optional[int] = 1,
-                 steps_to_show: Optional[int] = 0,
-                 radius: Optional[float] = None,
-                 marker: Optional[str] = None,
-                 label: Optional[str] = None,
-                 linestyle: Optional[str] = None,
-                 linewidth: Optional[float] = None,
-                 size: Optional[float] = None):
-
+                 transparency: Optional[float] = None,
+                 immediately_remove: Optional[bool] = None,
+                 center_view: Optional[bool] = None,
+                 zorder: Optional[int] = None,
+                 steps_to_show: Optional[int] = None):
         self._explicitly_set = set()
-        for attr, value in locals().items():
-            if attr != "self" and attr != "_explicitly_set":
-                setattr(self, attr, value)
-                # Record attributes that are NOT default
-                if value is not None:
-                    self._explicitly_set.add(attr)
+
+        self.show = show
+        if show is not None: self._explicitly_set.add("show")
+
+        self.facecolor = facecolor
+        if facecolor is not None: self._explicitly_set.add("facecolor")
+
+        self.edgecolor = edgecolor
+        if edgecolor is not None: self._explicitly_set.add("edgecolor")
+
+        self.transparency = transparency
+        if transparency is not None: self._explicitly_set.add("transparency")
+
+        self.immediately_remove = immediately_remove
+        if immediately_remove is not None: self._explicitly_set.add("immediately_remove")
+
+        self.center_view = center_view
+        if center_view is not None: self._explicitly_set.add("center_view")
+
+        self.zorder = zorder
+        if zorder is not None: self._explicitly_set.add("zorder")
+
+        self.steps_to_show = steps_to_show
+        if steps_to_show is not None: self._explicitly_set.add("steps_to_show")
+
+    def fetch_attributes(self) -> dict:
+        return {k: v for k, v in self.__dict__.items() if k in self._explicitly_set}
 
     def update(self, new_attributes: "VisualElementAttributes"):
-        for k, v in new_attributes.__dict__.items():
-            if k.startswith('_'):  # Skip private/internal attributes
-                continue
+        new_atts = new_attributes.fetch_attributes()
+        for k, v in new_atts.items():
             if not hasattr(self, k):
                 raise ValueError(f"Variable {k} not listed in {self.__class__.__name__}")
-            if k not in self._explicitly_set and v is not None:
-                setattr(self, k, v)
+            setattr(self, k, v)
+            self._explicitly_set.add(k)
 
 
 def _find_class_key(search_key, data: dict):
@@ -68,10 +76,6 @@ def _find_class_key(search_key, data: dict):
     return None
 
 
-class VisualElementClassification(Enum):
-    INTERSECT = 'intersect'
-
-
 class VisualElement(ABC):
 
     def __init__(self,
@@ -85,7 +89,6 @@ class VisualElement(ABC):
         self._centroid_coord = centroid_coord
 
         self.map_attributes = map_attributes or VisualElementAttributes()
-
         self.algo_attributes = algo_attributes or VisualElementAttributes()
 
         self.polygon = polygon
@@ -106,16 +109,23 @@ class VisualElement(ABC):
             )
 
 
-class TextBoxClassification(Enum):
-    BEST = "best"
-    FINALIST = "finalist"
-    SCAN = "scan_box"
-    INVALID = "invalid"
+class AlgorithmClassification(Enum):
+    TEXT_FINALIST = "finalist"
+    TEXT_SCAN = "scan_box"
+    TEXT_BEST = "best"
+    INTERSECT = "intersect"
+    LINE = 'line'
+    CITY_SCATTER = 'scatter'
 
 
 class TextBox(VisualElement):
 
     def __init__(self,
+                 font: str,
+                 fontsize: int,
+                 fontweight: str,
+                 fontcolor: str,
+                 zorder: int,
                  centroid_coord: Coordinate = None,
                  city_name: str = None,
                  width: float = None,
@@ -124,6 +134,11 @@ class TextBox(VisualElement):
                  map_attributes: VisualElementAttributes = None,
                  algo_attributes: VisualElementAttributes = None
                  ):
+        self.font = font
+        self.fontsize = fontsize
+        self.fontweight = fontweight
+        self.fontcolor = fontcolor
+        self.zorder = zorder
         self.city_name = city_name
 
         self.width = width
@@ -144,13 +159,16 @@ class CityScatter(VisualElement):
     def __init__(self,
                  coord: Coordinate,
                  city_name: str,
-                 radius: float = None,
+                 radius: int,
+                 marker: str,
+                 facecolor: str,
+                 edgecolor: str,
+                 label: str = None,
                  polygon=None,
                  map_attributes: VisualElementAttributes = None,
                  algo_attributes: VisualElementAttributes = None,
                  **kwargs
                  ):
-
         super().__init__(centroid_coord=coord,
                          polygon=polygon,
                          map_attributes=map_attributes,
@@ -160,40 +178,33 @@ class CityScatter(VisualElement):
         self.coord = coord
         self.radius = radius
         self.city_name = city_name
-
-
-class SearchArea(VisualElement):
-
-    def __init__(self,
-                 centroid: Coordinate,
-                 width: float,
-                 height: float,
-                 polygon=None,
-                 map_attributes: VisualElementAttributes = None,
-                 algo_attributes: VisualElementAttributes = None
-                 ):
-        super().__init__(polygon=polygon,
-                         map_attributes=map_attributes,
-                         algo_attributes=algo_attributes)
-
-        self.centroid = centroid
-        self.width = width
-        self.height = height
+        self.marker = marker
+        self.facecolor = facecolor
+        self.edgecolor = edgecolor
+        self.label = label
 
 
 class Line(VisualElement):
-    
+
     def __init__(self,
                  origin_coordinate: Coordinate,
                  visiting_coordinate: Coordinate,
-                 polygon=None,
+                 linewidth: int,
+                 linestyle: str,
+                 facecolor: str,
+                 zorder: int,
                  map_attributes: VisualElementAttributes = None,
+                 polygon=None,
                  algo_attributes: VisualElementAttributes = None
                  ):
         super().__init__(polygon=polygon,
                          map_attributes=map_attributes,
                          algo_attributes=algo_attributes)
 
+        self.linewidth = linewidth
+        self.linestyle = linestyle
+        self.facecolor = facecolor
+        self.zorder = zorder
         self.origin_coordinate = origin_coordinate
         self.visiting_coordinate = visiting_coordinate
 
@@ -204,4 +215,3 @@ class Line(VisualElement):
     @property
     def y_data(self):
         return self.origin_coordinate.lat, self.visiting_coordinate.lat
-

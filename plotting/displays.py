@@ -1,11 +1,11 @@
+import pprint
+
 import matplotlib.pyplot as plt
+from mpl_toolkits.basemap import Basemap
 from matplotlib import patches
-from matplotlib.font_manager import FontProperties
-from matplotlib.textpath import TextPath
 
 from visual_elements.attributes_resolver import VisualElementAttributesResolver
-from visual_elements.element_classes import (CityScatter, Line, TextBox, VisualElement, TextBoxClassification,
-                                             VisualElementClassification)
+from visual_elements.element_classes import CityScatter, Line, TextBox, VisualElement, AlgorithmClassification
 
 
 class Patches:
@@ -22,7 +22,7 @@ class Patches:
 
         self._patches[classification].append(new_patch)
 
-    def fetch_patches_for_removal(self, classifications) -> list:
+    def remove_patches(self, classifications):
         patches = [
             p
             for classification, ps in self._patches.items()
@@ -32,47 +32,55 @@ class Patches:
         removed_dict = {c: [] for c in classifications}
         self._patches.update(removed_dict)
 
-        return patches
+        for patch in patches:
+            try:
+                patch.remove()
+            except (ValueError, NotImplementedError) as e:
+                print(f"Warning: failed to remove patch {patch}: {e}")
 
 
 class AlgorithmDisplay:
     _removes = {
         TextBox: {
-            TextBoxClassification.SCAN: {
-                TextBoxClassification.SCAN,
-                VisualElementClassification.INTERSECT
+            AlgorithmClassification.TEXT_SCAN: {
+                AlgorithmClassification.TEXT_SCAN,
+                AlgorithmClassification.INTERSECT
             },
-            TextBoxClassification.FINALIST: {
-                TextBoxClassification.SCAN,
-                VisualElementClassification.INTERSECT,
-                TextBoxClassification.FINALIST
+            AlgorithmClassification.TEXT_FINALIST: {
+                AlgorithmClassification.TEXT_SCAN,
+                AlgorithmClassification.INTERSECT,
+                AlgorithmClassification.TEXT_FINALIST
             },
-            TextBoxClassification.BEST: {
-                TextBoxClassification.FINALIST,
-                VisualElementClassification.INTERSECT
+            AlgorithmClassification.TEXT_BEST: {
+                AlgorithmClassification.TEXT_FINALIST,
+                AlgorithmClassification.INTERSECT
             }
         }
     }
 
-    def __init__(self, show_pause: float, figure_size: tuple, display_zoom_out: int):
+    def __init__(self,
+                 fig, ax,
+                 show_display: bool,
+                 show_pause: float,
+                 display_zoom_out: float
+                 ):
         print("Initializing AlgorithmDisplay.")
-        self.fig, self.ax = plt.subplots(figsize=figure_size)
 
-        self.ax.set_xlim(-96.64, -90.14)
-        self.ax.set_ylim(40.37, 43.50)
+        self.fig, self.ax, = fig, ax
+
+        self.show_pause = show_pause
+
+        if show_display:
+            plt.draw()
+            plt.show(block=False)
+            plt.pause(show_pause)
 
         self._display_zoom_out = display_zoom_out
 
         self.ax.set_title("Main")
 
-        plt.show(block=False)
-
-        self.show_pause = show_pause
-
         self._city_text_dimensions = dict()
         self._patches = Patches()
-
-        self.show_display()
 
     def center_display(self, visual_element: VisualElement):
         # Option 1: Center on centroid
@@ -86,23 +94,22 @@ class AlgorithmDisplay:
             c.lat - zo,
             c.lat + zo
         ]
+        print(f"Centering display on ({c.lon}, {c.lat})\n\tZoom distance: {zo}")
 
         self.ax.set_xlim(extent[0], extent[1])
         self.ax.set_ylim(extent[2], extent[3])
 
-    def determine_text_box_dimensions(self, text_box: TextBox, classification=None) -> tuple:
+    def determine_text_box_dimensions(self,
+                                      text_box: TextBox,
+                                      fontsize: int,
+                                      fontweight: str) -> tuple:
         if text_box.city_name in self._city_text_dimensions:
             return self._city_text_dimensions[text_box.city_name]
 
-        algo_attributes = VisualElementAttributesResolver.resolve_algo_attributes(
-            element=text_box,
-            classification=classification
-        )
-
         test_txt = self.ax.text(0, 0,
                                 text_box.city_name,
-                                fontsize=algo_attributes.fontsize,
-                                fontweight=algo_attributes.fontweight,
+                                fontsize=fontsize,
+                                fontweight=fontweight,
                                 ha='center',
                                 va='center')
         self.fig.canvas.draw()
@@ -121,23 +128,14 @@ class AlgorithmDisplay:
         return width, height
 
     def _remove_patches(self, visual_element, classification=None):
-        if not classification:
-            return  # Nothing to remove, exit early
+        classifications_to_remove = self.__class__._removes.get(type(visual_element), {}).get(classification)
+        if not classifications_to_remove:
+            return
 
-        removes = self.__class__._removes
-        if type(visual_element) not in removes:
-            return  # No removals configured for TextBox
-
-        remove_classifications = removes[type(visual_element)].get(classification)
-        if not remove_classifications:
-            return  # Nothing to remove for this classification
-
-        patches_to_remove = self._patches.fetch_patches_for_removal(remove_classifications)
-
-        for patch in patches_to_remove:
-            patch.remove()
+        self._patches.remove_patches(classifications_to_remove)
 
     def _plot_scatter(self, scatter: CityScatter, classification, algo_attributes):
+        print(f"Plotting CityScatter patch\n\tRadius:{scatter.radius}\n\tZorder: {algo_attributes.zorder}")
         patch = patches.Circle(
             (scatter.coord.lon, scatter.coord.lat),
             radius=scatter.radius,
@@ -157,6 +155,8 @@ class AlgorithmDisplay:
             text_box.centroid_coord.lon - text_box.width / 2,
             text_box.centroid_coord.lat - text_box.height / 2
         )
+        print(f"Plotting TextBox patch\n\tBottom left coord: {bottom_left_point}\n\tWidth: {text_box.width}"
+              f"\n\tHeight: {text_box.height}\n\tZorder: {algo_attributes.zorder}")
         patch = patches.Rectangle(
             bottom_left_point,
             text_box.width,
@@ -171,23 +171,23 @@ class AlgorithmDisplay:
         return patch
 
     def _plot_line(self, line: Line, classification, algo_attributes):
-        # Remove Cartopy transform; assume x_data and y_data are already in data coords
-        line_patch = self.ax.plot(
-            line.x_data,
-            line.y_data,
-            color=algo_attributes.color,
-            linewidth=algo_attributes.linewidth,
-            zorder=algo_attributes.zorder
-        )[0]
+        x, y = line.polygon.exterior.xy
 
-        self._patches.add_patch(line_patch, classification)
+        print(f"Plotting Line patch\n\tX: {x}\n\tY: {y}")
+        patch = patches.Polygon(xy=list(zip(x, y)),
+                                closed=True,
+                                facecolor=algo_attributes.facecolor,
+                                alpha=algo_attributes.transparency)
+        self.ax.add_patch(patch)
 
-        return line_patch
+        self._patches.add_patch(patch, classification)
+
+        return patch
 
     def plot_element(self,
                      visual_element,
-                     classification=None,
-                     show_display: bool = True,
+                     classification,
+                     show_display: bool,
                      *args,
                      **kwargs):
         algo_attributes = VisualElementAttributesResolver.resolve_algo_attributes(
@@ -196,16 +196,16 @@ class AlgorithmDisplay:
         )
         if isinstance(visual_element, CityScatter):
             patch = self._plot_scatter(visual_element,
-                                       classification,
-                                       algo_attributes)
+                                       algo_attributes=algo_attributes,
+                                       classification=classification)
         elif isinstance(visual_element, TextBox):
             patch = self._plot_text(visual_element,
-                                    classification,
-                                    algo_attributes)
+                                    algo_attributes=algo_attributes,
+                                    classification=classification)
         elif isinstance(visual_element, Line):
             patch = self._plot_line(visual_element,
-                                    classification,
-                                    algo_attributes)
+                                    algo_attributes=algo_attributes,
+                                    classification=classification)
         else:
             raise TypeError(f"Unsupported VisualElement type {type(visual_element)} for function plot_element")
 
@@ -216,22 +216,12 @@ class AlgorithmDisplay:
         # Redraw the figure to update the display
         self.fig.canvas.draw()
 
-        if algo_attributes.show:
-            # Show only the rtree figure
+        if show_display and algo_attributes.show:
+            self.fig.canvas.draw()
             plt.show(block=False)
-
-            if 'show_pause' in kwargs and kwargs['show_pause']:
-                plt.pause(self.show_pause)
-
-        if show_display:
-            self.show_display()
+            plt.pause(self.show_pause)
 
         if algo_attributes.immediately_remove:
             patch.remove()
 
         return patch
-
-    def show_display(self, block: bool = False):
-        self.fig.show()
-        plt.pause(0.1)
-        plt.show(block=block)

@@ -7,9 +7,13 @@ class TextBoxFactory:
     
     @staticmethod
     def create_text_box(center_coord: Coordinate,
+                        font: str,
+                        fontsize: int,
+                        fontweight: str,
+                        fontcolor: str,
+                        zorder: int,
                         text_box_width: float,
                         text_box_height: float,
-                        map_attributes: dict = None,
                         algo_attributes: dict = None):
         center_x, center_y = center_coord.lon_lat
 
@@ -26,10 +30,14 @@ class TextBoxFactory:
             y_max=y_max
         )
         new_text_box = TextBox(
+            font=font,
+            fontsize=fontsize,
+            fontweight=fontweight,
+            fontcolor=fontcolor,
+            zorder=zorder,
             width=text_box_width,
             height=text_box_height,
             polygon=poly,
-            map_attributes=map_attributes,
             algo_attributes=algo_attributes
         )
 

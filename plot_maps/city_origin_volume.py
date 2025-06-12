@@ -24,52 +24,43 @@ class CityOriginVolumeConditionsController(ConditionsController):
         super().__init__(conditions_map=cmap,
                          city_networks_handler=city_networks_handler)
 
-        thresholds = {
+        scatter_thresholds = {
             tuple(range(5, 11)): {
-                "radius": 0.03,
-                "map_attributes": VisualElementAttributes(
-                    facecolor="red",
-                    marker="o",
-                    label="5-11"
-                ),
-                "algo_attributes": VisualElementAttributes(
-                    facecolor="red"
-                )
+                "radius": 150,
+                "marker": "o",
+                "label": "5-10",
+                "facecolor": "red",
+                "edgecolor": "red",
+                "zorder": 3
             },
             tuple(range(11, 16)): {
-                "radius": 0.03,
-                "map_attributes": VisualElementAttributes(
-                    facecolor="blue",
-                    label="11-16"
-                ),
-                "algo_attributes": VisualElementAttributes(
-                    facecolor="blue"
-                )
+                "radius": 150,
+                "marker": "o",
+                "label": "11-15",
+                "facecolor": "blue",
+                "edgecolor": "blue",
+                "zorder": 3
             },
             tuple(range(16, 21)): {
-                "radius": 0.03,
-                "map_attributes": VisualElementAttributes(
-                    facecolor="orange",
-                    label="16-21"
-                ),
-                "algo_attributes": VisualElementAttributes(
-                    facecolor="orange"
-                )
+                "radius": 150,
+                "marker": "o",
+                "label": "16-20",
+                "facecolor": "orange",
+                "edgecolor": "orange",
+                "zorder": 3
             },
             tuple(range(21, 1000)): {
-                "radius": 0.03,
-                "map_attributes": VisualElementAttributes(
-                    facecolor='black',
-                    label='21+'
-                ),
-                "algo_attributes": VisualElementAttributes(
-                    facecolor='black'
-                )
+                "radius": 150,
+                "marker": "o",
+                "label": "21+",
+                "facecolor": "black",
+                "edgecolor": "black",
+                "zorder": 3
             }
         }
-        self._thresholds = {
+        self._scatter_thresholds = {
             k: v
-            for k_range, v in thresholds.items()
+            for k_range, v in scatter_thresholds.items()
             for k in k_range
         }
 
@@ -89,7 +80,7 @@ class CityOriginVolumeConditionsController(ConditionsController):
                 destination_cities[pa.origin_city] = set()
             destination_cities[pa.origin_city].add(pa.visiting_city)
 
-        min_leaving_providers = min(self._thresholds)
+        min_leaving_providers = min(self._scatter_thresholds)
         for city, leaving_providers in leaving_providers.items():
             num_leaving_providers = len(leaving_providers)
             if num_leaving_providers < min_leaving_providers:
@@ -101,7 +92,7 @@ class CityOriginVolumeConditionsController(ConditionsController):
     def _city_condition(self, city: City) -> list:
         if city in self._valid_origin_cities_volume:
             leaving_providers = self._valid_origin_cities_volume[city]
-            data = self._thresholds[leaving_providers]
+            data = self._scatter_thresholds[leaving_providers]
             city_scatter = CityScatter(
                 **data,
                 coord=city.city_coord,
@@ -110,18 +101,29 @@ class CityOriginVolumeConditionsController(ConditionsController):
             if city in self._destination_cities:
                 city_scatter.map_attributes.edgecolor = 'red'
 
-            return [city_scatter, TextBox(city_name=city.city_name)]
+            return [city_scatter, TextBox(city_name=city.city_name,
+                                          font="Roboto",
+                                          fontsize=9,
+                                          fontweight='normal',
+                                          fontcolor="black",
+                                          zorder=2)]
 
         elif city in self._destination_cities:
             city_scatter = CityScatter(
+                radius=150,
                 coord=city.city_coord,
-                algo_attributes=VisualElementAttributes(
-                    facecolor='gray'
-                ),
-                city_name=city.city_name,
-                radius=0.03
+                facecolor="gray",
+                edgecolor="gray",
+                marker="o",
+                label=None,
+                city_name=city.city_name
             )
-            return [city_scatter, TextBox(city_name=city.city_name)]
+            return [city_scatter, TextBox(city_name=city.city_name,
+                                          font="Robot",
+                                          fontsize=9,
+                                          fontweight='normal',
+                                          fontcolor="black",
+                                          zorder=2)]
 
         return []
 
@@ -132,15 +134,16 @@ class CityOriginVolumeConditionsController(ConditionsController):
         line_color = self._city_networks_handler.fetch_city_color(pa.origin_city)
 
         leaving_providers = self._valid_origin_cities_volume[pa.origin_city]
-        if leaving_providers >= min(self._thresholds) and (pa.origin_city, pa.visiting_city) not in self._line_assignments_created:
+        if leaving_providers >= min(self._scatter_thresholds) and (pa.origin_city, pa.visiting_city) not in self._line_assignments_created:
             self._line_assignments_created.add((pa.origin_city, pa.visiting_city))
             return [
                 Line(
+                    linewidth=1000,
+                    facecolor=line_color,
+                    linestyle="-",
+                    zorder=1,
                     origin_coordinate=pa.origin_city.city_coord,
-                    visiting_coordinate=pa.visiting_city.city_coord,
-                    map_attributes=VisualElementAttributes(
-                        color=line_color
-                    )
+                    visiting_coordinate=pa.visiting_city.city_coord
                 )
             ]
 

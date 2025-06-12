@@ -50,21 +50,23 @@ class EntitiesContainer:
 class EntitiesFactory:
     
     @classmethod
-    def _apply_create_entities(cls, row, container: EntitiesContainer):
+    def _apply_create_entities(cls, row, container: EntitiesContainer, projection):
+        origin_lon, origin_lat = projection(row['origin_lon'], row['origin_lat'])
         origin_city = City(
             city_name=row['origin_city'],
             city_coord=Coordinate(
-                longitude=row['origin_lon'],
-                latitude=row['origin_lat']
+                longitude=origin_lon,
+                latitude=origin_lat
             )
         )
         origin_city = container.add_entity(entity=origin_city)
 
+        visiting_lon, visiting_lat = projection(row['visiting_lon'], row['visiting_lat'])
         visiting_city = City(
             city_name=row['visiting_city'],
             city_coord=Coordinate(
-                longitude=row['visiting_lon'],
-                latitude=row['visiting_lat']
+                longitude=visiting_lon,
+                latitude=visiting_lat
             )
         )
         visiting_city = container.add_entity(visiting_city)
@@ -104,9 +106,9 @@ class EntitiesFactory:
         )
     
     @classmethod
-    def create_entities(cls, df: pd.DataFrame) -> EntitiesContainer:
+    def create_entities(cls, df: pd.DataFrame, projection) -> EntitiesContainer:
         container = EntitiesContainer()
-        df.apply(cls._apply_create_entities, args=(container,), axis=1)
+        df.apply(cls._apply_create_entities, args=(container,projection), axis=1)
 
         return container
 

@@ -28,10 +28,10 @@ class PowerBiOutputFormatter:
         cols = {
             'x_data': line.x_data,
             'y_data': line.y_data,
-            'facecolor': line.map_attributes['facecolor'],
-            'linestyle': line.map_attributes['linestyle'],
-            'linewidth': line.map_attributes['linewidth'],
-            'zorder': line.map_attributes['zorder']
+            'facecolor': line.facecolor,
+            'linestyle': line.linestyle,
+            'linewidth': line.linewidth,
+            'zorder': line.zorder
         }
         cols = {f"{Line.__name__.lower()}_{col}": v for col, v in cols.items()}
         cols['type'] = Line.__name__.lower()
@@ -41,27 +41,26 @@ class PowerBiOutputFormatter:
         map_att = scatter.map_attributes
         cols = {
             'city_coord': scatter.coord.lon_lat,
-            'marker': map_att['marker'],
-            'facecolor': map_att['facecolor'],
-            'edgecolor': map_att['edgecolor'] if 'edgecolor' in map_att else "",
+            'marker': scatter.marker,
+            'facecolor': scatter.facecolor,
+            'edgecolor': scatter.edgecolor if scatter.edgecolor else "",
             'size': scatter.radius,
-            'label': map_att['label'] if 'label' in map_att else "",
-            'zorder': map_att['zorder']
+            'label': scatter.label if scatter.label else "",
+            'zorder': map_att.zorder
         }
         cols = {f"{CityScatter.__name__.lower()}_{col}": v for col, v in cols.items()}
         cols['type'] = CityScatter.__name__.lower()
         self._add_row(cols)
 
     def _create_text_box_row(self, text_box: TextBox):
-        map_att = text_box.map_attributes
         cols = {
             'poly_coord': text_box.centroid_coord.lon_lat,
             'city_name': text_box.city_name,
-            'fontsize': map_att['fontsize'],
-            'fontcolor': map_att['fontcolor'],
-            'font': map_att['font'],
-            'fontweight': map_att['fontweight'],
-            'zorder': map_att['zorder']
+            'fontsize': text_box.fontsize,
+            'fontcolor': text_box.fontcolor,
+            'font': text_box.font,
+            'fontweight': text_box.fontweight,
+            'zorder': text_box.zorder
         }
         cols = {f"{TextBox.__name__.lower()}_{col}": v for col, v in cols.items()}
         cols['type'] = TextBox.__name__.lower()
@@ -69,7 +68,6 @@ class PowerBiOutputFormatter:
 
     def create_df(self, visual_elements: list[VisualElement]):
         for ve in visual_elements:
-            ve.map_attributes = VisualElementAttributesResolver.resolve_map_attributes(ve)
             if isinstance(ve, CityScatter):
                 self._create_scatter_row(ve)
             elif isinstance(ve, TextBox):

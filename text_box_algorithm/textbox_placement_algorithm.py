@@ -1,7 +1,7 @@
 import math
 
 from shared.shared_utils import Coordinate
-from visual_elements.element_classes import TextBoxClassification, CityScatter, TextBox, Line, VisualElementClassification
+from visual_elements.element_classes import AlgorithmClassification, CityScatter, TextBox, Line
 from visual_elements.elements_factories import TextBoxFactory
 from .rtree_elements_manager import RtreeVisualElementsMap
 
@@ -63,7 +63,7 @@ class _ScatterCircling:
         return list(rect_coords.values())
 
 
-class BestFits:
+class _BestFits:
 
     def __init__(self):
         self._lowest_num_intersections = float('inf')
@@ -89,12 +89,14 @@ class BestFits:
         return self._best_fits
 
 
-class TextBoxCandidatesResolver:
+class TextboxPlacementAlgorithm:
 
-    def __init__(self, rtree_map: RtreeVisualElementsMap):
+    def __init__(self,
+                 number_of_search_steps: int,
+                 rtree_map: RtreeVisualElementsMap):
+        self._number_of_search_steps = number_of_search_steps
+
         self._rtree_map = rtree_map
-
-        self._best_fits = BestFits()
 
     def _get_intersecting_vis_elements(self,
                                        city_text_box: TextBox,
@@ -111,7 +113,7 @@ class TextBoxCandidatesResolver:
 
         return vis_elements
 
-    def determine_best_finalist(self, finalists: list[TextBox], city_scatter):
+    def _determine_best_finalist(self, finalists: list[TextBox], city_scatter):
         finalist_scores = dict()
         for i, finalist in enumerate(finalists):
             nearby_elements = self._rtree_map.determine_nearest(query_poly=finalist.polygon,
@@ -126,42 +128,32 @@ class TextBoxCandidatesResolver:
             score = shortest_distance_to_element * (shortest_distance_to_invalid ** 2)
             finalist_scores[score] = finalist
 
-        yield finalists, TextBoxClassification.FINALIST
+        yield finalists, AlgorithmClassification.TEXT_FINALIST
 
         best_score = max(list(finalist_scores.keys()))
-        yield [finalist_scores[best_score]], TextBoxClassification.BEST
+        yield [finalist_scores[best_score]], AlgorithmClassification.TEXT_BEST
 
-    def determine_text_box_finalists(self,
-                                     city_text_boxes,
-                                     city_scatter: CityScatter):
+    def _determine_text_box_finalists(self,
+                                      city_text_boxes,
+                                      city_scatter: CityScatter):
+        best_fits = _BestFits()
         for city_text_box in city_text_boxes:
-            yield [city_text_box], TextBoxClassification.SCAN
+            yield [city_text_box], AlgorithmClassification.TEXT_SCAN
 
             intersecting_elements = self._get_intersecting_vis_elements(city_text_box=city_text_box,
                                                                         city_scatter=city_scatter)
             if intersecting_elements:
-                yield intersecting_elements, VisualElementClassification.INTERSECT
+                yield intersecting_elements, AlgorithmClassification.INTERSECT
 
             invalid_elements = [ve for ve in intersecting_elements if not isinstance(ve, Line)]
 
-            self._best_fits.add_result(
+            best_fits.add_result(
                 num_intersections=len(intersecting_elements),
                 text_box=city_text_box,
                 intersects_non_starter=bool(invalid_elements)
             )
 
-        yield self._best_fits.fetch_best_fits(), TextBoxClassification.FINALIST
-
-
-class TextboxPlacementAlgorithm:
-
-    def __init__(self,
-                 city_buffer: int,
-                 number_of_search_steps: int):
-        self._city_buffer = city_buffer
-        self.number_of_search_steps = number_of_search_steps
-
-        self.best_fits = BestFits()
+        yield best_fits.fetch_best_fits(), AlgorithmClassification.TEXT_FINALIST
 
     def _create_surrounding_text_boxes(self,
                                        city_scatter: CityScatter,
@@ -170,22 +162,28 @@ class TextboxPlacementAlgorithm:
         print("Creating surrounding text boxes.")
         scatter_circling = _ScatterCircling(
             centroid=city_scatter.coord,
-            radius=city_scatter.radius + self._city_buffer
+            radius=city_scatter.radius
         )
 
         rectangle_centroids = scatter_circling.create_encircling_coordinates(rect_width=text_box.width,
                                                                              rect_height=text_box.height)
         text_boxes = []
         for rectangle_centroid in rectangle_centroids:
-            new_text_box = TextBoxFactory.create_text_box(center_coord=rectangle_centroid,
-                                                          text_box_width=text_box.width,
-                                                          text_box_height=text_box.height)
+            new_text_box = TextBoxFactory.create_text_box(
+                font=text_box.font,
+                fontsize=text_box.fontsize,
+                fontweight=text_box.fontweight,
+                fontcolor=text_box.fontcolor,
+                zorder=text_box.zorder,
+                center_coord=rectangle_centroid,
+                text_box_width=text_box.width,
+                text_box_height=text_box.height
+            )
             text_boxes.append(new_text_box)
 
         return text_boxes
 
     def find_best_poly(self,
-                       candidates_resolver: TextBoxCandidatesResolver,
                        text_box: TextBox,
                        city_scatter: CityScatter,
                        ):
@@ -194,18 +192,18 @@ class TextboxPlacementAlgorithm:
         city_text_boxes = self._create_surrounding_text_boxes(text_box=text_box,
                                                               city_scatter=city_scatter)
 
-        for elements, classification in candidates_resolver.determine_text_box_finalists(
+        for elements, classification in self._determine_text_box_finalists(
                 city_text_boxes=city_text_boxes,
                 city_scatter=city_scatter
         ):
             # We don't display finalists until we are determining the best finalist
-            if classification == TextBoxClassification.FINALIST:
+            if classification == AlgorithmClassification.TEXT_FINALIST:
                 print(f"Finalists extended: {len(elements)}")
                 finalists.extend(elements)
                 continue
 
             yield elements, classification
 
-        for elements, classification in candidates_resolver.determine_best_finalist(finalists=finalists,
-                                                                                    city_scatter=city_scatter):
+        for elements, classification in self._determine_best_finalist(finalists=finalists,
+                                                                      city_scatter=city_scatter):
             yield elements, classification

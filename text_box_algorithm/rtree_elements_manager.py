@@ -25,7 +25,7 @@ class RtreeVisualElementsMap:
         self._elements[poly_idx] = visual_element
 
     def determine_nearest(self, query_poly, elements_to_ignore: list) -> dict[VisualElement: float]:
-        nearest_ids = list(self._rtree_idx.nearest(query_poly.bounds, 15))
+        nearest_ids = list(self._rtree_idx.nearest(query_poly.bounds, 10))
 
         nearby_eles = [self._elements[idx] for idx in nearest_ids
                        if self._elements[idx] not in elements_to_ignore]
