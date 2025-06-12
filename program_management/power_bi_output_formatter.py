@@ -10,7 +10,7 @@ class PowerBiOutputFormatter:
         self.vis_element_columns = {
             Line: ['x_data', 'y_data', 'facecolor', 'linestyle', 'linewidth', 'zorder'],
             CityScatter: ['city_coord', 'marker', 'facecolor', 'edgecolor', 'size', 'label', 'zorder'],
-            TextBox: ['poly_coord', 'city_name', 'fontsize', 'font', 'fontweight', 'fontcolor', 'zorder']
+            TextBox: ['bottom_left_coord', 'width', 'height', 'city_name', 'fontsize', 'font', 'fontweight', 'fontcolor', 'zorder']
         }
 
         self._cols = {'type': []}
@@ -54,7 +54,9 @@ class PowerBiOutputFormatter:
 
     def _create_text_box_row(self, text_box: TextBox):
         cols = {
-            'poly_coord': text_box.centroid_coord.lon_lat,
+            'bottom_left_coord': text_box.bottom_left_point,
+            'width': text_box.width,
+            'height': text_box.height,
             'city_name': text_box.city_name,
             'fontsize': text_box.fontsize,
             'fontcolor': text_box.fontcolor,

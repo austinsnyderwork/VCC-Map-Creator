@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib import patches
 from matplotlib.patches import Polygon, Circle, FancyBboxPatch
 from mpl_toolkits.basemap import Basemap
 
@@ -42,32 +43,25 @@ def apply_plot_row(row, ax, m):
         x_data = string_to_tuple(row['line_x_data'])
         y_data = string_to_tuple(row['line_y_data'])
 
-        x0, y0 = m(x_data[0], y_data[0])
-        x1, y1 = m(x_data[1], y_data[1])
-
-        poly = Polygon([[x0, y0], [x1, y1]],
-                       closed=False,
-                       linewidth=row['line_linewidth'],
-                       edgecolor=row['line_facecolor'],
-                       linestyle=row['line_linestyle'],
-                       facecolor='none',
-                       zorder=line_zorder)
-        ax.add_patch(poly)
+        patch = patches.Polygon(xy=list(zip(x_data, y_data)),
+                                closed=True,
+                                facecolor=row['line_facecolor'])
+        ax.add_patch(patch)
 
     elif row['type'] == 'cityscatter':
         lon, lat = string_to_tuple(row['cityscatter_city_coord'])
         x, y = m(lon, lat)
 
-        patch = Circle((x, y),
-                       radius=row['cityscatter_size'],
-                       facecolor=row['cityscatter_facecolor'],
-                       edgecolor=row['cityscatter_edgecolor'],
-                       zorder=scatter_zorder)
+        patch = patches.Circle((x, y),
+                               radius=row['cityscatter_size'],
+                               facecolor=row['cityscatter_facecolor'],
+                               edgecolor=row['cityscatter_edgecolor'],
+                               zorder=scatter_zorder)
         ax.add_patch(patch)
 
     elif row['type'] == 'textbox':
-        lon, lat = string_to_tuple(row['textbox_poly_coord'])
-        x, y = m(lon, lat)
+        lon, lat = string_to_tuple(row['textbox_bottom_left_coord'])
+        x, y = m(lon, lat, inverse=True)
 
         bbox_patch = dict(
             boxstyle='square,pad=0.0',

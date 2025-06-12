@@ -26,7 +26,7 @@ class CityOriginVolumeConditionsController(ConditionsController):
 
         scatter_thresholds = {
             tuple(range(5, 11)): {
-                "radius": 150,
+                "radius": 1000,
                 "marker": "o",
                 "label": "5-10",
                 "facecolor": "red",
@@ -34,7 +34,7 @@ class CityOriginVolumeConditionsController(ConditionsController):
                 "zorder": 3
             },
             tuple(range(11, 16)): {
-                "radius": 150,
+                "radius": 1000,
                 "marker": "o",
                 "label": "11-15",
                 "facecolor": "blue",
@@ -42,7 +42,7 @@ class CityOriginVolumeConditionsController(ConditionsController):
                 "zorder": 3
             },
             tuple(range(16, 21)): {
-                "radius": 150,
+                "radius": 1000,
                 "marker": "o",
                 "label": "16-20",
                 "facecolor": "orange",
@@ -50,7 +50,7 @@ class CityOriginVolumeConditionsController(ConditionsController):
                 "zorder": 3
             },
             tuple(range(21, 1000)): {
-                "radius": 150,
+                "radius": 1000,
                 "marker": "o",
                 "label": "21+",
                 "facecolor": "black",
@@ -110,7 +110,7 @@ class CityOriginVolumeConditionsController(ConditionsController):
 
         elif city in self._destination_cities:
             city_scatter = CityScatter(
-                radius=150,
+                radius=1000,
                 coord=city.city_coord,
                 facecolor="gray",
                 edgecolor="gray",

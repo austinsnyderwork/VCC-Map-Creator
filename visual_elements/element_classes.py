@@ -153,6 +153,14 @@ class TextBox(VisualElement):
     def bounds(self):
         return self.polygon.bounds
 
+    # Matplotlib plots from the bottom left point of the rectangle - not the centroid
+    @property
+    def bottom_left_point(self) -> tuple:
+        return (
+            self.centroid_coord.lon - self.width / 2,
+            self.centroid_coord.lat - self.height / 2
+        )
+
 
 class CityScatter(VisualElement):
 
