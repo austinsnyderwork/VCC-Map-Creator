@@ -86,7 +86,7 @@ class VisualElement(ABC):
                  classification=None,
                  **kwargs
                  ):
-        self._centroid_coord = centroid_coord
+        self.centroid_coord = centroid_coord
 
         self.map_attributes = map_attributes or VisualElementAttributes()
         self.algo_attributes = algo_attributes or VisualElementAttributes()
@@ -97,16 +97,6 @@ class VisualElement(ABC):
 
         for k, v in kwargs.items():
             setattr(self, k, v)
-
-    @property
-    def centroid_coord(self):
-        if self._centroid_coord:
-            return self._centroid_coord
-        else:
-            return Coordinate(
-                longitude=self.polygon.centroid.x,
-                latitude=self.polygon.centroid.y
-            )
 
 
 class AlgorithmClassification(Enum):
@@ -126,7 +116,7 @@ class TextBox(VisualElement):
                  fontweight: str,
                  fontcolor: str,
                  zorder: int,
-                 centroid_coord: Coordinate = None,
+                 centroid_coord: Coordinate,
                  city_name: str = None,
                  width: float = None,
                  height: float = None,
@@ -150,16 +140,24 @@ class TextBox(VisualElement):
                          algo_attributes=algo_attributes)
 
     @property
+    def __key(self):
+        return self.city_name, self.centroid_coord
+
+    def __eq__(self, other):
+        if not isinstance(other, TextBox):
+            return False
+
+        return self.__key == other.__key
+
+    def __hash__(self):
+        return hash(self.__key)
+
+    def __str__(self):
+        return f"{self.__class__.__name__}_{self.city_name}"
+
+    @property
     def bounds(self):
         return self.polygon.bounds
-
-    # Matplotlib plots from the bottom left point of the rectangle - not the centroid
-    @property
-    def bottom_left_point(self) -> tuple:
-        return (
-            self.centroid_coord.lon - self.width / 2,
-            self.centroid_coord.lat - self.height / 2
-        )
 
 
 class CityScatter(VisualElement):
@@ -191,10 +189,28 @@ class CityScatter(VisualElement):
         self.edgecolor = edgecolor
         self.label = label
 
+    def __eq___(self, other):
+        if not isinstance(other, CityScatter):
+            return False
+
+        return self.__key == other.__key
+
+    @property
+    def __key(self):
+        return self.__class__.__name__, self.centroid_coord
+
+    def __hash__(self):
+        return hash(self.__key)
+
+    def __str__(self):
+        return f"{self.__class__.__name__}_{self.city_name}"
+
 
 class Line(VisualElement):
 
     def __init__(self,
+                 origin_city: str,
+                 visiting_city: str,
                  origin_coordinate: Coordinate,
                  visiting_coordinate: Coordinate,
                  linewidth: int,
@@ -208,6 +224,8 @@ class Line(VisualElement):
         super().__init__(polygon=polygon,
                          map_attributes=map_attributes,
                          algo_attributes=algo_attributes)
+        self.origin_city = origin_city
+        self.visiting_city = visiting_city
 
         self.linewidth = linewidth
         self.linestyle = linestyle
@@ -215,6 +233,22 @@ class Line(VisualElement):
         self.zorder = zorder
         self.origin_coordinate = origin_coordinate
         self.visiting_coordinate = visiting_coordinate
+
+    @property
+    def __key(self):
+        return self.origin_city, self.visiting_city
+
+    def __eq__(self, other):
+        if not isinstance(other, Line):
+            return False
+
+        return self.__key == other.__key
+
+    def __hash__(self):
+        return hash(self.__key)
+
+    def __str__(self):
+        return f"{self.__class__.__name__}_{self.origin_city}_{self.visiting_city}"
 
     @property
     def x_data(self):

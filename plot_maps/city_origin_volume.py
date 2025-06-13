@@ -13,7 +13,12 @@ class CityOriginVolumeConditionsController(ConditionsController):
                  ):
         self._valid_origin_cities_volume = dict()
         self._destination_cities = set()
-        self._line_assignments_created = set()
+
+        self._visual_elements_check = {
+            CityScatter: set(),
+            Line: set(),
+            TextBox: set()
+        }
 
         cmap = ConditionsMap()
         cmap.add_condition(condition=self._city_condition,
@@ -26,7 +31,7 @@ class CityOriginVolumeConditionsController(ConditionsController):
 
         scatter_thresholds = {
             tuple(range(5, 11)): {
-                "radius": 1000,
+                "radius": 3000,
                 "marker": "o",
                 "label": "5-10",
                 "facecolor": "red",
@@ -34,7 +39,7 @@ class CityOriginVolumeConditionsController(ConditionsController):
                 "zorder": 3
             },
             tuple(range(11, 16)): {
-                "radius": 1000,
+                "radius": 3000,
                 "marker": "o",
                 "label": "11-15",
                 "facecolor": "blue",
@@ -42,7 +47,7 @@ class CityOriginVolumeConditionsController(ConditionsController):
                 "zorder": 3
             },
             tuple(range(16, 21)): {
-                "radius": 1000,
+                "radius": 3000,
                 "marker": "o",
                 "label": "16-20",
                 "facecolor": "orange",
@@ -50,7 +55,7 @@ class CityOriginVolumeConditionsController(ConditionsController):
                 "zorder": 3
             },
             tuple(range(21, 1000)): {
-                "radius": 1000,
+                "radius": 3000,
                 "marker": "o",
                 "label": "21+",
                 "facecolor": "black",
@@ -90,42 +95,61 @@ class CityOriginVolumeConditionsController(ConditionsController):
             self._destination_cities.update(destination_cities[city])
 
     def _city_condition(self, city: City) -> list:
+        ves = []
         if city in self._valid_origin_cities_volume:
             leaving_providers = self._valid_origin_cities_volume[city]
             data = self._scatter_thresholds[leaving_providers]
+
             city_scatter = CityScatter(
                 **data,
                 coord=city.city_coord,
                 city_name=city.city_name
             )
+
             if city in self._destination_cities:
                 city_scatter.map_attributes.edgecolor = 'red'
 
-            return [city_scatter, TextBox(city_name=city.city_name,
-                                          font="Roboto",
-                                          fontsize=9,
-                                          fontweight='normal',
-                                          fontcolor="black",
-                                          zorder=2)]
+            text_box = TextBox(
+                city_name=city.city_name,
+                centroid_coord=city.city_coord,
+                font="Roboto",
+                fontsize=7,
+                fontweight='normal',
+                fontcolor="black",
+                zorder=2
+            )
+
+            ves = [city_scatter, text_box]
 
         elif city in self._destination_cities:
             city_scatter = CityScatter(
-                radius=1000,
+                radius=3000,
                 coord=city.city_coord,
-                facecolor="gray",
-                edgecolor="gray",
+                facecolor="black",
+                edgecolor="black",
                 marker="o",
                 label=None,
                 city_name=city.city_name
             )
-            return [city_scatter, TextBox(city_name=city.city_name,
-                                          font="Robot",
-                                          fontsize=9,
-                                          fontweight='normal',
-                                          fontcolor="black",
-                                          zorder=2)]
+            text_box = TextBox(
+                city_name=city.city_name,
+                centroid_coord=city.city_coord,
+                font="Robot",
+                fontsize=7,
+                fontweight='normal',
+                fontcolor="black",
+                zorder=2
+            )
 
-        return []
+            ves = [city_scatter, text_box]
+
+        new_ves = []
+        for ve in ves:
+            if ve not in self._visual_elements_check[type(ve)]:
+                new_ves.append(ve)
+                self._visual_elements_check[type(ve)].add(ve)
+
+        return new_ves
 
     def _assignment_condition(self, pa: ProviderAssignment) -> list:
         if pa.origin_city not in self._valid_origin_cities_volume:
@@ -134,17 +158,20 @@ class CityOriginVolumeConditionsController(ConditionsController):
         line_color = self._city_networks_handler.fetch_city_color(pa.origin_city)
 
         leaving_providers = self._valid_origin_cities_volume[pa.origin_city]
-        if leaving_providers >= min(self._scatter_thresholds) and (pa.origin_city, pa.visiting_city) not in self._line_assignments_created:
-            self._line_assignments_created.add((pa.origin_city, pa.visiting_city))
-            return [
-                Line(
-                    linewidth=1000,
-                    facecolor=line_color,
-                    linestyle="-",
-                    zorder=1,
-                    origin_coordinate=pa.origin_city.city_coord,
-                    visiting_coordinate=pa.visiting_city.city_coord
-                )
-            ]
+        if leaving_providers >= min(self._scatter_thresholds):
+            line = Line(
+                origin_city=pa.origin_city.city_name,
+                visiting_city=pa.visiting_city.city_name,
+                linewidth=1000,
+                facecolor=line_color,
+                linestyle="-",
+                zorder=1,
+                origin_coordinate=pa.origin_city.city_coord,
+                visiting_coordinate=pa.visiting_city.city_coord
+            )
+
+            if line not in self._visual_elements_check[Line]:
+                self._visual_elements_check[Line].add(line)
+                return [line]
 
         return []

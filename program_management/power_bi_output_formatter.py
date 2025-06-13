@@ -25,9 +25,10 @@ class PowerBiOutputFormatter:
             self._cols[c].append(v)
 
     def _create_line_row(self, line: Line):
+        x, y = line.polygon.exterior.xy
         cols = {
-            'x_data': line.x_data,
-            'y_data': line.y_data,
+            'x_data': x,
+            'y_data': y,
             'facecolor': line.facecolor,
             'linestyle': line.linestyle,
             'linewidth': line.linewidth,
@@ -53,8 +54,12 @@ class PowerBiOutputFormatter:
         self._add_row(cols)
 
     def _create_text_box_row(self, text_box: TextBox):
+        bottom_left_coord = (
+            text_box.centroid_coord.lon - text_box.width / 2,
+            text_box.centroid_coord.lat - text_box.height / 2
+        )
         cols = {
-            'bottom_left_coord': text_box.bottom_left_point,
+            'bottom_left_coord': bottom_left_coord,
             'width': text_box.width,
             'height': text_box.height,
             'city_name': text_box.city_name,

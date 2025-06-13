@@ -7,6 +7,7 @@ class TextBoxFactory:
     
     @staticmethod
     def create_text_box(center_coord: Coordinate,
+                        city_name: str,
                         font: str,
                         fontsize: int,
                         fontweight: str,
@@ -30,6 +31,8 @@ class TextBoxFactory:
             y_max=y_max
         )
         new_text_box = TextBox(
+            centroid_coord=center_coord,
+            city_name=city_name,
             font=font,
             fontsize=fontsize,
             fontweight=fontweight,

@@ -1,4 +1,5 @@
 import pprint
+from collections.abc import Iterable
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
@@ -11,9 +12,22 @@ from visual_elements.element_classes import CityScatter, Line, TextBox, VisualEl
 class Patches:
 
     def __init__(self):
+        self._ve_patches = dict()
         self._patches = dict()
 
-    def add_patch(self, new_patch, classification):
+    def add_patch(self,
+                  visual_element: VisualElement,
+                  new_patch,
+                  classification: AlgorithmClassification):
+        if isinstance(visual_element, TextBox) and classification == AlgorithmClassification.TEXT_BEST:
+            print(f"Plotting Best of TextBox {visual_element.city_name} at {visual_element.centroid_coord.lon_lat}")
+
+        if visual_element in self._ve_patches:
+            raise ValueError(f"Asked to overwrite patch for {str(visual_element)}")
+
+        self._ve_patches[visual_element] = new_patch
+
+        # If there's no classification then there's nothing left to do
         if not classification:
             return
 
@@ -22,8 +36,15 @@ class Patches:
 
         self._patches[classification].append(new_patch)
 
-    def remove_patches(self, classifications):
-        patches = [
+    def fetch_patch(self, visual_element):
+        return self._ve_patches[visual_element]
+
+    def remove_patch(self, visual_element: VisualElement):
+        self._ve_patches[visual_element].remove()
+        del self._ve_patches[visual_element]
+
+    def remove_patches(self, classifications: Iterable):
+        ps = [
             p
             for classification, ps in self._patches.items()
             if classification in classifications
@@ -32,11 +53,8 @@ class Patches:
         removed_dict = {c: [] for c in classifications}
         self._patches.update(removed_dict)
 
-        for patch in patches:
-            try:
-                patch.remove()
-            except (ValueError, NotImplementedError) as e:
-                print(f"Warning: failed to remove patch {patch}: {e}")
+        for p in ps:
+            p.remove()
 
 
 class AlgorithmDisplay:
@@ -135,28 +153,29 @@ class AlgorithmDisplay:
         self._patches.remove_patches(classifications_to_remove)
 
     def _plot_scatter(self, scatter: CityScatter, classification, algo_attributes):
-        print(f"Plotting CityScatter patch\n\tRadius:{scatter.radius}\n\tZorder: {algo_attributes.zorder}")
+        # print(f"Plotting CityScatter patch\n\tRadius:{scatter.radius}\n\tZorder: {algo_attributes.zorder}")
         patch = patches.Circle(
             (scatter.coord.lon, scatter.coord.lat),
             radius=scatter.radius,
-            facecolor=algo_attributes.facecolor,
-            edgecolor=algo_attributes.edgecolor,
+            facecolor=scatter.facecolor,
+            edgecolor=scatter.edgecolor,
             zorder=algo_attributes.zorder
         )
         self.ax.add_patch(patch)
-        self._patches.add_patch(patch, classification)
+        self._patches.add_patch(visual_element=scatter,
+                                new_patch=patch,
+                                classification=classification)
 
         return patch
 
     def _plot_text(self, text_box: TextBox, algo_attributes, classification=None):
-        self._remove_patches(text_box, classification)
         # Matplotlib rectangles are drawn from bottom-left corner
         bottom_left_point = (
             text_box.centroid_coord.lon - text_box.width / 2,
             text_box.centroid_coord.lat - text_box.height / 2
         )
-        print(f"Plotting TextBox patch\n\tBottom left coord: {bottom_left_point}\n\tWidth: {text_box.width}"
-              f"\n\tHeight: {text_box.height}\n\tZorder: {algo_attributes.zorder}")
+        """print(f"Plotting TextBox patch\n\tBottom left coord: {bottom_left_point}\n\tWidth: {text_box.width}"
+              f"\n\tHeight: {text_box.height}\n\tZorder: {algo_attributes.zorder}")"""
         patch = patches.Rectangle(
             bottom_left_point,
             text_box.width,
@@ -166,23 +185,56 @@ class AlgorithmDisplay:
             zorder=algo_attributes.zorder
         )
         self.ax.add_patch(patch)
-        self._patches.add_patch(patch, classification)
+        self._patches.add_patch(visual_element=text_box,
+                                new_patch=patch,
+                                classification=classification)
 
         return patch
 
     def _plot_line(self, line: Line, classification, algo_attributes):
         x, y = line.polygon.exterior.xy
 
-        print(f"Plotting Line patch\n\tX: {x}\n\tY: {y}")
+        # print(f"Plotting Line patch\n\tX: {x}\n\tY: {y}")
         patch = patches.Polygon(xy=list(zip(x, y)),
                                 closed=True,
                                 facecolor=algo_attributes.facecolor,
                                 alpha=algo_attributes.transparency)
         self.ax.add_patch(patch)
 
-        self._patches.add_patch(patch, classification)
+        self._patches.add_patch(visual_element=line,
+                                new_patch=patch,
+                                classification=classification)
 
         return patch
+
+    def _plot_intersect(self,
+                        visual_element: VisualElement):
+        if isinstance(visual_element, TextBox):
+            print(f"Plotting intersect of TextBox {visual_element.city_name} at {visual_element.centroid_coord.lon_lat}")
+
+        algo_attributes = VisualElementAttributesResolver.resolve_algo_attributes(
+            visual_element=visual_element,
+            classification=AlgorithmClassification.INTERSECT
+        )
+
+        if algo_attributes.center_view:
+            self.center_display(visual_element=visual_element)
+
+        current_patch = self._patches.fetch_patch(visual_element)
+        current_facecolor = current_patch.get_facecolor()
+        current_patch.set_facecolor(algo_attributes.facecolor)
+
+        current_edgecolor = current_patch.get_edgecolor()
+
+        if algo_attributes.edgecolor:
+            current_patch.set_edgecolor(algo_attributes.edgecolor)
+
+        self.fig.canvas.draw()
+        plt.show(block=False)
+        plt.pause(self.show_pause)
+
+        current_patch.set_facecolor(current_facecolor)
+        current_patch.set_edgecolor(current_edgecolor)
 
     def plot_element(self,
                      visual_element,
@@ -190,10 +242,15 @@ class AlgorithmDisplay:
                      show_display: bool,
                      *args,
                      **kwargs):
+        if classification == AlgorithmClassification.INTERSECT:
+            self._plot_intersect(visual_element)
+            return
+
         algo_attributes = VisualElementAttributesResolver.resolve_algo_attributes(
-            element=visual_element,
+            visual_element=visual_element,
             classification=classification
         )
+
         if isinstance(visual_element, CityScatter):
             patch = self._plot_scatter(visual_element,
                                        algo_attributes=algo_attributes,
@@ -209,19 +266,17 @@ class AlgorithmDisplay:
         else:
             raise TypeError(f"Unsupported VisualElement type {type(visual_element)} for function plot_element")
 
-        # Set axis limits
+        if not show_display or not algo_attributes.show:
+            return patch
+
         if algo_attributes.center_view:
             self.center_display(visual_element=visual_element)
 
-        # Redraw the figure to update the display
         self.fig.canvas.draw()
-
-        if show_display and algo_attributes.show:
-            self.fig.canvas.draw()
-            plt.show(block=False)
-            plt.pause(self.show_pause)
+        plt.show(block=False)
+        plt.pause(self.show_pause)
 
         if algo_attributes.immediately_remove:
-            patch.remove()
+            self._patches.remove_patch(visual_element)
 
         return patch

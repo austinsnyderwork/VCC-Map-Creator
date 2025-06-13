@@ -49,7 +49,9 @@ def _create_iowa_basemap(figsize):
 
 class OperationsCoordinator:
 
-    def __init__(self, vcc_df: pd.DataFrame):
+    def __init__(self,
+                 vcc_df: pd.DataFrame,
+                 city_name_changes: dict):
         print("Building EntitiesContainer.")
         self._config = ConfigManager()
         fig, ax, m = _create_iowa_basemap(
@@ -145,27 +147,30 @@ class OperationsCoordinator:
 
             city_scatter = [nt for nt in non_texts if isinstance(nt, CityScatter) and nt.city_name == text.city_name][0]
 
+            """if self._show_algo:
+                self._algo_display.center_display(city_scatter)"""
+
             print(f"Finding best poly for city '{city_scatter.city_name}'")
 
             for elements, classification in text_box_algorithm.find_best_poly(
                     text_box=text,
                     city_scatter=city_scatter
             ):
-                if self._show_algo:
-                    print(f"Algorithm plotting {len(elements)}: {classification}")
+                if classification == AlgorithmClassification.TEXT_BEST:
+                    best = elements[0]
 
+                    text.polygon = best.polygon
+                    text.centroid_coord = best.centroid_coord
+
+                    print(f"Rtree inserting Best for {text.city_name}")
+                    rtree_map.add_visual_element(text)
+
+                if self._show_algo:
+                    # print(f"Algorithm plotting {len(elements)}: {classification}")
                     for element in elements:
                         self._algo_display.plot_element(visual_element=element,
                                                         classification=classification,
                                                         show_display=self._show_algo)
-
-                if classification == AlgorithmClassification.TEXT_BEST:
-                    best_element = elements[0]
-
-                    text.polygon = PolygonFactory.create_rectangle(*best_element.bounds)
-
-                    print(f"Rtree inserting Best for {text.city_name}")
-                    rtree_map.add_visual_element(text)
 
         if self._show_algo:
             self._algo_display.fig.canvas.draw()

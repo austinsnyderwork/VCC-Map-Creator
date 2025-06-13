@@ -23,6 +23,7 @@ class VisualElementAttributesResolver:
         AlgorithmClassification.INTERSECT: VisualElementAttributes(
             show=True,
             facecolor='brown',
+            edgecolor='brown',
             transparency=1,
             immediately_remove=True,
             center_view=False,
@@ -32,7 +33,7 @@ class VisualElementAttributesResolver:
             show=True,
             facecolor="blue",
             transparency=1,
-            immediately_remove=False,
+            immediately_remove=True,
             center_view=False,
             steps_to_show=1,
             zorder=3,
@@ -41,21 +42,33 @@ class VisualElementAttributesResolver:
             show=True,
             facecolor="purple",
             transparency=1.0,
-            immediately_remove=False,
+            immediately_remove=True,
             center_view=False,
             steps_to_show=1,
             zorder=3,
+        ),
+        AlgorithmClassification.TEXT_BEST: VisualElementAttributes(
+            show=True,
+            facecolor='green',
+            transparency=1.0,
+            immediately_remove=False,
+            center_view=False,
+            steps_to_show=1,
+            zorder=3
         )
     }
 
     @classmethod
-    def resolve_algo_attributes(cls, element: VisualElement, classification) -> VisualElementAttributes:
+    def resolve_algo_attributes(cls,
+                                visual_element: VisualElement,
+                                classification
+                                ) -> VisualElementAttributes:
         attributes = VisualElementAttributes()
         if classification in cls._algo_defaults:
             algo_defaults = cls._algo_defaults[classification]
             attributes.update(algo_defaults)
 
-        attributes.update(element.algo_attributes)
+        attributes.update(visual_element.algo_attributes)
 
         return attributes
 

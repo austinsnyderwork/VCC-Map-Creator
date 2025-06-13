@@ -1,4 +1,7 @@
+import ast
+from array import array
 import matplotlib.pyplot as plt
+import pandas as pd
 from matplotlib import patches
 from matplotlib.patches import Polygon, Circle, FancyBboxPatch
 from mpl_toolkits.basemap import Basemap
@@ -31,17 +34,18 @@ def create_iowa_basemap(figsize):
     return fig, ax, m
 
 
-def string_to_tuple(s):
-    if isinstance(s, tuple):
+def parse_array_string(s: str):
+    if isinstance(s, array):  # already parsed
         return s
-    s = s.strip("()").strip()
-    return tuple(float(x) for x in s.split(","))
+    return eval(s, {"array": array})
 
 
-def apply_plot_row(row, ax, m):
+def apply_plot_row(row, ax):
     if row['type'] == 'line':
-        x_data = string_to_tuple(row['line_x_data'])
-        y_data = string_to_tuple(row['line_y_data'])
+        x_data = parse_array_string(row['line_x_data'])
+        y_data = parse_array_string(row['line_y_data'])
+
+        # print(f"Plotting Line at X_data: {x_data}\n\tY_data: {y_data}")
 
         patch = patches.Polygon(xy=list(zip(x_data, y_data)),
                                 closed=True,
@@ -49,8 +53,10 @@ def apply_plot_row(row, ax, m):
         ax.add_patch(patch)
 
     elif row['type'] == 'cityscatter':
-        lon, lat = string_to_tuple(row['cityscatter_city_coord'])
-        x, y = m(lon, lat)
+        lon, lat = ast.literal_eval(row['cityscatter_city_coord'])
+        x, y = lon, lat
+
+        # print(f"Plotting CityScatter at ({x}, {y})")
 
         patch = patches.Circle((x, y),
                                radius=row['cityscatter_size'],
@@ -60,18 +66,19 @@ def apply_plot_row(row, ax, m):
         ax.add_patch(patch)
 
     elif row['type'] == 'textbox':
-        lon, lat = string_to_tuple(row['textbox_bottom_left_coord'])
-        x, y = m(lon, lat, inverse=True)
+        lon, lat = ast.literal_eval(row['textbox_bottom_left_coord'])
+
+        # print(f"Plotting text at ({lon}, {lat})")
 
         bbox_patch = dict(
             boxstyle='square,pad=0.0',
             facecolor='white',
             edgecolor='white'
         )
-        ax.text(x, y,
+        ax.text(lon, lat,
                 row['textbox_city_name'],
                 fontsize=row['textbox_fontsize'],
-                ha='center', va='center',
+                ha='left', va='baseline',
                 color=row['textbox_fontcolor'],
                 fontweight=row['textbox_fontweight'],
                 bbox=bbox_patch,
@@ -85,8 +92,9 @@ line_zorder = 0
 scatter_zorder = 2
 text_poly_zorder = 1
 
+dataset = pd.read_csv("C:/Users/austisnyder/programming/programming_i_o_files/pbi_output.csv")
 # Apply each row in your dataset (assumes pandas DataFrame `dataset`)
-dataset.apply(lambda row: apply_plot_row(row, ax, m), axis=1)
+dataset.apply(lambda row: apply_plot_row(row, ax), axis=1)
 
 ax.set_aspect('equal')
 plt.tight_layout()
