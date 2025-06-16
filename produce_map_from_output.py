@@ -1,9 +1,9 @@
 import ast
 from array import array
+
 import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib import patches
-from matplotlib.patches import Polygon, Circle, FancyBboxPatch
 from mpl_toolkits.basemap import Basemap
 
 
@@ -71,9 +71,10 @@ def apply_plot_row(row, ax):
         # print(f"Plotting text at ({lon}, {lat})")
 
         bbox_patch = dict(
-            boxstyle='square,pad=0.0',
+            boxstyle='round,pad=0.0',
             facecolor='white',
-            edgecolor='white'
+            edgecolor='white',
+            linewidth=0
         )
         ax.text(lon, lat,
                 row['textbox_city_name'],

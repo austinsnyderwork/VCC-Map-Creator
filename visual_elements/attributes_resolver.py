@@ -1,7 +1,5 @@
-from typing import Optional
-
 from visual_elements.element_classes import (AlgorithmClassification, VisualElement,
-                                             CityScatter, Line, TextBox, VisualElementAttributes)
+                                             VisualElementAttributes)
 
 
 class VisualElementAttributesResolver:
@@ -21,7 +19,7 @@ class VisualElementAttributesResolver:
             zorder=2
         ),
         AlgorithmClassification.INTERSECT: VisualElementAttributes(
-            show=True,
+            show=False,
             facecolor='brown',
             edgecolor='brown',
             transparency=1,
@@ -30,7 +28,7 @@ class VisualElementAttributesResolver:
             zorder=4
         ),
         AlgorithmClassification.TEXT_SCAN: VisualElementAttributes(
-            show=True,
+            show=False,
             facecolor="blue",
             transparency=1,
             immediately_remove=True,
@@ -39,7 +37,7 @@ class VisualElementAttributesResolver:
             zorder=3,
         ),
         AlgorithmClassification.TEXT_FINALIST: VisualElementAttributes(
-            show=True,
+            show=False,
             facecolor="purple",
             transparency=1.0,
             immediately_remove=True,

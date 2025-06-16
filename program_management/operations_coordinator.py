@@ -2,14 +2,14 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from mpl_toolkits.basemap import Basemap
 
-import plotting
+import core_support
 from config_manager import ConfigManager
 from entities.factory import EntitiesFactory
 from environment_management.city_origin_networks import CityNetworksHandler
 from plot_maps.base_classes import ConditionsController
 from plotting import AlgorithmDisplay
 from polygons.polygon_factory import PolygonFactory
-from text_box_algorithm.rtree_elements_manager import RtreeVisualElementsMap
+from shared.rtree_elements_manager import RtreeVisualElementsMap
 from text_box_algorithm.textbox_placement_algorithm import TextboxPlacementAlgorithm
 from visual_elements.attributes_resolver import VisualElementAttributesResolver
 from visual_elements.element_classes import TextBox, CityScatter, Line, AlgorithmClassification
@@ -51,7 +51,13 @@ class OperationsCoordinator:
 
     def __init__(self,
                  vcc_df: pd.DataFrame,
-                 city_name_changes: dict):
+                 city_name_changes: dict = None
+                 ):
+
+        vcc_df = core_support.change_city_names(vcc_df,
+                                                city_name_changes)
+        vcc_df = core_support.delete_same_origin_visiting_rows(vcc_df)
+
         print("Building EntitiesContainer.")
         self._config = ConfigManager()
         fig, ax, m = _create_iowa_basemap(
@@ -90,11 +96,13 @@ class OperationsCoordinator:
         )
 
         print("Determining VisualElements for each Entity.")
-        elements = [
+        elements = {
             ve
             for entity in self._entities_container.entities
             for ve in conditions_controller.determine_visual_elements(entity)
-        ]
+        }
+        core_support.verify_text_box_city_scatter_pairs(elements=elements)
+
         texts = [element for element in elements if isinstance(element, TextBox)]
         non_texts = [element for element in elements if not isinstance(element, TextBox)]
 
@@ -137,33 +145,35 @@ class OperationsCoordinator:
                                                     show_display=False,
                                                     classification=AlgorithmClassification.CITY_SCATTER)
 
+        core_support.verify_no_city_scatter_intersections(rtree_map=rtree_map)
+
         # 3. Use the non-TextBox visual elements in the RTree to determine the best placement for TextBoxes
-        for text in texts:
-            text.width, text.height = self._algo_display.determine_text_box_dimensions(
-                text,
-                fontsize=text.fontsize,
-                fontweight=text.fontweight
+        for text_box in texts:
+            print(f"Finding best poly for {str(text_box)}")
+
+            text_box.width, text_box.height = self._algo_display.determine_text_box_dimensions(
+                text_box,
+                fontsize=text_box.fontsize,
+                fontweight=text_box.fontweight
             )
 
-            city_scatter = [nt for nt in non_texts if isinstance(nt, CityScatter) and nt.city_name == text.city_name][0]
-
-            """if self._show_algo:
-                self._algo_display.center_display(city_scatter)"""
-
-            print(f"Finding best poly for city '{city_scatter.city_name}'")
+            try:
+                city_scatter = [nt for nt in non_texts if isinstance(nt, CityScatter) and nt.city_name == text_box.city_name][0]
+            except IndexError:
+                raise IndexError(f"Could not find CityScatter for {str(text_box)}")
 
             for elements, classification in text_box_algorithm.find_best_poly(
-                    text_box=text,
+                    text_box=text_box,
                     city_scatter=city_scatter
             ):
                 if classification == AlgorithmClassification.TEXT_BEST:
                     best = elements[0]
 
-                    text.polygon = best.polygon
-                    text.centroid_coord = best.centroid_coord
+                    text_box.polygon = best.polygon
+                    text_box.centroid_coord = best.centroid_coord
 
-                    print(f"Rtree inserting Best for {text.city_name}")
-                    rtree_map.add_visual_element(text)
+                    print(f"Rtree inserting Best for {text_box.city_name}")
+                    rtree_map.add_visual_element(text_box)
 
                 if self._show_algo:
                     # print(f"Algorithm plotting {len(elements)}: {classification}")

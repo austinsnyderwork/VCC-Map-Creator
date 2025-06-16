@@ -1,8 +1,6 @@
-import pprint
 from collections.abc import Iterable
 
 import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap
 from matplotlib import patches
 
 from visual_elements.attributes_resolver import VisualElementAttributesResolver
@@ -12,8 +10,8 @@ from visual_elements.element_classes import CityScatter, Line, TextBox, VisualEl
 class Patches:
 
     def __init__(self):
-        self._ve_patches = dict()
-        self._patches = dict()
+        self._singleton_patches_map = dict()
+        self._patches_by_type = dict()
 
     def add_patch(self,
                   visual_element: VisualElement,
@@ -22,36 +20,36 @@ class Patches:
         if isinstance(visual_element, TextBox) and classification == AlgorithmClassification.TEXT_BEST:
             print(f"Plotting Best of TextBox {visual_element.city_name} at {visual_element.centroid_coord.lon_lat}")
 
-        if visual_element in self._ve_patches:
+        if visual_element in self._singleton_patches_map:
             raise ValueError(f"Asked to overwrite patch for {str(visual_element)}")
 
-        self._ve_patches[visual_element] = new_patch
+        self._singleton_patches_map[visual_element] = new_patch
 
         # If there's no classification then there's nothing left to do
         if not classification:
             return
 
-        if classification not in self._patches:
-            self._patches[classification] = []
+        if classification not in self._patches_by_type:
+            self._patches_by_type[classification] = []
 
-        self._patches[classification].append(new_patch)
+        self._patches_by_type[classification].append(new_patch)
 
     def fetch_patch(self, visual_element):
-        return self._ve_patches[visual_element]
+        return self._singleton_patches_map[visual_element]
 
     def remove_patch(self, visual_element: VisualElement):
-        self._ve_patches[visual_element].remove()
-        del self._ve_patches[visual_element]
+        self._singleton_patches_map[visual_element].remove()
+        del self._singleton_patches_map[visual_element]
 
     def remove_patches(self, classifications: Iterable):
         ps = [
             p
-            for classification, ps in self._patches.items()
+            for classification, ps in self._patches_by_type.items()
             if classification in classifications
             for p in ps
         ]
         removed_dict = {c: [] for c in classifications}
-        self._patches.update(removed_dict)
+        self._patches_by_type.update(removed_dict)
 
         for p in ps:
             p.remove()
@@ -128,8 +126,14 @@ class AlgorithmDisplay:
                                 text_box.city_name,
                                 fontsize=fontsize,
                                 fontweight=fontweight,
-                                ha='center',
-                                va='center')
+                                ha='left',
+                                va='baseline',
+                                bbox=dict(
+                                    boxstyle='square,pad=0.0',
+                                    facecolor='white',
+                                    edgecolor='none'
+                                )
+                                )
         self.fig.canvas.draw()
 
         renderer = self.fig.canvas.get_renderer()
@@ -138,7 +142,7 @@ class AlgorithmDisplay:
         inverse = self.ax.transData.inverted()
         bbox = bbox.transformed(inverse)
 
-        width = bbox.width
+        width = bbox.width * 0.85  # Matplotlib gives too much padding on the width natively
         height = bbox.height
 
         self._city_text_dimensions[text_box.city_name] = width, height
@@ -242,14 +246,17 @@ class AlgorithmDisplay:
                      show_display: bool,
                      *args,
                      **kwargs):
-        if classification == AlgorithmClassification.INTERSECT:
-            self._plot_intersect(visual_element)
-            return
-
         algo_attributes = VisualElementAttributesResolver.resolve_algo_attributes(
             visual_element=visual_element,
             classification=classification
         )
+
+        if not algo_attributes.show:
+            return
+
+        if classification == AlgorithmClassification.INTERSECT:
+            self._plot_intersect(visual_element)
+            return
 
         if isinstance(visual_element, CityScatter):
             patch = self._plot_scatter(visual_element,

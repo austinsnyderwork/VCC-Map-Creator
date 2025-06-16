@@ -1,6 +1,5 @@
 import pandas as pd
 
-from visual_elements.attributes_resolver import VisualElementAttributesResolver
 from visual_elements.element_classes import TextBox, Line, CityScatter, VisualElement
 
 

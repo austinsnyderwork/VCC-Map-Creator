@@ -1,5 +1,5 @@
 import pprint
-from abc import ABC
+from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Optional
 
@@ -98,6 +98,24 @@ class VisualElement(ABC):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
+    @property
+    @abstractmethod
+    def _key(self):
+        pass
+
+    def __hash__(self):
+        return hash(self._key)
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+
+        return self._key == other._key
+
+    @abstractmethod
+    def __str__(self):
+        pass
+
 
 class AlgorithmClassification(Enum):
     TEXT_FINALIST = "finalist"
@@ -140,20 +158,11 @@ class TextBox(VisualElement):
                          algo_attributes=algo_attributes)
 
     @property
-    def __key(self):
+    def _key(self):
         return self.city_name, self.centroid_coord
 
-    def __eq__(self, other):
-        if not isinstance(other, TextBox):
-            return False
-
-        return self.__key == other.__key
-
-    def __hash__(self):
-        return hash(self.__key)
-
     def __str__(self):
-        return f"{self.__class__.__name__}_{self.city_name}"
+        return f"{self.__class__.__name__}:{self.city_name}"
 
     @property
     def bounds(self):
@@ -189,21 +198,12 @@ class CityScatter(VisualElement):
         self.edgecolor = edgecolor
         self.label = label
 
-    def __eq___(self, other):
-        if not isinstance(other, CityScatter):
-            return False
-
-        return self.__key == other.__key
-
     @property
-    def __key(self):
-        return self.__class__.__name__, self.centroid_coord
-
-    def __hash__(self):
-        return hash(self.__key)
+    def _key(self):
+        return self.city_name, self.centroid_coord
 
     def __str__(self):
-        return f"{self.__class__.__name__}_{self.city_name}"
+        return f"{self.__class__.__name__}:{self.city_name}"
 
 
 class Line(VisualElement):
@@ -235,20 +235,11 @@ class Line(VisualElement):
         self.visiting_coordinate = visiting_coordinate
 
     @property
-    def __key(self):
-        return self.origin_city, self.visiting_city
-
-    def __eq__(self, other):
-        if not isinstance(other, Line):
-            return False
-
-        return self.__key == other.__key
-
-    def __hash__(self):
-        return hash(self.__key)
+    def _key(self):
+        return self.origin_city, self.origin_coordinate.lon_lat, self.visiting_city, self.visiting_coordinate.lon_lat
 
     def __str__(self):
-        return f"{self.__class__.__name__}_{self.origin_city}_{self.visiting_city}"
+        return f"{self.__class__.__name__}:{self.origin_city}->{self.visiting_city}"
 
     @property
     def x_data(self):

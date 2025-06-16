@@ -1,4 +1,4 @@
-
+from abc import ABC, abstractmethod
 from enum import Enum
 
 from shared.shared_utils import Coordinate
@@ -9,38 +9,45 @@ class AssignmentDirection(Enum):
     LEAVING = 'leaving'
 
 
-class Provider:
+class Entity(ABC):
+
+    @property
+    @abstractmethod
+    def _key(self):
+        pass
+
+    def __hash__(self):
+        return hash(self._key)
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+
+        return self._key == other._key
+
+
+class Provider(Entity):
 
     def __init__(self, name: str):
         self.provider_name = name
 
-    def __hash__(self):
-        return hash(self.provider_name)
-
-    def __eq__(self, other):
-        if not isinstance(other, Provider):
-            return False
-
-        return self.provider_name == other.provider_name
+    @property
+    def _key(self):
+        return self.provider_name
 
 
-class City:
+class City(Entity):
 
     def __init__(self, city_name: str, city_coord: Coordinate):
         self.city_name = city_name
         self.city_coord = city_coord
 
-    def __hash__(self):
-        return hash((self.city_name, self.city_coord))
-
-    def __eq__(self, other):
-        if not isinstance(other, City):
-            return False
-
-        return self.city_name == other.city_name and self.city_coord == other.city_coord
+    @property
+    def _key(self):
+        return self.city_name
 
 
-class ProviderAssignment:
+class ProviderAssignment(Entity):
 
     def __init__(self, provider: Provider, specialty: str, origin_site: 'Worksite', visiting_site: 'Worksite'):
         self.provider = provider
@@ -48,22 +55,9 @@ class ProviderAssignment:
         self.origin_site = origin_site
         self.visiting_site = visiting_site
 
-    def __hash__(self):
-        return hash((
-            self.provider,
-            self.specialty,
-            self.origin_site,
-            self.visiting_site
-        ))
-
-    def __eq__(self, other):
-        if not isinstance(other, ProviderAssignment):
-            return False
-
-        return (self.provider == other.provider
-                and self.specialty == other.specialty
-                and self.origin_site == other.origin_site
-                and self.visiting_site == other.visiting_site)
+    @property
+    def _key(self):
+        return self.provider, self.specialty, self.origin_site, self.visiting_site
 
     @property
     def origin_city(self):
@@ -74,7 +68,7 @@ class ProviderAssignment:
         return self.visiting_site.city
 
 
-class Worksite:
+class Worksite(Entity):
 
     def __init__(self, site_name: str, city: 'City'):
         self.site_name = site_name
@@ -85,14 +79,9 @@ class Worksite:
             AssignmentDirection.VISITING: set()
         }
 
-    def __hash__(self):
-        return hash((self.site_name, self.city))
-
-    def __eq__(self, other):
-        if not isinstance(other, Worksite):
-            return False
-
-        return self.site_name == other.site_name and self.city == other.city
+    @property
+    def _key(self):
+        return self.site_name, self.city
 
     def add_assignment(self, provider_assignment: ProviderAssignment, direction: AssignmentDirection):
         self._provider_assignments[direction].add(provider_assignment)
